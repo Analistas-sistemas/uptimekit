@@ -546,8 +546,7 @@ export const monitorsRouter = {
 			}
 
 			if (input.active) {
-				const existingWorkerIds =
-					(existing.workerIds as string[] | null) ?? [];
+				const existingWorkerIds = (existing.workerIds as string[] | null) ?? [];
 
 				if (existingWorkerIds.length === 0) {
 					throw new ORPCError("BAD_REQUEST", {
@@ -1475,7 +1474,7 @@ export const monitorsRouter = {
 				);
 
 			if (monitors.length === 0) {
-				return {};
+				throw new ORPCError("NOT_FOUND");
 			}
 
 			const relatedIncidents = await db
@@ -1492,6 +1491,16 @@ export const monitorsRouter = {
 			await clickhouse.command({
 				query: `
 					ALTER TABLE uptimekit.monitor_events
+					DELETE WHERE monitorId = {monitorId:String}
+				`,
+				query_params: {
+					monitorId: input.monitorId,
+				},
+			});
+
+			await clickhouse.command({
+				query: `
+					ALTER TABLE uptimekit.monitor_changes
 					DELETE WHERE monitorId = {monitorId:String}
 				`,
 				query_params: {

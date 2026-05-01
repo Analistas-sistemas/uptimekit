@@ -3,7 +3,10 @@ name: to-prd
 description: Turn the current conversation context into a PRD and submit it as a GitHub issue. Use when user wants to create a PRD from the current context.
 ---
 
-This skill takes the current conversation context and codebase understanding and produces a PRD. Do NOT interview the user — just synthesize what you already know.
+This skill takes the current conversation context and codebase understanding and
+produces a PRD. Do not proactively interview the user; synthesize what you
+already know, and ask clarifying questions only when required to resolve
+ambiguity that would materially affect the PRD.
 
 ## Process
 
@@ -13,7 +16,9 @@ This skill takes the current conversation context and codebase understanding and
 
 A deep module (as opposed to a shallow module) is one which encapsulates a lot of functionality in a simple, testable interface which rarely changes.
 
-Check with the user that these modules match their expectations. Check with the user which modules they want tests written for.
+Record the proposed modules and testing targets in the PRD based on context. Ask
+clarifying questions only when required to resolve ambiguity that would
+materially affect the PRD.
 
 3. Write the PRD using the template below and submit it as a GitHub issue.
 

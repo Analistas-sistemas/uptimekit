@@ -1,6 +1,8 @@
+/** biome-ignore-all assist/source/organizeImports: keep external imports grouped before workspace imports */
 import withBundleAnalyzer from "@next/bundle-analyzer";
-import { loadEnv } from "@uptimekit/config/env";
 import type { NextConfig } from "next";
+
+import { loadEnv } from "@uptimekit/config/env";
 
 loadEnv();
 

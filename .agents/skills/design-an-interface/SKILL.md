@@ -25,7 +25,7 @@ Ask: "What does this module need to do? Who will use it?"
 
 Spawn 3+ sub-agents simultaneously using Task tool. Each must produce a **radically different** approach.
 
-```
+```text
 Prompt template for each sub-agent:
 
 Design an interface for: [module description]
