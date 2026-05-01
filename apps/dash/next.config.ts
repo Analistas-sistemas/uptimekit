@@ -3,8 +3,10 @@ import withBundleAnalyzer from "@next/bundle-analyzer";
 import type { NextConfig } from "next";
 
 import { loadEnv } from "@uptimekit/config/env";
+import { startScheduler } from "@uptimekit/scheduler";
 
 loadEnv();
+startScheduler();
 
 const nextConfig: NextConfig = {
 	typedRoutes: true,
@@ -15,6 +17,7 @@ const nextConfig: NextConfig = {
 		"@uptimekit/db",
 		"@uptimekit/auth",
 		"@uptimekit/config",
+		"@uptimekit/scheduler",
 	],
 	images: {
 		remotePatterns: [

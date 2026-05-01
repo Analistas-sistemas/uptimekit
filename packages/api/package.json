@@ -53,6 +53,7 @@
 		"@uptimekit/db": "workspace:*",
 		"dotenv": "catalog:",
 		"drizzle-orm": "catalog:",
+		"effect": "^3.21.2",
 		"ioredis": "^5.8.2",
 		"next": "^16.2.3",
 		"nodemailer": "^8.0.5",

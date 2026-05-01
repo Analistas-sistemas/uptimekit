@@ -158,7 +158,7 @@ async function shutdown() {
 process.on("SIGTERM", shutdown);
 process.on("SIGINT", shutdown);
 
-async function start() {
+export async function startScheduler() {
 	connection = await createRedisConnection();
 
 	const scheduler = createSchedulerWorker(connection);
@@ -170,8 +170,3 @@ async function start() {
 
 	logger.info("Scheduler is running...");
 }
-
-start().catch((err) => {
-	logger.error("Failed to start scheduler:", err);
-	process.exit(1);
-});

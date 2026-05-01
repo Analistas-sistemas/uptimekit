@@ -1,21 +1,19 @@
 "use client";
 
 import { useForm } from "@tanstack/react-form";
+import { AtSignIcon, LockKeyholeIcon } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { sileo } from "sileo";
 import z from "zod";
+import { AuthDivider } from "@/components/auth/auth-divider";
+import { Logo } from "@/components/logo";
 import { Button } from "@/components/ui/button";
 import {
-	Card,
-	CardContent,
-	CardDescription,
-	CardFooter,
-	CardHeader,
-	CardTitle,
-} from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+	InputGroup,
+	InputGroupAddon,
+	InputGroupInput,
+} from "@/components/ui/input-group";
 import { authClient } from "@/lib/auth-client";
 import Loader from "../common/loader";
 
@@ -26,6 +24,7 @@ export default function SignInForm({
 	onSuccess,
 	email,
 	emailReadOnly = false,
+	fullPage = false,
 }: {
 	showRegister?: boolean;
 	showDiscordLogin?: boolean;
@@ -33,6 +32,7 @@ export default function SignInForm({
 	onSuccess?: () => void;
 	email?: string;
 	emailReadOnly?: boolean;
+	fullPage?: boolean;
 }) {
 	const router = useRouter();
 	const { isPending } = authClient.useSession();
@@ -89,156 +89,208 @@ export default function SignInForm({
 		return <Loader />;
 	}
 
-	return (
-		<Card className="mx-auto w-full max-w-md">
-			<CardHeader>
-				<CardTitle className="font-bold text-2xl">Welcome Back</CardTitle>
-				<CardDescription>
-					Enter your credentials to access your account
-				</CardDescription>
-			</CardHeader>
-			<CardContent>
-				<div className="mb-4 flex flex-col gap-2">
-					{showDiscordLogin && (
-						<Button
-							variant="outline"
-							className="w-full"
-							onClick={() => handleSocialSignIn("discord")}
-							type="button"
-						>
-							<svg
-								role="img"
-								viewBox="0 0 24 24"
-								xmlns="http://www.w3.org/2000/svg"
-								className="mr-2 h-4 w-4"
-								fill="currentColor"
-							>
-								<title>Discord</title>
-								<path d="M20.317 4.3698a19.7913 19.7913 0 00-4.8851-1.5152.0741.0741 0 00-.0785.0371c-.211.3753-.4447.8648-.6083 1.2495-1.8447-.2762-3.68-.2762-5.4868 0-.1636-.3933-.4058-.8742-.6177-1.2495a.077.077 0 00-.0785-.037 19.7363 19.7363 0 00-4.8852 1.515.0699.0699 0 00-.0321.0277C.5334 9.0458-.319 13.5799.0992 18.0578a.0824.0824 0 00.0312.0561c2.0528 1.5076 4.0413 2.4228 5.9929 3.0294a.0777.0777 0 00.0842-.0276c.4616-.6304.8731-1.2952 1.226-1.9942a.076.076 0 00-.0416-.1057c-.6528-.2476-1.2743-.5495-1.8722-.8923a.077.077 0 01-.0076-.1277c.1258-.0943.2517-.1923.3718-.2914a.0743.0743 0 01.0776-.0105c3.9278 1.7933 8.18 1.7933 12.0614 0a.0739.0739 0 01.0785.0095c.1202.099.246.1981.3728.2924a.077.077 0 01-.0066.1276 12.2986 12.2986 0 01-1.873.8914.0766.0766 0 00-.0407.1067c.3604.698.7719 1.3628 1.225 1.9932a.076.076 0 00.0842.0286c1.961-.6067 3.9495-1.5219 6.0023-3.0294a.077.077 0 00.0313-.0552c.5004-5.177-.8382-9.6739-3.5485-13.6604a.061.061 0 00-.0312-.0286zM8.02 15.3312c-1.1825 0-2.1569-1.0857-2.1569-2.419 0-1.3332.9555-2.4189 2.157-2.4189 1.2108 0 2.1757 1.0952 2.1568 2.419 0 1.3332-.946 2.419-2.1568 2.419zm7.9748 0c-1.1825 0-2.1569-1.0857-2.1569-2.419 0-1.3332.9554-2.4189 2.1569-2.4189 1.2108 0 2.1757 1.0952 2.1568 2.419 0 1.3332-.946 2.419-2.1568 2.419z" />
-							</svg>
-							Continue with Discord
-						</Button>
-					)}
-					{showGithubLogin && (
-						<Button
-							variant="outline"
-							className="w-full"
-							onClick={() => handleSocialSignIn("github")}
-							type="button"
-						>
-							<svg
-								role="img"
-								viewBox="0 0 24 24"
-								xmlns="http://www.w3.org/2000/svg"
-								className="mr-2 h-4 w-4"
-								fill="currentColor"
-							>
-								<title>GitHub</title>
-								<path d="M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.42-1.305.763-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12" />
-							</svg>
-							Continue with GitHub
-						</Button>
-					)}
-					{(showDiscordLogin || showGithubLogin) && (
-						<div className="relative">
-							<div className="absolute inset-0 flex items-center">
-								<span className="w-full border-t" />
-							</div>
-							<div className="relative flex justify-center text-xs uppercase">
-								<span className="bg-background px-2 text-muted-foreground">
-									Or continue with
-								</span>
-							</div>
-						</div>
-					)}
-				</div>
-				<form
-					onSubmit={(e) => {
-						e.preventDefault();
-						e.stopPropagation();
-						form.handleSubmit();
-					}}
-					className="space-y-4"
-				>
-					<div>
-						<form.Field name="email">
-							{(field) => (
-								<div className="space-y-2">
-									<Label htmlFor={field.name}>Email</Label>
-									<Input
+	const authContent = (
+		<div className="fade-in slide-in-from-bottom-4 flex w-full animate-in flex-col gap-4 duration-600">
+			{fullPage && (
+				<Link href="/" className="flex items-center gap-2">
+					<Logo className="h-10 w-auto" />
+					<span className="font-semibold text-lg">UptimeKit</span>
+				</Link>
+			)}
+			<div className="flex flex-col gap-1">
+				<h1 className="font-bold text-2xl tracking-wide">Welcome Back</h1>
+				<p className="text-base text-muted-foreground">
+					Enter your credentials to access your account.
+				</p>
+			</div>
+			<form
+				onSubmit={(e) => {
+					e.preventDefault();
+					e.stopPropagation();
+					form.handleSubmit();
+				}}
+				className="flex flex-col gap-2"
+			>
+				<form.Field name="email">
+					{(field) => {
+						const showErrors =
+							field.state.meta.isTouched && field.state.meta.errors.length > 0;
+
+						return (
+							<div className="flex flex-col gap-1.5">
+								<InputGroup>
+									<InputGroupInput
 										id={field.name}
 										name={field.name}
 										type="email"
 										value={field.state.value}
 										onBlur={field.handleBlur}
 										onChange={(e) => field.handleChange(e.target.value)}
-										placeholder="m@example.com"
+										placeholder="your.email@example.com"
 										disabled={emailReadOnly}
+										aria-invalid={showErrors || undefined}
 									/>
-									{field.state.meta.errors.map((error) => (
+									<InputGroupAddon align="inline-start">
+										<AtSignIcon />
+									</InputGroupAddon>
+								</InputGroup>
+								{showErrors &&
+									field.state.meta.errors.map((error) => (
 										<p
 											key={error?.message}
-											className="font-medium text-red-500 text-sm"
+											className="font-medium text-destructive text-sm"
 										>
 											{error?.message}
 										</p>
 									))}
-								</div>
-							)}
-						</form.Field>
-					</div>
+							</div>
+						);
+					}}
+				</form.Field>
 
-					<div>
-						<form.Field name="password">
-							{(field) => (
-								<div className="space-y-2">
-									<div className="flex items-center justify-between">
-										<Label htmlFor={field.name}>Password</Label>
-									</div>
-									<Input
+				<form.Field name="password">
+					{(field) => {
+						const showErrors =
+							field.state.meta.isTouched && field.state.meta.errors.length > 0;
+
+						return (
+							<div className="flex flex-col gap-1.5">
+								<InputGroup>
+									<InputGroupInput
 										id={field.name}
 										name={field.name}
 										type="password"
 										value={field.state.value}
 										onBlur={field.handleBlur}
 										onChange={(e) => field.handleChange(e.target.value)}
+										placeholder="Password"
+										aria-invalid={showErrors || undefined}
 									/>
-									{field.state.meta.errors.map((error) => (
+									<InputGroupAddon align="inline-start">
+										<LockKeyholeIcon />
+									</InputGroupAddon>
+								</InputGroup>
+								{showErrors &&
+									field.state.meta.errors.map((error) => (
 										<p
 											key={error?.message}
-											className="font-medium text-red-500 text-sm"
+											className="font-medium text-destructive text-sm"
 										>
 											{error?.message}
 										</p>
 									))}
-								</div>
-							)}
-						</form.Field>
-					</div>
+							</div>
+						);
+					}}
+				</form.Field>
 
-					<form.Subscribe>
-						{(state) => (
+				<form.Subscribe>
+					{(state) => (
+						<Button
+							type="submit"
+							className="mt-3 w-full"
+							size="sm"
+							disabled={!state.canSubmit || state.isSubmitting}
+						>
+							{state.isSubmitting ? "Signing In..." : "Sign In"}
+						</Button>
+					)}
+				</form.Subscribe>
+			</form>
+
+			{(showDiscordLogin || showGithubLogin) && (
+				<>
+					<AuthDivider>OR CONTINUE WITH</AuthDivider>
+					<div className="flex flex-col gap-2">
+						{showDiscordLogin && (
 							<Button
-								type="submit"
+								variant="outline"
 								className="w-full"
-								disabled={!state.canSubmit || state.isSubmitting}
+								onClick={() => handleSocialSignIn("discord")}
+								type="button"
 							>
-								{state.isSubmitting ? "Signing In..." : "Sign In"}
+								<DiscordIcon data-icon="inline-start" />
+								Discord
 							</Button>
 						)}
-					</form.Subscribe>
-				</form>
-			</CardContent>
-			{showRegister && (
-				<CardFooter className="justify-center">
-					<p className="text-muted-foreground text-sm">
-						Don&apos;t have an account?{" "}
-						<Link href="/register" className="text-primary hover:underline">
-							Sign Up
-						</Link>
-					</p>
-				</CardFooter>
+						{showGithubLogin && (
+							<Button
+								variant="outline"
+								className="w-full"
+								onClick={() => handleSocialSignIn("github")}
+								type="button"
+							>
+								<GithubIcon data-icon="inline-start" />
+								GitHub
+							</Button>
+						)}
+					</div>
+				</>
 			)}
-		</Card>
+		</div>
+	);
+
+	if (fullPage) {
+		return (
+			<div className="relative w-full overflow-hidden md:h-screen">
+				<div className="relative mx-auto flex min-h-screen w-full max-w-sm flex-col justify-center gap-8 p-6 md:p-8">
+					{authContent}
+
+					{showRegister && (
+						<p className="text-center text-muted-foreground text-sm">
+							Don&apos;t have an account?{" "}
+							<Link
+								href="/register"
+								className="underline underline-offset-4 hover:text-primary"
+							>
+								Sign Up
+							</Link>
+						</p>
+					)}
+				</div>
+			</div>
+		);
+	}
+
+	return (
+		<div className="mx-auto flex w-full max-w-sm flex-col gap-4">
+			{authContent}
+			{showRegister && (
+				<p className="text-center text-muted-foreground text-sm">
+					Don&apos;t have an account?{" "}
+					<Link
+						href="/register"
+						className="underline underline-offset-4 hover:text-primary"
+					>
+						Sign Up
+					</Link>
+				</p>
+			)}
+		</div>
 	);
 }
+
+const DiscordIcon = (props: React.ComponentProps<"svg">) => (
+	<svg
+		role="img"
+		viewBox="0 0 24 24"
+		xmlns="http://www.w3.org/2000/svg"
+		fill="currentColor"
+		{...props}
+	>
+		<title>Discord</title>
+		<path d="M20.317 4.3698a19.7913 19.7913 0 00-4.8851-1.5152.0741.0741 0 00-.0785.0371c-.211.3753-.4447.8648-.6083 1.2495-1.8447-.2762-3.68-.2762-5.4868 0-.1636-.3933-.4058-.8742-.6177-1.2495a.077.077 0 00-.0785-.037 19.7363 19.7363 0 00-4.8852 1.515.0699.0699 0 00-.0321.0277C.5334 9.0458-.319 13.5799.0992 18.0578a.0824.0824 0 00.0312.0561c2.0528 1.5076 4.0413 2.4228 5.9929 3.0294a.0777.0777 0 00.0842-.0276c.4616-.6304.8731-1.2952 1.226-1.9942a.076.076 0 00-.0416-.1057c-.6528-.2476-1.2743-.5495-1.8722-.8923a.077.077 0 01-.0076-.1277c.1258-.0943.2517-.1923.3718-.2914a.0743.0743 0 01.0776-.0105c3.9278 1.7933 8.18 1.7933 12.0614 0a.0739.0739 0 01.0785.0095c.1202.099.246.1981.3728.2924a.077.077 0 01-.0066.1276 12.2986 12.2986 0 01-1.873.8914.0766.0766 0 00-.0407.1067c.3604.698.7719 1.3628 1.225 1.9932a.076.076 0 00.0842.0286c1.961-.6067 3.9495-1.5219 6.0023-3.0294a.077.077 0 00.0313-.0552c.5004-5.177-.8382-9.6739-3.5485-13.6604a.061.061 0 00-.0312-.0286zM8.02 15.3312c-1.1825 0-2.1569-1.0857-2.1569-2.419 0-1.3332.9555-2.4189 2.157-2.4189 1.2108 0 2.1757 1.0952 2.1568 2.419 0 1.3332-.946 2.419-2.1568 2.419zm7.9748 0c-1.1825 0-2.1569-1.0857-2.1569-2.419 0-1.3332.9554-2.4189 2.1569-2.4189 1.2108 0 2.1757 1.0952 2.1568 2.419 0 1.3332-.946 2.419-2.1568 2.419z" />
+	</svg>
+);
+
+const GithubIcon = (props: React.ComponentProps<"svg">) => (
+	<svg role="img" fill="currentColor" viewBox="0 0 1024 1024" {...props}>
+		<title>GitHub</title>
+		<path
+			clipRule="evenodd"
+			d="M8 0C3.58 0 0 3.58 0 8C0 11.54 2.29 14.53 5.47 15.59C5.87 15.66 6.02 15.42 6.02 15.21C6.02 15.02 6.01 14.39 6.01 13.72C4 14.09 3.48 13.23 3.32 12.78C3.23 12.55 2.84 11.84 2.5 11.65C2.22 11.5 1.82 11.13 2.49 11.12C3.12 11.11 3.57 11.7 3.72 11.94C4.44 13.15 5.59 12.81 6.05 12.6C6.12 12.08 6.33 11.73 6.56 11.53C4.78 11.33 2.92 10.64 2.92 7.58C2.92 6.71 3.23 5.99 3.74 5.43C3.66 5.23 3.38 4.41 3.82 3.31C3.82 3.31 4.49 3.1 6.02 4.13C6.66 3.95 7.34 3.86 8.02 3.86C8.7 3.86 9.38 3.95 10.02 4.13C11.55 3.09 12.22 3.31 12.22 3.31C12.66 4.41 12.38 5.23 12.3 5.43C12.81 5.99 13.12 6.7 13.12 7.58C13.12 10.65 11.25 11.33 9.47 11.53C9.76 11.78 10.01 12.26 10.01 13.01C10.01 14.08 10 14.94 10 15.21C10 15.42 10.15 15.67 10.55 15.59C13.71 14.53 16 11.53 16 8C16 3.58 12.42 0 8 0Z"
+			fillRule="evenodd"
+			transform="scale(64)"
+		/>
+	</svg>
+);
