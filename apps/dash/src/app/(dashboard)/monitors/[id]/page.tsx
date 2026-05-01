@@ -77,7 +77,7 @@ export default function MonitorDetailsPage() {
 		mutationFn: (monitorId: string) => client.monitors.nuke({ monitorId }),
 		onSuccess: () => {
 			setNukeDialogOpen(false);
-			sileo.success({ title: "Monitor data nuked" });
+			sileo.success({ title: "Monitor history deletion scheduled" });
 			queryClient.invalidateQueries({
 				queryKey: orpc.monitors.get.key({ input: { id } }),
 			});

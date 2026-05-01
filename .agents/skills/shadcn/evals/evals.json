@@ -4,7 +4,7 @@
 		{
 			"id": 1,
 			"prompt": "I'm building a Next.js app with shadcn/ui (base-nova preset, lucide icons). Create a settings form component with fields for: full name, email address, and notification preferences (email, SMS, push notifications as toggle options). Add validation states for required fields.",
-			"expected_output": "A React component using FieldGroup, Field, ToggleGroup, data-invalid/aria-invalid validation, gap-* spacing, and semantic colors.",
+			"expected_output": "A React component using FieldGroup, Field, Switch for independent toggles, data-invalid/aria-invalid validation, gap-* spacing, and semantic colors.",
 			"files": [],
 			"expectations": [
 				"Uses FieldGroup and Field components for form layout instead of raw div with space-y",
@@ -25,8 +25,7 @@
 				"Avatar component includes AvatarFallback",
 				"Icons on buttons use the data-icon attribute (data-icon=\"inline-start\" or data-icon=\"inline-end\")",
 				"No sizing classes on icons inside components (no size-4, w-4, h-4, etc.)",
-				"Uses tabler icons (@tabler/icons-react) instead of lucide-react",
-				"Uses asChild for custom triggers (radix preset)"
+				"Uses tabler icons (@tabler/icons-react) instead of lucide-react"
 			]
 		},
 		{

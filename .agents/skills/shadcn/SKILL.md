@@ -38,7 +38,7 @@ These rules are **always enforced**. Each links to a file with Incorrect/Correct
 - **Use `truncate` shorthand.** Not `overflow-hidden text-ellipsis whitespace-nowrap`.
 - **No manual `dark:` color overrides.** Use semantic tokens (`bg-background`, `text-muted-foreground`).
 - **Use `cn()` for conditional classes.** Don't write manual template literal ternaries.
-- **No manual `z-index` on overlay components.** Dialog, Sheet, Popover, etc. handle their own stacking.
+- **No manual `z-index` overrides on overlay components at call-site.** Consumers should not override stacking when using Dialog, Sheet, Popover, etc. Primitive component internals in `apps/dash/src/components/ui/*` may define their own stacking values (e.g. `z-50`).
 
 ### Forms & Inputs → [forms.md](./rules/forms.md)
 

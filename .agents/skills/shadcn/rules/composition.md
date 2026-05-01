@@ -18,11 +18,11 @@
 
 ---
 
-## Items always inside their Group component
+## Group wrappers for semantic grouping
 
-Never render items directly inside the content container.
+Group wrappers are OPTIONAL and used for semantic grouping or visual separation. Items can be rendered directly inside the content container or wrapped in their Group component.
 
-**Incorrect:**
+**Valid (direct children):**
 
 ```tsx
 <SelectContent>
@@ -31,20 +31,25 @@ Never render items directly inside the content container.
 </SelectContent>
 ```
 
-**Correct:**
+**Also valid (grouped for semantic organization or visual separation):**
 
 ```tsx
 <SelectContent>
   <SelectGroup>
+    <SelectLabel>Fruits</SelectLabel>
     <SelectItem value="apple">Apple</SelectItem>
     <SelectItem value="banana">Banana</SelectItem>
+  </SelectGroup>
+  <SelectGroup>
+    <SelectLabel>Vegetables</SelectLabel>
+    <SelectItem value="carrot">Carrot</SelectItem>
   </SelectGroup>
 </SelectContent>
 ```
 
-This applies to all group-based components:
+Group wrappers available for semantic organization:
 
-| Item | Group |
+| Item | Group (optional) |
 |------|-------|
 | `SelectItem`, `SelectLabel` | `SelectGroup` |
 | `DropdownMenuItem`, `DropdownMenuLabel`, `DropdownMenuSub` | `DropdownMenuGroup` |
