@@ -13,10 +13,20 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
+import { useState } from "react";
 import { sileo } from "sileo";
 import { AvailabilityTable } from "@/components/monitors/availability-table";
 import { MonitorCards } from "@/components/monitors/monitor-cards";
 import { ResponseTimeChart } from "@/components/monitors/response-time-chart";
+import {
+	AlertDialog,
+	AlertDialogCancel,
+	AlertDialogContent,
+	AlertDialogDescription,
+	AlertDialogFooter,
+	AlertDialogHeader,
+	AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -40,6 +50,7 @@ export default function MonitorDetailsPage() {
 	const queryClient = useQueryClient();
 	const params = useParams();
 	const id = params.id as string;
+	const [nukeDialogOpen, setNukeDialogOpen] = useState(false);
 
 	const { data: monitor, isLoading: loadingMonitor } = useQuery(
 		orpc.monitors.get.queryOptions({ input: { id } }),
@@ -60,6 +71,28 @@ export default function MonitorDetailsPage() {
 			queryClient.invalidateQueries({ queryKey: orpc.monitors.list.key() });
 		},
 		onError: () => sileo.error({ title: "Failed to update monitor" }),
+	});
+
+	const { mutate: nukeMonitor, isPending: isNuking } = useMutation({
+		mutationFn: (monitorId: string) => client.monitors.nuke({ monitorId }),
+		onSuccess: () => {
+			setNukeDialogOpen(false);
+			sileo.success({ title: "Monitor data nuked" });
+			queryClient.invalidateQueries({
+				queryKey: orpc.monitors.get.key({ input: { id } }),
+			});
+			queryClient.invalidateQueries({
+				queryKey: orpc.monitors.getAvailability.key({
+					input: { monitorId: id },
+				}),
+			});
+			queryClient.invalidateQueries({
+				queryKey: orpc.monitors.getResponseTimes.key(),
+			});
+			queryClient.invalidateQueries({ queryKey: orpc.monitors.list.key() });
+			queryClient.invalidateQueries({ queryKey: orpc.incidents.list.key() });
+		},
+		onError: () => sileo.error({ title: "Failed to nuke monitor data" }),
 	});
 
 	if (loadingMonitor) {
@@ -225,6 +258,14 @@ export default function MonitorDetailsPage() {
 						render={<Link href={`/monitors/${id}/edit`}>Edit</Link>}
 					/>
 					<Button
+						variant="destructive-outline"
+						size="sm"
+						onClick={() => setNukeDialogOpen(true)}
+						disabled={isNuking}
+					>
+						Nuke data
+					</Button>
+					<Button
 						variant={monitor.active ? "destructive" : "default"}
 						size="sm"
 						onClick={() =>
@@ -236,6 +277,28 @@ export default function MonitorDetailsPage() {
 					</Button>
 				</div>
 			</div>
+
+			<AlertDialog open={nukeDialogOpen} onOpenChange={setNukeDialogOpen}>
+				<AlertDialogContent>
+					<AlertDialogHeader>
+						<AlertDialogTitle>Nuke monitor data?</AlertDialogTitle>
+						<AlertDialogDescription>
+							This will remove historical check data and every incident linked
+							to this monitor. The monitor itself will stay in place.
+						</AlertDialogDescription>
+					</AlertDialogHeader>
+					<AlertDialogFooter>
+						<AlertDialogCancel disabled={isNuking}>Cancel</AlertDialogCancel>
+						<Button
+							variant="destructive"
+							loading={isNuking}
+							onClick={() => nukeMonitor(monitor.id)}
+						>
+							Nuke data
+						</Button>
+					</AlertDialogFooter>
+				</AlertDialogContent>
+			</AlertDialog>
 
 			{/* Monitor Cards */}
 			<MonitorCards

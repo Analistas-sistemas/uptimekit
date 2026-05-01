@@ -19,7 +19,6 @@ import {
 	ShieldAlert,
 } from "lucide-react";
 import Link from "next/link";
-import { Fragment, useEffect, useState } from "react";
 import {
 	parseAsBoolean,
 	parseAsInteger,
@@ -27,6 +26,7 @@ import {
 	parseAsStringEnum,
 	useQueryStates,
 } from "nuqs";
+import { Fragment, useEffect, useState } from "react";
 import { sileo } from "sileo";
 import {
 	AlertDialog,
@@ -906,6 +906,7 @@ export function MonitorsTable() {
 function MonitorActions({ monitor }: { monitor: Monitor }) {
 	const queryClient = useQueryClient();
 	const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+	const [nukeDialogOpen, setNukeDialogOpen] = useState(false);
 
 	const { mutate: deleteMonitor } = useMutation({
 		mutationFn: (id: string) => client.monitors.delete({ id }),
@@ -927,8 +928,30 @@ function MonitorActions({ monitor }: { monitor: Monitor }) {
 		onError: () => sileo.error({ title: "Failed to update monitor" }),
 	});
 
+	const { mutate: nukeMonitor, isPending: isNuking } = useMutation({
+		mutationFn: (monitorId: string) => client.monitors.nuke({ monitorId }),
+		onSuccess: () => {
+			setNukeDialogOpen(false);
+			sileo.success({ title: "Monitor data nuked" });
+			queryClient.invalidateQueries({ queryKey: orpc.monitors.list.key() });
+			queryClient.invalidateQueries({
+				queryKey: orpc.monitors.get.key({ input: { id: monitor.id } }),
+			});
+			queryClient.invalidateQueries({
+				queryKey: orpc.monitors.getAvailability.key({
+					input: { monitorId: monitor.id },
+				}),
+			});
+			queryClient.invalidateQueries({
+				queryKey: orpc.monitors.getResponseTimes.key(),
+			});
+			queryClient.invalidateQueries({ queryKey: orpc.incidents.list.key() });
+		},
+		onError: () => sileo.error({ title: "Failed to nuke monitor data" }),
+	});
+
 	return (
-		<AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+		<>
 			<DropdownMenu>
 				<DropdownMenuTrigger
 					render={
@@ -962,6 +985,15 @@ function MonitorActions({ monitor }: { monitor: Monitor }) {
 						className="text-red-500"
 						onClick={(e) => {
 							e.stopPropagation();
+							setNukeDialogOpen(true);
+						}}
+					>
+						Nuke data
+					</DropdownMenuItem>
+					<DropdownMenuItem
+						className="text-red-500"
+						onClick={(e) => {
+							e.stopPropagation();
 							setDeleteDialogOpen(true);
 						}}
 					>
@@ -969,28 +1001,57 @@ function MonitorActions({ monitor }: { monitor: Monitor }) {
 					</DropdownMenuItem>
 				</DropdownMenuContent>
 			</DropdownMenu>
-			<AlertDialogContent>
-				<AlertDialogHeader>
-					<AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
-					<AlertDialogDescription>
-						This action cannot be undone. This will permanently delete the
-						monitor and all of its data.
-					</AlertDialogDescription>
-				</AlertDialogHeader>
-				<AlertDialogFooter>
-					<AlertDialogCancel>Cancel</AlertDialogCancel>
-					<Button
-						type="button"
-						variant="destructive"
-						onClick={(e) => {
-							e.stopPropagation();
-							deleteMonitor(monitor.id);
-						}}
-					>
-						Delete
-					</Button>
-				</AlertDialogFooter>
-			</AlertDialogContent>
-		</AlertDialog>
+
+			<AlertDialog open={nukeDialogOpen} onOpenChange={setNukeDialogOpen}>
+				<AlertDialogContent>
+					<AlertDialogHeader>
+						<AlertDialogTitle>Nuke monitor data?</AlertDialogTitle>
+						<AlertDialogDescription>
+							This will remove historical check data and every incident linked
+							to this monitor. The monitor itself will stay in place.
+						</AlertDialogDescription>
+					</AlertDialogHeader>
+					<AlertDialogFooter>
+						<AlertDialogCancel disabled={isNuking}>Cancel</AlertDialogCancel>
+						<Button
+							type="button"
+							variant="destructive"
+							loading={isNuking}
+							onClick={(e) => {
+								e.stopPropagation();
+								nukeMonitor(monitor.id);
+							}}
+						>
+							Nuke data
+						</Button>
+					</AlertDialogFooter>
+				</AlertDialogContent>
+			</AlertDialog>
+
+			<AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+				<AlertDialogContent>
+					<AlertDialogHeader>
+						<AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+						<AlertDialogDescription>
+							This action cannot be undone. This will permanently delete the
+							monitor and all of its data.
+						</AlertDialogDescription>
+					</AlertDialogHeader>
+					<AlertDialogFooter>
+						<AlertDialogCancel>Cancel</AlertDialogCancel>
+						<Button
+							type="button"
+							variant="destructive"
+							onClick={(e) => {
+								e.stopPropagation();
+								deleteMonitor(monitor.id);
+							}}
+						>
+							Delete
+						</Button>
+					</AlertDialogFooter>
+				</AlertDialogContent>
+			</AlertDialog>
+		</>
 	);
 }
