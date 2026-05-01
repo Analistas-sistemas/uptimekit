@@ -1,3 +1,4 @@
+import withBundleAnalyzer from "@next/bundle-analyzer";
 import { loadEnv } from "@uptimekit/config/env";
 import type { NextConfig } from "next";
 
@@ -26,4 +27,6 @@ const nextConfig: NextConfig = {
 	},
 };
 
-export default nextConfig;
+export default withBundleAnalyzer({
+	enabled: process.env.ANALYZE === "true",
+})(nextConfig);

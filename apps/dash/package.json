@@ -5,6 +5,7 @@
 	"scripts": {
 		"dev": "next dev --port=3000",
 		"build": "next build",
+		"analyze": "ANALYZE=true next build",
 		"check-types": "tsc --noEmit",
 		"start": "next start"
 	},
@@ -83,6 +84,7 @@
 		"zod": "^4.3.6"
 	},
 	"devDependencies": {
+		"@next/bundle-analyzer": "^16.2.3",
 		"@tailwindcss/postcss": "^4.2.2",
 		"@tanstack/react-query-devtools": "^5.96.2",
 		"@types/node": "^20.19.39",
