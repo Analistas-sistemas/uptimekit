@@ -23,8 +23,8 @@ async function getStats() {
 		.where(
 			and(
 				isNotNull(worker.lastHeartbeat),
-				sql`${worker.lastHeartbeat} < ${heartbeatThreshold}`
-			)
+				sql`${worker.lastHeartbeat} < ${heartbeatThreshold.toISOString()}`,
+			),
 		);
 
 	return {
