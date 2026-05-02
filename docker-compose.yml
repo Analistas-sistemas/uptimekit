@@ -1,8 +1,6 @@
 services:
   dash:
-    build:
-      context: .
-      dockerfile: apps/dash/Dockerfile
+    image: ghcr.io/uptimekit/dash:latest
     ports:
       - "${DASH_PORT:-3000}:3000"
     env_file:
@@ -30,33 +28,8 @@ services:
       start_period: 20s
     restart: always
 
-  scheduler:
-    build:
-      context: .
-      dockerfile: packages/scheduler/Dockerfile
-    env_file:
-      - .env
-    environment:
-      - DATABASE_URL=postgresql://postgres:postgres@db:5432/uptimekit
-      - CLICKHOUSE_URL=http://clickhouse:8123
-      - CLICKHOUSE_USER=default
-      - CLICKHOUSE_PASSWORD=clickhouse
-      - REDIS_URL=redis://redis:6379
-    depends_on:
-      db:
-        condition: service_healthy
-      redis:
-        condition: service_started
-      clickhouse:
-        condition: service_started
-      dash:
-        condition: service_healthy
-    restart: always
-
   status-page:
-    build:
-      context: .
-      dockerfile: apps/status-page/Dockerfile
+    image: ghcr.io/uptimekit/status-page:latest
     ports:
       - "${STATUS_PAGE_PORT:-3001}:3001"
     env_file:
@@ -79,7 +52,7 @@ services:
     restart: always
 
   db:
-    image: postgres:17-alpine
+    image: postgres:18-alpine
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
