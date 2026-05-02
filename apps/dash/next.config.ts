@@ -1,5 +1,8 @@
-import { loadEnv } from "@uptimekit/config/env";
+/** biome-ignore-all assist/source/organizeImports: keep external imports grouped before workspace imports */
+import withBundleAnalyzer from "@next/bundle-analyzer";
 import type { NextConfig } from "next";
+
+import { loadEnv } from "@uptimekit/config/env";
 
 loadEnv();
 
@@ -12,6 +15,7 @@ const nextConfig: NextConfig = {
 		"@uptimekit/db",
 		"@uptimekit/auth",
 		"@uptimekit/config",
+		"@uptimekit/scheduler",
 	],
 	images: {
 		remotePatterns: [
@@ -26,4 +30,6 @@ const nextConfig: NextConfig = {
 	},
 };
 
-export default nextConfig;
+export default withBundleAnalyzer({
+	enabled: process.env.ANALYZE === "true",
+})(nextConfig);

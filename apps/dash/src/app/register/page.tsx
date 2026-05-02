@@ -21,11 +21,12 @@ export default async function RegisterPage() {
 	}
 
 	return (
-		<div className="flex min-h-screen w-full items-center justify-center p-4">
+		<div className="min-h-screen w-full">
 			<SignUpForm
 				showLogin={showLogin}
 				showDiscordLogin={!!process.env.DISCORD_CLIENT_ID}
 				showGithubLogin={!!process.env.GITHUB_CLIENT_ID}
+				fullPage
 			/>
 		</div>
 	);

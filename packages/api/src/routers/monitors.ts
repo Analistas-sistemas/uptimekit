@@ -546,8 +546,7 @@ export const monitorsRouter = {
 			}
 
 			if (input.active) {
-				const existingWorkerIds =
-					(existing.workerIds as string[] | null) ?? [];
+				const existingWorkerIds = (existing.workerIds as string[] | null) ?? [];
 
 				if (existingWorkerIds.length === 0) {
 					throw new ORPCError("BAD_REQUEST", {
@@ -1450,5 +1449,79 @@ export const monitorsRouter = {
 				);
 
 			return { success: true };
+		}),
+	nuke: writeProcedure
+		.input(
+			z.object({
+				monitorId: z.string(),
+			}),
+		)
+		.handler(async ({ input, context }) => {
+			const { session } = context.session;
+
+			if (!input.monitorId) {
+				return {};
+			}
+
+			const monitors = await db
+				.select({ id: monitor.id })
+				.from(monitor)
+				.where(
+					and(
+						eq(monitor.id, input.monitorId),
+						eq(monitor.organizationId, session.activeOrganizationId!),
+					),
+				);
+
+			if (monitors.length === 0) {
+				throw new ORPCError("NOT_FOUND");
+			}
+
+			const relatedIncidents = await db
+				.select({ id: incident.id })
+				.from(incident)
+				.innerJoin(incidentMonitor, eq(incident.id, incidentMonitor.incidentId))
+				.where(
+					and(
+						eq(incidentMonitor.monitorId, input.monitorId),
+						eq(incident.organizationId, session.activeOrganizationId!),
+					),
+				);
+
+			await clickhouse.command({
+				query: `
+					ALTER TABLE uptimekit.monitor_events
+					DELETE WHERE monitorId = {monitorId:String}
+				`,
+				query_params: {
+					monitorId: input.monitorId,
+				},
+			});
+
+			await clickhouse.command({
+				query: `
+					ALTER TABLE uptimekit.monitor_changes
+					DELETE WHERE monitorId = {monitorId:String}
+				`,
+				query_params: {
+					monitorId: input.monitorId,
+				},
+			});
+
+			if (relatedIncidents.length > 0) {
+				await db.delete(incident).where(
+					and(
+						eq(incident.organizationId, session.activeOrganizationId!),
+						inArray(
+							incident.id,
+							relatedIncidents.map((relatedIncident) => relatedIncident.id),
+						),
+					),
+				);
+			}
+
+			return {
+				success: true,
+			};
 		}),
 };

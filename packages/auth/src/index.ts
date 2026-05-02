@@ -1,8 +1,8 @@
 import { randomUUID } from "node:crypto";
 import { db } from "@uptimekit/db";
 import * as schema from "@uptimekit/db/schema/auth";
-import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
+import { betterAuth } from "better-auth/minimal";
 import { nextCookies } from "better-auth/next-js";
 import { admin, organization, twoFactor } from "better-auth/plugins";
 import { eq } from "drizzle-orm";
