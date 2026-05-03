@@ -957,9 +957,7 @@ function MonitorActions({ monitor }: { monitor: Monitor }) {
 			});
 			queryClient.invalidateQueries({ queryKey: orpc.incidents.list.key() });
 			queryClient.invalidateQueries({
-				queryKey: orpc.monitors.getBatchLatencySparkline.key({
-					input: { monitorIds: [monitor.id] },
-				}),
+				queryKey: orpc.monitors.getBatchLatencySparkline.key(),
 			});
 		},
 		onError: () => sileo.error({ title: "Failed to nuke monitor data" }),
