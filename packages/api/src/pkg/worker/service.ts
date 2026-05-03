@@ -261,15 +261,6 @@ export async function processMonitorEvents(
 
 	if (incidentsToInsert.length > 0) {
 		await db.insert(incident).values(incidentsToInsert);
-		for (const inc of incidentsToInsert) {
-			eventBus.emit("incident.created", {
-				incidentId: inc.id,
-				organizationId: inc.organizationId,
-				title: inc.title,
-				description: inc.description,
-				severity: inc.severity as any,
-			});
-		}
 	}
 
 	if (incidentMonitorsToInsert.length > 0) {
@@ -282,6 +273,16 @@ export async function processMonitorEvents(
 
 	if (activitiesToInsert.length > 0) {
 		await db.insert(incidentActivity).values(activitiesToInsert);
+	}
+
+	for (const inc of incidentsToInsert) {
+		eventBus.emit("incident.created", {
+			incidentId: inc.id,
+			organizationId: inc.organizationId,
+			title: inc.title,
+			description: inc.description,
+			severity: inc.severity as any,
+		});
 	}
 
 	// Insert events to ClickHouse
