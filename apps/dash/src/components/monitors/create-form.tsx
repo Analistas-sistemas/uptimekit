@@ -4,6 +4,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
 	Activity,
+	Bell,
 	Braces,
 	ChevronRight,
 	Globe,
@@ -12,11 +13,11 @@ import {
 	Server,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { type UseFormReturn, useFieldArray, useForm } from "react-hook-form";
 import { sileo } from "sileo";
 import * as z from "zod";
-
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -79,6 +80,7 @@ const baseSchema = z.object({
 	interval: z.coerce.number().min(30),
 	groupId: z.string().nullish(),
 	tags: z.array(z.string()).default([]),
+	notificationIds: z.array(z.string()).default([]),
 	incidentPendingDuration: z.coerce.number().default(0),
 	incidentRecoveryDuration: z.coerce.number().default(0),
 	publishIncidentToStatusPage: z.boolean().default(false),
@@ -153,6 +155,14 @@ type ActiveWorkerOption = {
 	id: string;
 	name: string;
 	location: string;
+};
+
+type ConfiguredNotification = {
+	id: string;
+	name: string;
+	type: string;
+	active: boolean;
+	isDefault: boolean;
 };
 
 const heartbeatPeriodOptions = [
@@ -551,11 +561,18 @@ export function CreateMonitorForm({
 	);
 	const { data: groups } = useQuery(orpc.monitors.listGroups.queryOptions());
 	const { data: tags } = useQuery(orpc.monitors.listTags.queryOptions());
+	const { data: configuredNotifications } = useQuery({
+		queryKey: ["integrations", "configured"],
+		queryFn: async () =>
+			(await client.integrations.listConfigured()) as ConfiguredNotification[],
+	});
 
 	const [isAdvancedOpen, setIsAdvancedOpen] = useState(false);
 	const [groupsOpen, setGroupsOpen] = useState(false);
 	const [tagsOpen, setTagsOpen] = useState(false);
 	const [manageTagsOpen, setManageTagsOpen] = useState(false);
+	const [defaultNotificationsApplied, setDefaultNotificationsApplied] =
+		useState(false);
 
 	const getFormValuesFromInitialData = (): FormValues => {
 		const defaults = (initialData as any) || {};
@@ -566,6 +583,10 @@ export function CreateMonitorForm({
 			groupId: defaults.groupId ?? null,
 			tags:
 				defaults.tags?.map((t: any) => (typeof t === "string" ? t : t.id)) ||
+				[],
+			notificationIds:
+				defaults.notificationIds ||
+				defaults.notifications?.map((notification: any) => notification.id) ||
 				[],
 			checkSsl: defaults.checkSsl ?? true,
 			sslCertExpiryNotificationDays:
@@ -595,6 +616,20 @@ export function CreateMonitorForm({
 	const router = useRouter();
 	const utils = useQueryClient();
 
+	useEffect(() => {
+		if (monitorId || defaultNotificationsApplied || !configuredNotifications) {
+			return;
+		}
+
+		form.setValue(
+			"notificationIds",
+			configuredNotifications
+				.filter((notification) => notification.isDefault)
+				.map((notification) => notification.id),
+		);
+		setDefaultNotificationsApplied(true);
+	}, [configuredNotifications, defaultNotificationsApplied, form, monitorId]);
+
 	const { mutate, isPending } = useMutation({
 		mutationFn: async (data: FormValues) => {
 			// Transform form data to match API expectation
@@ -605,6 +640,7 @@ export function CreateMonitorForm({
 				groupId,
 				tags,
 				workerIds,
+				notificationIds,
 				incidentPendingDuration,
 				incidentRecoveryDuration,
 				publishIncidentToStatusPage,
@@ -618,6 +654,9 @@ export function CreateMonitorForm({
 				groupId,
 				tags,
 				workerIds,
+				...(monitorId || configuredNotifications !== undefined
+					? { notificationIds }
+					: {}),
 				incidentPendingDuration,
 				incidentRecoveryDuration,
 				publishIncidentToStatusPage,
@@ -679,6 +718,7 @@ export function CreateMonitorForm({
 	const selectedRegionCount = workerIds.length;
 	const isOverRegionLimit =
 		regionLimit !== null && selectedRegionCount > regionLimit;
+	const selectedNotificationIds = form.watch("notificationIds") || [];
 
 	// State for collapsible continents
 	const [openContinents, setOpenContinents] = useState<Record<string, boolean>>(
@@ -1117,6 +1157,142 @@ export function CreateMonitorForm({
 														</Collapsible>
 													))}
 											</div>
+											<FormMessage />
+										</FormItem>
+									)}
+								/>
+							</CardContent>
+						</Card>
+					</div>
+
+					<Separator />
+
+					{/* Section: Notifications */}
+					<div className="grid grid-cols-1 gap-x-8 gap-y-8 md:grid-cols-3">
+						<div className="col-span-1">
+							<h2 className="font-semibold text-lg leading-tight tracking-tight">
+								Notifications
+							</h2>
+							<p className="mt-1 text-muted-foreground text-sm">
+								Choose which notification channels should receive this
+								monitor&apos;s incident events.
+							</p>
+						</div>
+
+						<Card className="col-span-1 md:col-span-2">
+							<CardContent className="flex flex-col gap-4 p-6">
+								<FormField
+									control={form.control}
+									name="notificationIds"
+									render={({ field }) => (
+										<FormItem>
+											<div className="flex items-center justify-between gap-4">
+												<FormLabel>
+													Selected notifications (
+													{selectedNotificationIds.length})
+												</FormLabel>
+												{configuredNotifications &&
+													configuredNotifications.length > 0 && (
+														<Button
+															type="button"
+															variant="link"
+															className="h-auto p-0 text-xs"
+															onClick={() => {
+																if (field.value?.length) {
+																	field.onChange([]);
+																	return;
+																}
+
+																field.onChange(
+																	configuredNotifications.map(
+																		(notification) => notification.id,
+																	),
+																);
+															}}
+														>
+															{field.value?.length
+																? "Deselect all"
+																: "Select all"}
+														</Button>
+													)}
+											</div>
+
+											{configuredNotifications &&
+											configuredNotifications.length > 0 ? (
+												<div className="grid grid-cols-1 gap-2">
+													{configuredNotifications.map((notification) => {
+														const checked = field.value?.includes(
+															notification.id,
+														);
+
+														return (
+															<FormItem
+																key={notification.id}
+																className="flex flex-row items-start gap-3 rounded-md bg-muted/50 p-4"
+															>
+																<FormControl>
+																	<Checkbox
+																		checked={checked}
+																		onCheckedChange={(nextChecked) => {
+																			if (nextChecked) {
+																				field.onChange([
+																					...(field.value || []),
+																					notification.id,
+																				]);
+																				return;
+																			}
+
+																			field.onChange(
+																				field.value?.filter(
+																					(value) => value !== notification.id,
+																				) || [],
+																			);
+																		}}
+																	/>
+																</FormControl>
+																<div className="flex min-w-0 flex-1 flex-col gap-2">
+																	<div className="flex flex-wrap items-center gap-2">
+																		<FormLabel className="cursor-pointer font-normal">
+																			{notification.name}
+																		</FormLabel>
+																		<Badge variant="outline">
+																			{notification.type}
+																		</Badge>
+																		{notification.isDefault && (
+																			<Badge variant="warning">Default</Badge>
+																		)}
+																		{notification.active ? (
+																			<Badge variant="success">Active</Badge>
+																		) : (
+																			<Badge variant="secondary">
+																				Inactive
+																			</Badge>
+																		)}
+																	</div>
+																</div>
+															</FormItem>
+														);
+													})}
+												</div>
+											) : (
+												<div className="flex flex-col items-start gap-3 rounded-lg border border-dashed p-6">
+													<div className="flex items-center gap-2 font-medium">
+														<Bell className="h-4 w-4" />
+														No notifications configured
+													</div>
+													<p className="text-muted-foreground text-sm">
+														Add a notification channel before assigning one to
+														this monitor.
+													</p>
+													<Button
+														type="button"
+														variant="outline"
+														onClick={() => router.push("/integrations")}
+													>
+														Manage notifications
+													</Button>
+												</div>
+											)}
 											<FormMessage />
 										</FormItem>
 									)}
