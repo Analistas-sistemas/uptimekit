@@ -8,6 +8,7 @@ import {
 	Braces,
 	ChevronRight,
 	Globe,
+	Network,
 	Plus,
 	Search,
 	Server,
@@ -59,6 +60,7 @@ import { Input } from "@/components/ui/input";
 import {
 	Select,
 	SelectContent,
+	SelectGroup,
 	SelectItem,
 	SelectTrigger,
 	SelectValue,
@@ -139,6 +141,28 @@ const tcpSchema = z.object({
 	port: z.coerce.number().min(1).max(65535, "Port must be between 1 and 65535"),
 });
 
+const dnsRecordTypes = [
+	"A",
+	"AAAA",
+	"CNAME",
+	"MX",
+	"NS",
+	"TXT",
+	"SRV",
+	"CAA",
+	"PTR",
+	"SOA",
+] as const;
+
+const dnsSchema = z.object({
+	type: z.literal("dns"),
+	hostname: z.string().min(1, "Hostname is required"),
+	resolverServers: z.string().default("1.1.1.1"),
+	port: z.coerce.number().min(1).max(65535).default(53),
+	recordType: z.enum(dnsRecordTypes).default("A"),
+	expectedValue: z.string().optional(),
+});
+
 // Union schema
 const monitorConfigSchema = z.discriminatedUnion("type", [
 	httpSchema,
@@ -146,6 +170,7 @@ const monitorConfigSchema = z.discriminatedUnion("type", [
 	keywordSchema,
 	pingSchema,
 	tcpSchema,
+	dnsSchema,
 ]);
 
 const formSchema = z.intersection(baseSchema, monitorConfigSchema);
@@ -256,6 +281,107 @@ const TcpFields = ({ form }: { form: UseFormReturn<FormValues> }) => (
 	</div>
 );
 
+const DnsFields = ({ form }: { form: UseFormReturn<FormValues> }) => (
+	<div className="flex flex-col gap-4">
+		<HostnameField form={form} />
+
+		<FormField
+			control={form.control}
+			name="resolverServers"
+			render={({ field }) => (
+				<FormItem>
+					<FormLabel>Resolver server(s)</FormLabel>
+					<FormControl>
+						<Input placeholder="1.1.1.1" {...field} />
+					</FormControl>
+					<FormDescription>
+						Comma-delimited DNS resolvers. Cloudflare is used by default.
+					</FormDescription>
+					<FormMessage />
+				</FormItem>
+			)}
+		/>
+
+		<div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+			<FormField
+				control={form.control}
+				name="port"
+				render={({ field }) => (
+					<FormItem>
+						<FormLabel>Port</FormLabel>
+						<FormControl>
+							<Input
+								placeholder="53"
+								type="number"
+								min={1}
+								max={65535}
+								{...field}
+							/>
+						</FormControl>
+						<FormDescription>DNS server port. Defaults to 53.</FormDescription>
+						<FormMessage />
+					</FormItem>
+				)}
+			/>
+
+			<FormField
+				control={form.control}
+				name="recordType"
+				render={({ field }) => {
+					const selectedRecordType = dnsRecordTypes.find(
+						(recordType) => recordType === field.value,
+					);
+
+					return (
+						<FormItem>
+							<FormLabel>Resource record type</FormLabel>
+							<Select onValueChange={field.onChange} value={field.value}>
+								<FormControl>
+									<SelectTrigger className="w-full">
+										<SelectValue placeholder="Select record type">
+											{selectedRecordType}
+										</SelectValue>
+									</SelectTrigger>
+								</FormControl>
+								<SelectContent>
+									<SelectGroup>
+										{dnsRecordTypes.map((recordType) => (
+											<SelectItem key={recordType} value={recordType}>
+												{recordType}
+											</SelectItem>
+										))}
+									</SelectGroup>
+								</SelectContent>
+							</Select>
+							<FormDescription>
+								Select the DNS record type to monitor.
+							</FormDescription>
+							<FormMessage />
+						</FormItem>
+					);
+				}}
+			/>
+		</div>
+
+		<FormField
+			control={form.control}
+			name="expectedValue"
+			render={({ field }) => (
+				<FormItem>
+					<FormLabel>Expected answer</FormLabel>
+					<FormControl>
+						<Input placeholder="192.0.2.1" {...field} />
+					</FormControl>
+					<FormDescription>
+						Optional answer value that must be present in the DNS response.
+					</FormDescription>
+					<FormMessage />
+				</FormItem>
+			)}
+		/>
+	</div>
+);
+
 const KeywordFields = ({ form }: { form: UseFormReturn<FormValues> }) => (
 	<>
 		<UrlField form={form} />
@@ -341,6 +467,14 @@ const monitorTypes: MonitorTypeDefinition[] = [
 		description: "Monitor a specific port on a server",
 		icon: Server,
 		Fields: TcpFields,
+	},
+	{
+		id: "dns",
+		group: "Infrastructure",
+		label: "DNS",
+		description: "Query DNS records through a resolver",
+		icon: Network,
+		Fields: DnsFields,
 	},
 ];
 
@@ -599,7 +733,10 @@ export function CreateMonitorForm({
 			method: defaults.method || "GET",
 			url: defaults.url || "",
 			hostname: defaults.hostname || "",
-			port: defaults.port || 80,
+			port: defaults.port || (defaults.type === "dns" ? 53 : 80),
+			resolverServers: defaults.resolverServers || "1.1.1.1",
+			recordType: defaults.recordType || "A",
+			expectedValue: defaults.expectedValue || "",
 			keyword: defaults.keyword || "",
 			jsonPath: defaults.jsonPath || "",
 			body: defaults.body || "",
@@ -707,6 +844,23 @@ export function CreateMonitorForm({
 		void form.handleSubmit(submitForm)();
 	};
 
+	const handleMonitorTypeChange = (nextType: FormValues["type"]) => {
+		const previousType = form.getValues("type");
+		form.setValue("type", nextType);
+
+		if (nextType === "dns" && previousType !== "dns") {
+			form.setValue("port", 53);
+			form.setValue("resolverServers", "1.1.1.1");
+			form.setValue("recordType", "A");
+			form.setValue("expectedValue", "");
+			return;
+		}
+
+		if (nextType === "tcp" && previousType !== "tcp") {
+			form.setValue("port", 80);
+		}
+	};
+
 	const type = form.watch("type");
 	const selectedType =
 		monitorTypes.find((t) => t.id === type) || monitorTypes[0];
@@ -795,7 +949,7 @@ export function CreateMonitorForm({
 													items={monitorTypes}
 													value={selectedType}
 													onValueChange={(value) =>
-														value && form.setValue("type", value.id)
+														value && handleMonitorTypeChange(value.id)
 													}
 												>
 													<ComboboxValue>
