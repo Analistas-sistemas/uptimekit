@@ -16,9 +16,7 @@ function escapeHtml(value: string) {
 		.replaceAll("'", "&#39;");
 }
 
-export function renderSubscriberEmailText(
-	input: SubscriberEmailTemplateInput,
-) {
+export function renderSubscriberEmailText(input: SubscriberEmailTemplateInput) {
 	return [
 		input.eventLabel,
 		"",
@@ -32,9 +30,7 @@ export function renderSubscriberEmailText(
 	].join("\n");
 }
 
-export function renderSubscriberEmailHtml(
-	input: SubscriberEmailTemplateInput,
-) {
+export function renderSubscriberEmailHtml(input: SubscriberEmailTemplateInput) {
 	const eventLabel = escapeHtml(input.eventLabel);
 	const statusPageName = escapeHtml(input.statusPageName);
 	const incidentTitle = escapeHtml(input.incidentTitle);

@@ -55,7 +55,8 @@ export async function subscribeToStatusPage(
 		if (!payload.success) {
 			return {
 				error:
-					payload.error.issues[0]?.message || "Please check your subscription details.",
+					payload.error.issues[0]?.message ||
+					"Please check your subscription details.",
 				success: "",
 			};
 		}

@@ -77,8 +77,8 @@ export function SubscribeForm({
 							styles.panel,
 						)}
 					>
-						<div className="border-b border-border px-6 py-5">
-							<h2 className="font-semibold text-[1.375rem] leading-none text-foreground">
+						<div className="border-border border-b px-6 py-5">
+							<h2 className="font-semibold text-[1.375rem] text-foreground leading-none">
 								Subscribe to Updates
 							</h2>
 							<p className="mt-3 text-muted-foreground text-sm">
@@ -106,7 +106,7 @@ export function SubscribeForm({
 										autoComplete="email"
 										required
 										disabled={isPending}
-										className="h-11 w-full rounded-xl border border-border bg-background px-4 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary disabled:opacity-60"
+										className="h-11 w-full rounded-xl border border-border bg-background px-4 text-foreground text-sm placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary disabled:opacity-60"
 									/>
 								</div>
 
@@ -129,7 +129,7 @@ export function SubscribeForm({
 										placeholder="https://hooks.slack.com/services/..."
 										autoComplete="off"
 										disabled={isPending}
-										className="h-11 w-full rounded-xl border border-border bg-background px-4 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary disabled:opacity-60"
+										className="h-11 w-full rounded-xl border border-border bg-background px-4 text-foreground text-sm placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary disabled:opacity-60"
 									/>
 								</div>
 
@@ -152,7 +152,7 @@ export function SubscribeForm({
 										placeholder="https://discord.com/api/webhooks/..."
 										autoComplete="off"
 										disabled={isPending}
-										className="h-11 w-full rounded-xl border border-border bg-background px-4 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary disabled:opacity-60"
+										className="h-11 w-full rounded-xl border border-border bg-background px-4 text-foreground text-sm placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary disabled:opacity-60"
 									/>
 								</div>
 
@@ -210,7 +210,7 @@ export function SubscribeForm({
 					required
 					disabled={isPending}
 					aria-label="Email address"
-					className="h-11 w-full rounded-xl border border-border bg-background px-4 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary disabled:opacity-60"
+					className="h-11 w-full rounded-xl border border-border bg-background px-4 text-foreground text-sm placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary disabled:opacity-60"
 				/>
 				<input
 					type="url"
@@ -219,7 +219,7 @@ export function SubscribeForm({
 					autoComplete="off"
 					disabled={isPending}
 					aria-label="Slack webhook URL"
-					className="h-11 w-full rounded-xl border border-border bg-background px-4 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary disabled:opacity-60"
+					className="h-11 w-full rounded-xl border border-border bg-background px-4 text-foreground text-sm placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary disabled:opacity-60"
 				/>
 				<input
 					type="url"
@@ -228,13 +228,9 @@ export function SubscribeForm({
 					autoComplete="off"
 					disabled={isPending}
 					aria-label="Discord webhook URL"
-					className="h-11 w-full rounded-xl border border-border bg-background px-4 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary disabled:opacity-60"
+					className="h-11 w-full rounded-xl border border-border bg-background px-4 text-foreground text-sm placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary disabled:opacity-60"
 				/>
-				<button
-					type="submit"
-					disabled={isPending}
-					className={styles.button}
-				>
+				<button type="submit" disabled={isPending} className={styles.button}>
 					{isPending ? (
 						<>
 							<Loader2 className="mr-2 h-4 w-4 animate-spin" />

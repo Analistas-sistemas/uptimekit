@@ -12,6 +12,7 @@ import {
 	Webhook,
 } from "lucide-react";
 import { useEffect, useState } from "react";
+import { DataPagination } from "@/components/ui/data-pagination";
 import { Input } from "@/components/ui/input";
 import {
 	Table,
@@ -21,7 +22,6 @@ import {
 	TableHeader,
 	TableRow,
 } from "@/components/ui/table";
-import { DataPagination } from "@/components/ui/data-pagination";
 import { orpc } from "@/utils/orpc";
 
 type Subscriber = {
@@ -69,7 +69,7 @@ export function SubscribersTable({ statusPageId }: { statusPageId: string }) {
 	const totalPages = Math.ceil(total / pageSize);
 
 	return (
-		<div className="w-full mx-auto max-w-6xl space-y-4">
+		<div className="mx-auto w-full max-w-6xl space-y-4">
 			<div className="flex items-center justify-between gap-4">
 				<div>
 					<h1 className="font-bold text-2xl tracking-tight">Subscribers</h1>
@@ -126,9 +126,9 @@ export function SubscribersTable({ statusPageId }: { statusPageId: string }) {
 												? "Try adjusting your search."
 												: "This status page has no email subscribers yet."}
 										</p>
-										</div>
-									</TableCell>
-								</TableRow>
+									</div>
+								</TableCell>
+							</TableRow>
 						) : (
 							subscribers.map((subscriber) => (
 								<TableRow

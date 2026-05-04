@@ -2,9 +2,9 @@ import { db, statusPageEmailSubscribers } from "@uptimekit/db";
 import { incidentStatusPage } from "@uptimekit/db/schema/incidents";
 import { statusPage } from "@uptimekit/db/schema/status-pages";
 import { and, eq, inArray } from "drizzle-orm";
-import { assertSafeWebhookUrl } from "../../lib/safe-url";
-import { createLogger } from "../../lib/logger";
 import { eventBus } from "../../lib/events";
+import { createLogger } from "../../lib/logger";
+import { assertSafeWebhookUrl } from "../../lib/safe-url";
 import { sendSubscriberEmail } from "./email";
 import {
 	renderSubscriberEmailHtml,
@@ -45,7 +45,9 @@ function getDashboardBaseUrl() {
 
 function getStatusPageBaseUrl(page: SubscriberStatusPage) {
 	if (page.domain) {
-		const normalizedDomain = page.domain.replace(/^https?:\/\//, "").replace(/\/$/, "");
+		const normalizedDomain = page.domain
+			.replace(/^https?:\/\//, "")
+			.replace(/\/$/, "");
 		return `https://${normalizedDomain}`;
 	}
 
@@ -144,7 +146,9 @@ async function postWebhook(url: string, body: unknown, destination: string) {
 
 		if (!response.ok) {
 			const text = await response.text();
-			throw new Error(`${destination} webhook failed: ${response.status} ${text}`);
+			throw new Error(
+				`${destination} webhook failed: ${response.status} ${text}`,
+			);
 		}
 	} catch (error) {
 		clearTimeout(timeoutId);
@@ -206,7 +210,9 @@ export class SubscriberNotificationService {
 				db
 					.select()
 					.from(statusPageEmailSubscribers)
-					.where(inArray(statusPageEmailSubscribers.statusPageId, statusPageIds)),
+					.where(
+						inArray(statusPageEmailSubscribers.statusPageId, statusPageIds),
+					),
 			]);
 
 			const pagesById = new Map(pages.map((page) => [page.id, page]));
@@ -279,4 +285,5 @@ export class SubscriberNotificationService {
 	}
 }
 
-export const subscriberNotificationService = new SubscriberNotificationService();
+export const subscriberNotificationService =
+	new SubscriberNotificationService();

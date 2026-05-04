@@ -375,20 +375,20 @@ export function UptimeBar({
 														Duration: {day.duration}
 													</div>
 												) : (
-														day.status !== "unknown" && (
-															<div className="mt-1 text-muted-foreground text-xs">
-																{day.downtimeMs !== undefined &&
-																day.downtimeMs > 0
-																	? formatDowntime(day.downtimeMs)
-																	: "No downtime"}
-															</div>
-														)
-													)}
-													<div className="absolute top-full left-1/2 -ml-2 h-0 w-0 border-8 border-transparent border-t-popover" />
-												</div>
+													day.status !== "unknown" && (
+														<div className="mt-1 text-muted-foreground text-xs">
+															{day.downtimeMs !== undefined &&
+															day.downtimeMs > 0
+																? formatDowntime(day.downtimeMs)
+																: "No downtime"}
+														</div>
+													)
+												)}
+												<div className="absolute top-full left-1/2 -ml-2 h-0 w-0 border-8 border-transparent border-t-popover" />
 											</div>
-										) : null}
-									</div>
+										</div>
+									) : null}
+								</div>
 							))}
 						</div>
 					</div>

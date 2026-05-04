@@ -1,7 +1,7 @@
 import { ORPCError } from "@orpc/server";
 import { db } from "@uptimekit/db";
-import { statusPageEmailSubscribers } from "@uptimekit/db/schema/status-updates";
 import { statusPage } from "@uptimekit/db/schema/status-pages";
+import { statusPageEmailSubscribers } from "@uptimekit/db/schema/status-updates";
 import { and, desc, eq, ilike } from "drizzle-orm";
 import z from "zod";
 import { protectedProcedure } from "..";

@@ -18,10 +18,7 @@ import {
 import { buildPath } from "./route-utils";
 import { calculateAggregateStatus } from "./status-utils";
 
-function buildOperationalHistory(
-	days = 90,
-	endDate?: string,
-): UptimeDay[] {
+function buildOperationalHistory(days = 90, endDate?: string): UptimeDay[] {
 	const result: UptimeDay[] = [];
 	let now: Date;
 	if (endDate) {

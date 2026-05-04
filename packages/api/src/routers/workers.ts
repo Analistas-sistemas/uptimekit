@@ -7,8 +7,8 @@ import {
 	desc,
 	eq,
 	type InferSelectModel,
-	inArray,
 	ilike,
+	inArray,
 	isNotNull,
 	isNull,
 	or,
@@ -294,7 +294,7 @@ export const workersRouter = {
 						: [];
 
 				const workerLocationMap = new Map(
-					remainingWorkers.map((w) => [w.id, w.location])
+					remainingWorkers.map((w) => [w.id, w.location]),
 				);
 
 				for (const monitorRecord of affectedMonitors) {
@@ -306,7 +306,7 @@ export const workersRouter = {
 						...new Set(
 							nextWorkerIds
 								.map((workerId) => workerLocationMap.get(workerId))
-								.filter((loc): loc is string => loc !== undefined)
+								.filter((loc): loc is string => loc !== undefined),
 						),
 					];
 					const hasAssignedWorkers = nextWorkerIds.length > 0;
@@ -325,7 +325,9 @@ export const workersRouter = {
 				}
 
 				// Delete API keys first (foreign key constraint)
-				await tx.delete(workerApiKey).where(eq(workerApiKey.workerId, input.id));
+				await tx
+					.delete(workerApiKey)
+					.where(eq(workerApiKey.workerId, input.id));
 
 				// Delete the worker
 				await tx.delete(worker).where(eq(worker.id, input.id));

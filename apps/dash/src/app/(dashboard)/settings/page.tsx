@@ -1,6 +1,7 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
+import { parseAsStringEnum, useQueryState } from "nuqs";
 import { Suspense, useCallback, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { sileo } from "sileo";
@@ -22,9 +23,8 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
-import { authClient } from "@/lib/auth-client";
-import { parseAsStringEnum, useQueryState } from "nuqs";
 import { Tabs, TabsList, TabsPanel, TabsTab } from "@/components/ui/tabs";
+import { authClient } from "@/lib/auth-client";
 
 const formSchema = z.object({
 	name: z.string().min(2, {

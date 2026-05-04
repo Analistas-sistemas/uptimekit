@@ -1,10 +1,10 @@
 import { db, statusPageEmailSubscribers } from "@uptimekit/db";
 import { statusPage } from "@uptimekit/db/schema/status-pages";
 import { and, eq } from "drizzle-orm";
+import { type NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { getCookieName, verifyAccessToken } from "@/lib/access-token";
 import { checkRateLimit } from "@/lib/rate-limit";
-import { type NextRequest, NextResponse } from "next/server";
 
 const subscribeSchema = z.object({
 	statusPageId: z.string().min(1),
@@ -106,10 +106,7 @@ export async function POST(request: NextRequest) {
 		if (!page.public && page.password) {
 			const token = request.cookies.get(getCookieName(page.id))?.value;
 			if (!token || !verifyAccessToken(token, page.id)) {
-				return NextResponse.json(
-					{ error: "Unauthorized" },
-					{ status: 401 },
-				);
+				return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 			}
 		}
 

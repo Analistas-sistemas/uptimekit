@@ -21,7 +21,12 @@ function getFromAddress() {
 	return from;
 }
 
-async function sendViaResend({ to, subject, text, html }: SubscriberEmailInput) {
+async function sendViaResend({
+	to,
+	subject,
+	text,
+	html,
+}: SubscriberEmailInput) {
 	const apiKey = process.env.RESEND_API_KEY?.trim();
 
 	if (!apiKey) {

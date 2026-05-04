@@ -2,7 +2,7 @@ import { db } from "@uptimekit/db";
 import { organization, user } from "@uptimekit/db/schema/auth";
 import { monitor } from "@uptimekit/db/schema/monitors";
 import { worker } from "@uptimekit/db/schema/workers";
-import { and, count, eq, isNotNull, sql } from "drizzle-orm";
+import { and, count, isNotNull, sql } from "drizzle-orm";
 import { Activity, BarChart3, Shield, Users } from "lucide-react";
 import WorkersMap from "@/components/admin/workers-map";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";

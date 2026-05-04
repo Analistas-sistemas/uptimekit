@@ -1,5 +1,11 @@
 import { relations } from "drizzle-orm";
-import { index, pgTable, primaryKey, text, timestamp } from "drizzle-orm/pg-core";
+import {
+	index,
+	pgTable,
+	primaryKey,
+	text,
+	timestamp,
+} from "drizzle-orm/pg-core";
 import { user } from "./auth";
 import { monitor } from "./monitors";
 import { statusPage } from "./status-pages";
