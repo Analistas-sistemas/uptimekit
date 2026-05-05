@@ -6,6 +6,7 @@ import { Suspense, useCallback, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { sileo } from "sileo";
 import { z } from "zod";
+import { ApiKeySettings } from "@/components/settings/api-key-settings";
 import { GroupSettings } from "@/components/settings/group-settings";
 import { LogoEditor } from "@/components/settings/logo-editor";
 import { TagSettings } from "@/components/settings/tag-settings";
@@ -74,9 +75,13 @@ function SettingsPageContent() {
 	const { data: activeOrg, isPending } = authClient.useActiveOrganization();
 	const [activeTab, setActiveTab] = useQueryState(
 		"activeTab",
-		parseAsStringEnum(["general", "team", "groups", "tags"]).withDefault(
+		parseAsStringEnum([
 			"general",
-		),
+			"team",
+			"api-keys",
+			"groups",
+			"tags",
+		]).withDefault("general"),
 	);
 
 	const form = useForm<z.infer<typeof formSchema>>({
@@ -175,6 +180,7 @@ function SettingsPageContent() {
 					<TabsList variant="underline" className="mb-6">
 						<TabsTab value="general">General</TabsTab>
 						<TabsTab value="team">Team</TabsTab>
+						<TabsTab value="api-keys">API Keys</TabsTab>
 						<TabsTab value="groups">Groups</TabsTab>
 						<TabsTab value="tags">Tags</TabsTab>
 					</TabsList>
@@ -299,6 +305,10 @@ function SettingsPageContent() {
 
 					<TabsPanel value="team">
 						<TeamSettings />
+					</TabsPanel>
+
+					<TabsPanel value="api-keys">
+						<ApiKeySettings />
 					</TabsPanel>
 
 					<TabsPanel value="groups">

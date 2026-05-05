@@ -24,6 +24,16 @@ const logger = createLogger("API");
 type Worker = InferSelectModel<typeof worker>;
 const WORKER_DELETED_PAUSE_REASON = "worker_deleted";
 
+function requireInstanceAdmin(context: {
+	session: { user: { role?: string | null } };
+}) {
+	if (context.session.user.role !== "admin") {
+		throw new ORPCError("FORBIDDEN", {
+			message: "Instance admin access required.",
+		});
+	}
+}
+
 // Generate a secure random API key with prefix
 function generateApiKey(): string {
 	const prefix = "uk_"; // UptimeKit prefix
@@ -58,9 +68,7 @@ export const workersRouter = {
 				.optional(),
 		)
 		.handler(async ({ input, context }) => {
-			if (context.session.user.role !== "admin") {
-				throw new ORPCError("UNAUTHORIZED");
-			}
+			requireInstanceAdmin(context);
 
 			const filters = [];
 
@@ -135,9 +143,7 @@ export const workersRouter = {
 		)
 		.handler(
 			async ({ input, context }): Promise<{ worker: Worker; key: string }> => {
-				if (context.session.user.role !== "admin") {
-					throw new ORPCError("UNAUTHORIZED");
-				}
+				requireInstanceAdmin(context);
 
 				// Generate the raw API key
 				const rawKey = generateApiKey();
@@ -187,9 +193,7 @@ export const workersRouter = {
 		})
 		.input(z.object({ id: z.string() }))
 		.handler(async ({ input, context }): Promise<{ key: string }> => {
-			if (context.session.user.role !== "admin") {
-				throw new ORPCError("UNAUTHORIZED");
-			}
+			requireInstanceAdmin(context);
 
 			const [workerRecord] = await db
 				.select()
@@ -244,9 +248,7 @@ export const workersRouter = {
 		})
 		.input(z.object({ id: z.string() }))
 		.handler(async ({ input, context }) => {
-			if (context.session.user.role !== "admin") {
-				throw new ORPCError("UNAUTHORIZED");
-			}
+			requireInstanceAdmin(context);
 
 			const [workerRecord] = await db
 				.select()

@@ -21,6 +21,7 @@
 		"typescript": "^5"
 	},
 	"dependencies": {
+		"@better-auth/api-key": "^1.6.9",
 		"@uptimekit/db": "workspace:*",
 		"better-auth": "catalog:",
 		"drizzle-orm": "catalog:",

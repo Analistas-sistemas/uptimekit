@@ -1,11 +1,65 @@
 import { randomUUID } from "node:crypto";
+import { apiKey } from "@better-auth/api-key";
 import { db } from "@uptimekit/db";
 import * as schema from "@uptimekit/db/schema/auth";
+import type { Auth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
-import { betterAuth } from "better-auth/minimal";
+import { type BetterAuthOptions, betterAuth } from "better-auth/minimal";
 import { nextCookies } from "better-auth/next-js";
 import { admin, organization, twoFactor } from "better-auth/plugins";
+import { createAccessControl } from "better-auth/plugins/access";
 import { eq } from "drizzle-orm";
+
+export const API_KEY_HEADER = "x-api-key";
+export const API_KEY_ORGANIZATION_HEADER = "x-organization-id";
+
+export function getApiKeyFromHeaders(headers: Headers | null | undefined) {
+	const headerApiKey = headers?.get(API_KEY_HEADER)?.trim();
+	if (headerApiKey) {
+		return headerApiKey;
+	}
+
+	const authorization = headers?.get("authorization")?.trim();
+	if (!authorization) {
+		return null;
+	}
+
+	const [scheme, token] = authorization.split(/\s+/, 2);
+	if (scheme?.toLowerCase() !== "bearer" || !token) {
+		return null;
+	}
+
+	return token.trim() || null;
+}
+
+export type UptimeKitAuthSession = {
+	session: {
+		id: string;
+		token: string;
+		userId: string;
+		expiresAt: Date;
+		createdAt: Date;
+		updatedAt: Date;
+		ipAddress?: string | null;
+		userAgent?: string | null;
+		impersonatedBy?: string | null;
+		activeOrganizationId?: string | null;
+	};
+	user: {
+		id: string;
+		name: string;
+		email: string;
+		emailVerified: boolean;
+		createdAt: Date;
+		updatedAt: Date;
+		image?: string | null;
+		role?: string | null;
+		banned?: boolean | null;
+		banReason?: string | null;
+		banExpires?: Date | null;
+		twoFactorEnabled?: boolean | null;
+	};
+};
 
 function createSlugFromEmail(email: string): string {
 	const prefix = email.split("@")[0] || "user";
@@ -31,7 +85,43 @@ async function createUniqueOrganizationSlug(email: string): Promise<string> {
 	return `${baseSlug}-${randomUUID().slice(0, 8)}`;
 }
 
-export const auth = betterAuth({
+const organizationAccessControl = createAccessControl({
+	organization: ["update", "delete"],
+	member: ["create", "update", "delete"],
+	invitation: ["create", "cancel"],
+	team: ["create", "update", "delete"],
+	ac: ["create", "read", "update", "delete"],
+	apiKey: ["create", "read", "update", "delete"],
+});
+
+const organizationRoles = {
+	admin: organizationAccessControl.newRole({
+		organization: ["update"],
+		invitation: ["create", "cancel"],
+		member: ["create", "update", "delete"],
+		team: ["create", "update", "delete"],
+		ac: ["create", "read", "update", "delete"],
+		apiKey: ["create", "read", "update", "delete"],
+	}),
+	member: organizationAccessControl.newRole({
+		organization: [],
+		member: [],
+		invitation: [],
+		team: [],
+		ac: ["read"],
+		apiKey: [],
+	}),
+	owner: organizationAccessControl.newRole({
+		organization: ["update", "delete"],
+		member: ["create", "update", "delete"],
+		invitation: ["create", "cancel"],
+		team: ["create", "update", "delete"],
+		ac: ["create", "read", "update", "delete"],
+		apiKey: ["create", "read", "update", "delete"],
+	}),
+};
+
+const authConfig: BetterAuthOptions = {
 	database: drizzleAdapter(db, {
 		provider: "pg",
 		schema: schema,
@@ -44,6 +134,7 @@ export const auth = betterAuth({
 		nextCookies(),
 		admin(),
 		organization({
+			ac: organizationAccessControl,
 			allowUserToCreateOrganization: (user) => user.role === "admin",
 			organizationHooks: {
 				beforeCreateOrganization: async ({ organization }) => {
@@ -54,9 +145,21 @@ export const auth = betterAuth({
 					};
 				},
 			},
+			roles: organizationRoles,
 		}),
 		twoFactor({
 			issuer: "UptimeKit",
+		}),
+		apiKey({
+			customAPIKeyGetter: (ctx) => getApiKeyFromHeaders(ctx.headers),
+			defaultPrefix: "uk_api_",
+			enableMetadata: true,
+			rateLimit: {
+				enabled: true,
+				maxRequests: 120,
+				timeWindow: 60 * 1000,
+			},
+			references: "organization",
 		}),
 	],
 	socialProviders: {
@@ -152,4 +255,17 @@ export const auth = betterAuth({
 			},
 		},
 	},
-});
+};
+
+type UptimeKitAuthApi = Omit<Auth["api"], "getSession"> &
+	Record<string, any> & {
+		getSession: (
+			...args: Parameters<Auth["api"]["getSession"]>
+		) => Promise<UptimeKitAuthSession | null>;
+	};
+
+type UptimeKitAuth = Omit<Auth, "api"> & {
+	api: UptimeKitAuthApi;
+};
+
+export const auth = betterAuth(authConfig) as UptimeKitAuth;

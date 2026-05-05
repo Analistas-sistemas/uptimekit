@@ -104,13 +104,14 @@ export const apikey = pgTable(
 	"apikey",
 	{
 		id: text("id").primaryKey(),
+		configId: text("config_id").default("default").notNull(),
 		name: text("name"),
 		start: text("start"),
 		prefix: text("prefix"),
 		key: text("key").notNull(),
-		userId: text("user_id")
+		referenceId: text("organization_id")
 			.notNull()
-			.references(() => user.id, { onDelete: "cascade" }),
+			.references(() => organization.id, { onDelete: "cascade" }),
 		refillInterval: integer("refill_interval"),
 		refillAmount: integer("refill_amount"),
 		lastRefillAt: timestamp("last_refill_at"),
@@ -128,8 +129,9 @@ export const apikey = pgTable(
 		metadata: text("metadata"),
 	},
 	(table) => [
+		index("apikey_configId_idx").on(table.configId),
 		index("apikey_key_idx").on(table.key),
-		index("apikey_userId_idx").on(table.userId),
+		index("apikey_organizationId_idx").on(table.referenceId),
 	],
 );
 
@@ -188,7 +190,6 @@ export const invitation = pgTable(
 export const userRelations = relations(user, ({ many }) => ({
 	sessions: many(session),
 	accounts: many(account),
-	apikeys: many(apikey),
 	members: many(member),
 	invitations: many(invitation),
 	twoFactors: many(twoFactor),
@@ -209,13 +210,14 @@ export const accountRelations = relations(account, ({ one }) => ({
 }));
 
 export const apikeyRelations = relations(apikey, ({ one }) => ({
-	user: one(user, {
-		fields: [apikey.userId],
-		references: [user.id],
+	organization: one(organization, {
+		fields: [apikey.referenceId],
+		references: [organization.id],
 	}),
 }));
 
 export const organizationRelations = relations(organization, ({ many }) => ({
+	apikeys: many(apikey),
 	members: many(member),
 	invitations: many(invitation),
 }));

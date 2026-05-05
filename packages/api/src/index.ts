@@ -14,11 +14,25 @@ export const o = os.$context<Context>();
 export const publicProcedure = o;
 
 const requireAuth = o.middleware(async ({ context, next }) => {
+	if (context.apiKey?.error === "invalid") {
+		throw new ORPCError("UNAUTHORIZED", {
+			message: "Invalid API key.",
+		});
+	}
+
+	if (context.apiKey?.error === "not_member") {
+		throw new ORPCError("FORBIDDEN", {
+			message: "API key is not authorized for the requested organization.",
+		});
+	}
+
 	if (!context.session?.user) {
 		throw new ORPCError("UNAUTHORIZED");
 	}
+
 	return next({
 		context: {
+			...context,
 			session: context.session,
 		},
 	});
@@ -33,6 +47,10 @@ export const writeProcedure = protectedProcedure.use(
 			throw new ORPCError("UNAUTHORIZED", {
 				message: "No active organization",
 			});
+		}
+
+		if (context.authType === "apiKey") {
+			return next({ context });
 		}
 
 		const memberRecord = await db.query.member.findFirst({
