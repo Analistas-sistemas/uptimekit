@@ -49,4 +49,4 @@ ENV NODE_PATH=/app/node_modules
 ENV PORT=3000
 EXPOSE 3000
 
-CMD ["sh", "-c", "bun packages/db/src/migrate.ts  && bun db:push && bun apps/dash/server.js"]
+CMD ["sh", "-c", "bun packages/db/src/migrate.ts && bun apps/dash/server.js"]
