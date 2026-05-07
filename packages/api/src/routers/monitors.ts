@@ -240,6 +240,18 @@ export const monitorsRouter = {
 				filters.push(eq(monitor.groupId, input.groupId));
 			}
 
+			if (input?.tagId) {
+				filters.push(
+					inArray(
+						monitor.id,
+						db
+							.select({ monitorId: monitorTag.monitorId })
+							.from(monitorTag)
+							.where(eq(monitorTag.tagId, input.tagId)),
+					),
+				);
+			}
+
 			const [monitors, total] = await Promise.all([
 				db
 					.select()
