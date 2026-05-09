@@ -1,11 +1,15 @@
 import fs from "node:fs";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
 
 import { createClient } from "@clickhouse/client";
+import { loadEnv } from "@uptimekit/config/env";
 import { readMigrationFiles } from "drizzle-orm/migrator";
 import { drizzle } from "drizzle-orm/postgres-js";
 import { migrate } from "drizzle-orm/postgres-js/migrator";
 import postgres from "postgres";
+
+loadEnv();
 
 const isColumnAlreadyExistsError = (error: unknown) => {
 	const errorStr =
@@ -53,6 +57,11 @@ const isConstraintAlreadyExistsError = (error: unknown) => {
 };
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
+const migrationsFolder = path.join(
+	path.dirname(fileURLToPath(import.meta.url)),
+	"migrations",
+);
 
 const getMigrationFiles = (migrationsFolder: string) => {
 	const migrations = readMigrationFiles({ migrationsFolder });
@@ -180,6 +189,11 @@ const syncMigrationJournal = async (
 		console.log(`   - ${migration.file}`);
 	}
 
+	if (appliedMigrations.length > 0) {
+		console.log("✅ Leaving missing migrations for Drizzle to apply");
+		return;
+	}
+
 	console.log("📝 Marking missing migrations as applied...");
 	for (const migration of missingMigrations) {
 		await client`
@@ -205,10 +219,6 @@ const runPostgresMigrations = async () => {
 	try {
 		await waitForPostgres(client);
 
-		const migrationsFolder = path.join(
-			process.cwd(),
-			"packages/db/src/migrations",
-		);
 		console.log(`📂 Migrations folder: ${migrationsFolder}`);
 
 		await syncMigrationJournal(client, migrationsFolder);

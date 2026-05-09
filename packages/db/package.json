@@ -12,10 +12,10 @@
 	},
 	"scripts": {
 		"check-types": "tsc --noEmit -p tsconfig.json",
-		"db:push": "drizzle-kit push",
+		"db:push": "bun src/migrate.ts",
 		"db:studio": "drizzle-kit studio",
 		"db:generate": "drizzle-kit generate",
-		"db:migrate": "drizzle-kit migrate"
+		"db:migrate": "bun src/migrate.ts"
 	},
 	"devDependencies": {
 		"drizzle-kit": "^0.31.8",

@@ -1,4 +1,4 @@
-ALTER TABLE "monitor" ADD COLUMN "worker_ids" json NOT NULL DEFAULT '[]'::json;
+ALTER TABLE "monitor" ADD COLUMN IF NOT EXISTS "worker_ids" json NOT NULL DEFAULT '[]'::json;
 --> statement-breakpoint
 WITH missing_locations AS (
 	SELECT DISTINCT location.location
@@ -46,6 +46,6 @@ SET
 		INNER JOIN "worker" AS w ON w."location" = location.location
 	), '[]'::json);
 --> statement-breakpoint
-ALTER TABLE "worker" DROP CONSTRAINT "worker_location_unique";
+ALTER TABLE "worker" DROP CONSTRAINT IF EXISTS "worker_location_unique";
 --> statement-breakpoint
 ALTER TABLE "monitor" ALTER COLUMN "worker_ids" DROP DEFAULT;
