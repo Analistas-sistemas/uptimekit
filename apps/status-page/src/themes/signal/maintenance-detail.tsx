@@ -32,12 +32,12 @@ export default function SignalMaintenanceDetail({
 				logoUrl={design.logoUrl}
 				contactUrl={design.contactUrl}
 				websiteUrl={design.websiteUrl}
-				slug={config.slug}
+				slug={config.routeSlug}
 			/>
 
 			<main className="w-full flex-1">
 				<div className="mx-auto flex w-full max-w-[822px] flex-col gap-8 px-4 pt-6 pb-16">
-					<BackLink href={buildPath("/", config.slug)} />
+					<BackLink href={buildPath("/", config.routeSlug)} />
 					<CurrentIssuesBanner activeIssues={activeIssues} />
 					<DetailCard
 						incident={maintenanceAsIncident}

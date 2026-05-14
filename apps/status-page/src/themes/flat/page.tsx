@@ -26,7 +26,7 @@ export default function DefaultTheme({ data }: ThemePageProps) {
 				title={config.name}
 				logoUrl={design.logoUrl}
 				contactUrl={design.contactUrl}
-				slug={config.slug}
+				slug={config.routeSlug}
 			/>
 
 			<main className="w-full flex-1">
@@ -44,10 +44,13 @@ export default function DefaultTheme({ data }: ThemePageProps) {
 
 					<ScheduledMaintenanceSection
 						scheduledMaintenances={scheduledMaintenances}
-						slug={config.slug}
+						slug={config.routeSlug}
 					/>
 
-					<PreviousIncidents pastIncidents={pastIncidents} slug={config.slug} />
+					<PreviousIncidents
+						pastIncidents={pastIncidents}
+						slug={config.routeSlug}
+					/>
 				</div>
 			</main>
 

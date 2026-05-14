@@ -11,7 +11,7 @@ import "./style.css";
 export default function SignalUpdates({ data }: ThemeUpdatesProps) {
 	const { config, incidentsByDate, activeIssues, selectedPeriod } = data;
 	const { design } = config;
-	const updatesPath = buildPath("/updates", config.slug);
+	const updatesPath = buildPath("/updates", config.routeSlug);
 
 	return (
 		<div className="signal-theme flex min-h-screen flex-col bg-background font-sans text-foreground">
@@ -20,12 +20,12 @@ export default function SignalUpdates({ data }: ThemeUpdatesProps) {
 				logoUrl={design.logoUrl}
 				contactUrl={design.contactUrl}
 				websiteUrl={design.websiteUrl}
-				slug={config.slug}
+				slug={config.routeSlug}
 			/>
 
 			<main className="w-full flex-1">
 				<div className="mx-auto flex w-full max-w-[822px] flex-col gap-8 px-4 pt-6 pb-16">
-					<BackLink href={buildPath("/", config.slug)} />
+					<BackLink href={buildPath("/", config.routeSlug)} />
 					<div className="space-y-2">
 						<h1 className="font-semibold text-3xl tracking-tight">
 							Incident history

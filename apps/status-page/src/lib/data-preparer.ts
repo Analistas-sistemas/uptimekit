@@ -72,7 +72,7 @@ function getBarDays(design: any): 30 | 60 | 90 {
 
 export async function prepareStatusPageData(
 	pageConfig: any,
-	slug?: string,
+	routeSlug?: string,
 ): Promise<StatusPageData> {
 	const design = (pageConfig.design as any) || {};
 	const barDays = getBarDays(design);
@@ -105,7 +105,7 @@ export async function prepareStatusPageData(
 				createdAt: u.createdAt,
 				type: "update",
 			})),
-			detailsLink: buildPath(`/incidents/${r.id}`, slug),
+			detailsLink: buildPath(`/incidents/${r.id}`, routeSlug),
 		})),
 		...activeMaintenances.map((m: any) => ({
 			id: m.id,
@@ -116,7 +116,7 @@ export async function prepareStatusPageData(
 			endedAt: m.endAt,
 			monitors: m.monitors,
 			activities: [],
-			detailsLink: buildPath(`/maintenance/${m.id}`, slug),
+			detailsLink: buildPath(`/maintenance/${m.id}`, routeSlug),
 		})),
 	].sort(
 		(a, b) => new Date(b.startedAt).getTime() - new Date(a.startedAt).getTime(),
@@ -137,7 +137,7 @@ export async function prepareStatusPageData(
 				createdAt: u.createdAt,
 				type: "update",
 			})),
-			detailsLink: buildPath(`/incidents/${r.id}`, slug),
+			detailsLink: buildPath(`/incidents/${r.id}`, routeSlug),
 		})),
 		...maintenances.map((m: any) => ({
 			id: m.id,
@@ -148,7 +148,7 @@ export async function prepareStatusPageData(
 			endedAt: m.endAt,
 			monitors: m.monitors.map((mm: any) => ({ monitor: mm.monitor })),
 			activities: [],
-			detailsLink: buildPath(`/maintenance/${m.id}`, slug),
+			detailsLink: buildPath(`/maintenance/${m.id}`, routeSlug),
 		})),
 	].sort(
 		(a, b) => new Date(b.startedAt).getTime() - new Date(a.startedAt).getTime(),
@@ -369,6 +369,7 @@ export async function prepareStatusPageData(
 			id: pageConfig.id,
 			name: pageConfig.name,
 			slug: pageConfig.slug,
+			routeSlug,
 			design: {
 				themeId: design.themeId || "default",
 				theme: design.theme,
@@ -386,7 +387,7 @@ export async function prepareStatusPageData(
 		activeIssues: combinedActive,
 		scheduledMaintenances: scheduledMaintenances.map((m: any) => ({
 			...m,
-			detailsLink: buildPath(`/maintenance/${m.id}`, slug),
+			detailsLink: buildPath(`/maintenance/${m.id}`, routeSlug),
 		})),
 		pastIncidents: incidentsByDate,
 		lastUpdated: new Date().toISOString(),
