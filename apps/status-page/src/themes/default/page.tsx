@@ -42,10 +42,13 @@ export default function DefaultTheme({ data }: ThemePageProps) {
 
 					<ScheduledMaintenanceSection
 						scheduledMaintenances={scheduledMaintenances}
-						slug={config.slug}
+						slug={config.routeSlug}
 					/>
 
-					<PreviousIncidents pastIncidents={pastIncidents} slug={config.slug} />
+					<PreviousIncidents
+						pastIncidents={pastIncidents}
+						slug={config.routeSlug}
+					/>
 				</div>
 			</main>
 

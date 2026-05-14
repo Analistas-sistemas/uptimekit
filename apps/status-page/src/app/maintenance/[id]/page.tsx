@@ -2,6 +2,7 @@ import { headers } from "next/headers";
 import { notFound } from "next/navigation";
 import { checkStatusPageAccess } from "@/lib/access-check";
 import { getStatusPageByDomain } from "@/lib/db-queries";
+import { getDomainFromHost, getHostFromHeaders } from "@/lib/route-utils";
 import { prepareMaintenanceDetailData } from "@/lib/subpage-data-preparer";
 import { loadMaintenanceDetailComponent } from "@/lib/theme-loader";
 import { ThemePageWrapper } from "@/themes/theme-page-wrapper";
@@ -14,13 +15,13 @@ export default async function MaintenanceDetailsPage({
 	const { id } = await params;
 
 	const headersList = await headers();
-	const host = headersList.get("host");
+	const host = getHostFromHeaders(headersList);
 
 	if (!host) {
 		notFound();
 	}
 
-	const domain = host.split(":")[0];
+	const domain = getDomainFromHost(host);
 	const pageConfig = await getStatusPageByDomain(domain);
 
 	if (!pageConfig) {

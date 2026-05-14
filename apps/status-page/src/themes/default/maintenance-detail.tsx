@@ -22,7 +22,7 @@ export default function DefaultMaintenanceDetail({
 
 			<main className="w-full flex-1">
 				<div className="mx-auto max-w-5xl px-4 py-12">
-					<BackLink href={buildPath("/", config.slug)} />
+					<BackLink href={buildPath("/", config.routeSlug)} />
 					<CurrentIssuesBanner activeIssues={activeIssues} />
 					<MaintenanceDetailCard maintenance={maintenance} />
 				</div>

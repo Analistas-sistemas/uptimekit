@@ -9,7 +9,7 @@
 		"start": "next start"
 	},
 	"dependencies": {
-		"@clickhouse/client": "^1.18.2",
+		"@clickhouse/client": "^1.18.5",
 		"@node-rs/argon2": "^2.0.2",
 		"@radix-ui/react-slot": "^1.2.4",
 		"@radix-ui/react-tooltip": "^1.2.8",
@@ -23,20 +23,20 @@
 		"ioredis": "^5.10.1",
 		"lucide-react": "^0.546.0",
 		"motion": "^12.38.0",
-		"next": "^16.2.3",
+		"next": "^16.2.6",
 		"next-themes": "^0.4.6",
 		"react": "19.2.1",
 		"react-dom": "19.2.1",
-		"tailwind-merge": "^3.5.0",
-		"zod": "^4.3.6"
+		"tailwind-merge": "^3.6.0",
+		"zod": "^4.4.3"
 	},
 	"devDependencies": {
-		"@tailwindcss/postcss": "^4.2.2",
-		"@types/node": "^20.19.39",
+		"@tailwindcss/postcss": "^4.3.0",
+		"@types/node": "^20.19.41",
 		"@types/react": "19.2.2",
 		"@types/react-dom": "19.2.2",
 		"@uptimekit/config": "workspace:*",
-		"tailwindcss": "^4.2.2",
+		"tailwindcss": "^4.3.0",
 		"tw-animate-css": "^1.4.0",
 		"typescript": "^5.9.3"
 	}
