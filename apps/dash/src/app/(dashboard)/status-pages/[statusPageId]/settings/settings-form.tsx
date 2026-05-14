@@ -40,6 +40,7 @@ import {
 	SelectValue,
 } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
+import { getStatusPageBaseDomain } from "@/lib/status-page-url";
 import { cn } from "@/lib/utils";
 import { client, orpc } from "@/utils/orpc";
 
@@ -240,6 +241,7 @@ export function SettingsForm({ statusPageId }: SettingsFormProps) {
 
 	const optionCardClassName =
 		"flex h-full min-h-24 w-full cursor-pointer items-center rounded-lg border-2 border-muted bg-popover p-4 transition-all hover:bg-accent hover:text-accent-foreground";
+	const statusPageBaseDomain = getStatusPageBaseDomain();
 
 	return (
 		<Form {...form}>
@@ -287,9 +289,7 @@ export function SettingsForm({ statusPageId }: SettingsFormProps) {
 											</FormLabel>
 											<div className="flex rounded-md shadow-sm ring-1 ring-input ring-inset">
 												<div className="flex select-none items-center rounded-l-md border-r bg-muted/50 px-3 text-muted-foreground text-sm">
-													{process.env.NEXT_PUBLIC_STATUS_PAGE_DOMAIN ||
-														"status.uptimekit.dev"}
-													/
+													{statusPageBaseDomain}/
 												</div>
 												<Input
 													placeholder="acme"
@@ -897,11 +897,12 @@ export function SettingsForm({ statusPageId }: SettingsFormProps) {
 				<div className="grid grid-cols-1 gap-x-8 gap-y-8 md:grid-cols-3">
 					<div className="space-y-2">
 						<h2 className="font-semibold text-lg leading-none tracking-tight">
-							Custom domain SOON
+							Custom domain
 						</h2>
 						<p className="text-muted-foreground text-sm">
-							Deploy your status page to a custom subdomain for a branded
-							experience.
+							Use your own domain for this status page. Point it at{" "}
+							{statusPageBaseDomain} and keep the original Host header preserved
+							through your proxy.
 						</p>
 					</div>
 					<Card className="md:col-span-2">
@@ -917,6 +918,11 @@ export function SettingsForm({ statusPageId }: SettingsFormProps) {
 												<Input placeholder="status.example.com" {...field} />
 											</FormControl>
 										</div>
+										<FormDescription>
+											Subdomains usually use CNAME. Apex domains can work too
+											when your DNS provider supports ALIAS, ANAME, or an
+											equivalent root-domain target.
+										</FormDescription>
 										<FormMessage />
 									</FormItem>
 								)}

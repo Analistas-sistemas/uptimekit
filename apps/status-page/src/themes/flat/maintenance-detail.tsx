@@ -18,12 +18,12 @@ export default function DefaultMaintenanceDetail({
 				title={config.name}
 				logoUrl={design.logoUrl}
 				contactUrl={design.contactUrl}
-				slug={config.slug}
+				slug={config.routeSlug}
 			/>
 
 			<main className="w-full flex-1">
 				<div className="mx-auto max-w-4xl px-4 py-10">
-					<BackLink href={buildPath("/", config.slug)} />
+					<BackLink href={buildPath("/", config.routeSlug)} />
 					<CurrentIssuesBanner activeIssues={activeIssues} />
 					<MaintenanceDetailCard maintenance={maintenance} />
 				</div>

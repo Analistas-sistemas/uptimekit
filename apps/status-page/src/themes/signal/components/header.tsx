@@ -8,7 +8,7 @@ interface HeaderProps {
 	logoUrl?: string;
 	contactUrl?: string;
 	websiteUrl?: string;
-	slug: string;
+	slug?: string;
 }
 
 export function Header({

@@ -5,7 +5,7 @@ import type { Incident } from "../../types";
 
 interface PreviousIncidentsProps {
 	pastIncidents: Record<string, Incident[]>;
-	slug: string;
+	slug?: string;
 }
 
 export function PreviousIncidents({

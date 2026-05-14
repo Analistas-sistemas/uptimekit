@@ -106,6 +106,7 @@ export interface StatusPageConfig {
 	id: string;
 	name: string;
 	slug: string;
+	routeSlug?: string;
 	design: StatusPageDesign;
 }
 
