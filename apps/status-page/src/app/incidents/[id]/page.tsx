@@ -2,7 +2,6 @@ import { headers } from "next/headers";
 import { notFound } from "next/navigation";
 import { checkStatusPageAccess } from "@/lib/access-check";
 import { getStatusPageByDomain } from "@/lib/db-queries";
-import { getDomainFromHost, getHostFromHeaders } from "@/lib/route-utils";
 import { prepareIncidentDetailData } from "@/lib/subpage-data-preparer";
 import { loadIncidentDetailComponent } from "@/lib/theme-loader";
 import { ThemePageWrapper } from "@/themes/theme-page-wrapper";
@@ -15,13 +14,13 @@ export default async function IncidentDetailsPage({
 	const { id } = await params;
 
 	const headersList = await headers();
-	const host = getHostFromHeaders(headersList);
+	const host = headersList.get("host");
 
 	if (!host) {
 		notFound();
 	}
 
-	const domain = getDomainFromHost(host);
+	const domain = host.split(":")[0];
 	const pageConfig = await getStatusPageByDomain(domain);
 
 	if (!pageConfig) {

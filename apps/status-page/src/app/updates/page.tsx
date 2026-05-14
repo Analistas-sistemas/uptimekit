@@ -3,7 +3,6 @@ import { notFound } from "next/navigation";
 import { checkStatusPageAccess } from "@/lib/access-check";
 import { getStatusPageByDomain } from "@/lib/db-queries";
 import { parseIncidentHistoryPeriod } from "@/lib/incident-history";
-import { getDomainFromHost, getHostFromHeaders } from "@/lib/route-utils";
 import { prepareUpdatesPageData } from "@/lib/subpage-data-preparer";
 import { loadUpdatesComponent } from "@/lib/theme-loader";
 import { ThemePageWrapper } from "@/themes/theme-page-wrapper";
@@ -14,14 +13,14 @@ export default async function UpdatesPage({
 	searchParams: Promise<{ period?: string }>;
 }) {
 	const headersList = await headers();
-	const host = getHostFromHeaders(headersList);
+	const host = headersList.get("host");
 	const params = await searchParams;
 
 	if (!host) {
 		notFound();
 	}
 
-	const domain = getDomainFromHost(host);
+	const domain = host.split(":")[0];
 	const pageConfig = await getStatusPageByDomain(domain);
 
 	if (!pageConfig) {

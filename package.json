@@ -45,11 +45,11 @@
 	},
 	"devDependencies": {
 		"@biomejs/biome": "^2.4.15",
-		"@types/node": "^22.19.19",
+		"@types/node": "^22.19.18",
 		"husky": "^9.1.7",
 		"lint-staged": "^16.4.0",
 		"typescript": "^5.9.3",
-		"turbo": "^2.9.14"
+		"turbo": "^2.9.12"
 	},
 	"lint-staged": {
 		"*.{js,ts,cjs,mjs,d.cts,d.mts,jsx,tsx,json,jsonc}": [

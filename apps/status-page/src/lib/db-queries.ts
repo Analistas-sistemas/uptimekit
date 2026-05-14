@@ -251,14 +251,52 @@ export const getStatusPageByDomain = async (domain: string) => {
 		`status-page:${domain}`,
 		600, // 10 minutes
 		async () => {
+			// 1. Try to find by custom domain
 			const page = await db.query.statusPage.findFirst({
 				where: eq(statusPage.domain, domain),
 			});
 
 			if (!page) {
+				// Try by slug/subdomain logic if needed, but assuming domain param handles it or comes processed.
+				// If strictly mapped by domain column:
+				// Actually, earlier code just checked statusPage.domain.
+				// If we want to support subdomains (slug.uptime.kit), usually that's handled before or query checks slug too.
+				// The original code only checked `eq(statusPage.domain, domain)`.
+				// Wait, checking original code...
+				// Original: `where: eq(statusPage.domain, domain)`
+				// But wait, `domain` variable in generateMetadata/StatusPage page.tsx comes from `host`.
+				// If user accesses `slug.uptime.kit`, `domain` is `slug.uptime.kit`.
+				// Does `statusPage` table store full domain or just custom domain?
+				// Typically `slug` is used for subdomains.
+				// Let's re-read the original `getStatusPageByDomain` carefully.
+				// It ONLY checked `statusPage.domain`.
+				// But page.tsx splits host: `const domain = host.split(":")[0];`
+				// Iterate: If I am on `myslug.localhost:3000`, domain is `myslug.localhost`.
+				// If DB `domain` field is null, it won't match.
+				// Maybe I should match slug too?
+				// Original code:
+				// `where: eq(statusPage.domain, domain)`
+				// If this logic was insufficient before, it is not my task to fix it, but I shouldn't break it.
+				// BUT: look at `status-pages.ts` router create: `slug: input.slug`.
+				// AND `update`: `domain: input.domain`.
+				// If using custom domain, `domain` field is set.
+				// If using default subdomain, `slug` is set.
+				// The previous code ONLY checked `domain` column? That seems wrong if it doesn't check slug.
+				// Ah, maybe the user hasn't implemented subdomain routing yet or `domain` is expected to match the host header exactly?
+				// Let's stick to EXACT behavior of original code for the callback to minimize regression risk.
+				// Original: `where: eq(statusPage.domain, domain)`
+				// Wait, let's look at `apps/status-page/src/app/page.tsx`.
+				// `const pageConfig = await getStatusPageByDomain(domain);`
+				// If original only query by domain, then it only supports custom domains?
+				// Let's check `db-queries.ts` original again.
+				// Line 89: `where: eq(statusPage.domain, domain)`
+				// Yes.
+				// I will KEEP this logic.
+
 				return undefined;
 			}
 
+			// 2. Fetch monitors manually to avoid complex joins that might be failing
 			const monitors = await db.query.statusPageMonitor.findMany({
 				where: eq(statusPageMonitor.statusPageId, page.id),
 				with: {

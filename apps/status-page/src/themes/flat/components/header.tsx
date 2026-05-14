@@ -7,7 +7,7 @@ interface HeaderProps {
 	title?: string;
 	logoUrl?: string;
 	contactUrl?: string;
-	slug?: string;
+	slug: string;
 	className?: string;
 }
 

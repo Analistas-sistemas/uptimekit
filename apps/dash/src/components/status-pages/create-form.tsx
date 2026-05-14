@@ -26,7 +26,6 @@ import {
 	FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { getStatusPageBaseDomain } from "@/lib/status-page-url";
 
 import { client, orpc } from "@/utils/orpc";
 
@@ -54,7 +53,6 @@ export function CreateStatusPageForm({
 	onSuccess?: () => void;
 }) {
 	const queryClient = useQueryClient();
-	const statusPageBaseDomain = getStatusPageBaseDomain();
 
 	const form = useForm<FormValues>({
 		resolver: zodResolver(formSchema),
@@ -119,7 +117,9 @@ export function CreateStatusPageForm({
 										<FormControl>
 											<div className="flex h-9 items-center rounded-md border border-input bg-transparent focus-within:border-ring focus-within:ring-[3px] focus-within:ring-ring/50">
 												<span className="shrink-0 select-none pl-3 text-muted-foreground text-sm">
-													{statusPageBaseDomain}/
+													{process.env.NEXT_PUBLIC_STATUS_PAGE_DOMAIN ||
+														"status.uptimekit.dev"}
+													/
 												</span>
 												<Input
 													{...field}

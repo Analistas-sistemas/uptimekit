@@ -27,7 +27,7 @@ export default function SignalTheme({ data }: ThemePageProps) {
 				logoUrl={design.logoUrl}
 				contactUrl={design.contactUrl}
 				websiteUrl={design.websiteUrl}
-				slug={config.routeSlug}
+				slug={config.slug}
 			/>
 
 			<main className="w-full flex-1">
@@ -41,12 +41,9 @@ export default function SignalTheme({ data }: ThemePageProps) {
 					/>
 					<ScheduledMaintenanceSection
 						scheduledMaintenances={scheduledMaintenances}
-						slug={config.routeSlug}
+						slug={config.slug}
 					/>
-					<PreviousIncidents
-						pastIncidents={pastIncidents}
-						slug={config.routeSlug}
-					/>
+					<PreviousIncidents pastIncidents={pastIncidents} slug={config.slug} />
 				</div>
 			</main>
 

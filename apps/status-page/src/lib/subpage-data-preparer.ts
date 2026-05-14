@@ -26,7 +26,7 @@ function getBarDays(design: any): 30 | 60 | 90 {
 	return 90;
 }
 
-function mapIncident(report: any, routeSlug?: string) {
+function mapIncident(report: any, slug?: string) {
 	return {
 		id: report.id,
 		title: report.title,
@@ -43,11 +43,11 @@ function mapIncident(report: any, routeSlug?: string) {
 			createdAt: u.createdAt,
 			type: u.type,
 		})),
-		detailsLink: buildPath(`/incidents/${report.id}`, routeSlug),
+		detailsLink: buildPath(`/incidents/${report.id}`, slug),
 	};
 }
 
-function mapMaintenanceIncident(maintenance: any, routeSlug?: string) {
+function mapMaintenanceIncident(maintenance: any, slug?: string) {
 	return {
 		id: maintenance.id,
 		title: maintenance.title,
@@ -57,14 +57,14 @@ function mapMaintenanceIncident(maintenance: any, routeSlug?: string) {
 		endedAt: maintenance.endAt,
 		monitors: maintenance.monitors,
 		activities: [],
-		detailsLink: buildPath(`/maintenance/${maintenance.id}`, routeSlug),
+		detailsLink: buildPath(`/maintenance/${maintenance.id}`, slug),
 	};
 }
 
 export async function prepareIncidentDetailData(
 	pageConfig: any,
 	incidentId: string,
-	routeSlug?: string,
+	slug?: string,
 ): Promise<IncidentDetailData> {
 	const [reports, activeReports, activeMaintenances] = await Promise.all([
 		getStatusPageReports(pageConfig.id, 1000),
@@ -81,9 +81,9 @@ export async function prepareIncidentDetailData(
 	}
 
 	const activeIssues = [
-		...activeReports.map((report: any) => mapIncident(report, routeSlug)),
+		...activeReports.map((report: any) => mapIncident(report, slug)),
 		...activeMaintenances.map((maintenance: any) =>
-			mapMaintenanceIncident(maintenance, routeSlug),
+			mapMaintenanceIncident(maintenance, slug),
 		),
 	].sort(
 		(a, b) => new Date(b.startedAt).getTime() - new Date(a.startedAt).getTime(),
@@ -97,7 +97,6 @@ export async function prepareIncidentDetailData(
 			id: pageConfig.id,
 			name: pageConfig.name,
 			slug: pageConfig.slug,
-			routeSlug,
 			design: {
 				themeId: design.themeId || "default",
 				theme: design.theme,
@@ -110,7 +109,7 @@ export async function prepareIncidentDetailData(
 				barDays,
 			},
 		},
-		incident: mapIncident(reportItem, routeSlug),
+		incident: mapIncident(reportItem, slug),
 		activeIssues,
 	};
 }
@@ -118,7 +117,7 @@ export async function prepareIncidentDetailData(
 export async function prepareMaintenanceDetailData(
 	pageConfig: any,
 	maintenanceId: string,
-	routeSlug?: string,
+	slug?: string,
 ): Promise<MaintenanceDetailData> {
 	const [history, activeReports, activeMaintenances, scheduledMaintenances] =
 		await Promise.all([
@@ -153,14 +152,14 @@ export async function prepareMaintenanceDetailData(
 		endAt: maintenanceItem.endAt,
 		createdAt: maintenanceItem.createdAt,
 		monitors: maintenanceItem.monitors,
-		detailsLink: buildPath(`/maintenance/${maintenanceItem.id}`, routeSlug),
+		detailsLink: buildPath(`/maintenance/${maintenanceItem.id}`, slug),
 	};
 
 	const activeIssues = [
-		...activeReports.map((report: any) => mapIncident(report, routeSlug)),
+		...activeReports.map((report: any) => mapIncident(report, slug)),
 		...activeMaintenances
 			.filter((item: any) => item.id !== maintenanceId)
-			.map((item: any) => mapMaintenanceIncident(item, routeSlug)),
+			.map((item: any) => mapMaintenanceIncident(item, slug)),
 	].sort(
 		(a, b) => new Date(b.startedAt).getTime() - new Date(a.startedAt).getTime(),
 	);
@@ -173,7 +172,6 @@ export async function prepareMaintenanceDetailData(
 			id: pageConfig.id,
 			name: pageConfig.name,
 			slug: pageConfig.slug,
-			routeSlug,
 			design: {
 				themeId: design.themeId || "default",
 				theme: design.theme,
@@ -194,7 +192,7 @@ export async function prepareMaintenanceDetailData(
 export async function prepareUpdatesPageData(
 	pageConfig: any,
 	selectedPeriod: IncidentHistoryPeriod,
-	routeSlug?: string,
+	slug?: string,
 ): Promise<UpdatesPageData> {
 	const limit = selectedPeriod === "all" ? undefined : 50;
 	const [reports, maintenances, activeReports, activeMaintenances] =
@@ -212,9 +210,9 @@ export async function prepareUpdatesPageData(
 		]);
 
 	const allUpdates = [
-		...reports.map((report: any) => mapIncident(report, routeSlug)),
+		...reports.map((report: any) => mapIncident(report, slug)),
 		...maintenances.map((maintenance: any) =>
-			mapMaintenanceIncident(maintenance, routeSlug),
+			mapMaintenanceIncident(maintenance, slug),
 		),
 	].sort(
 		(a, b) => new Date(b.startedAt).getTime() - new Date(a.startedAt).getTime(),
@@ -237,9 +235,9 @@ export async function prepareUpdatesPageData(
 	);
 
 	const activeIssues = [
-		...activeReports.map((report: any) => mapIncident(report, routeSlug)),
+		...activeReports.map((report: any) => mapIncident(report, slug)),
 		...activeMaintenances.map((maintenance: any) =>
-			mapMaintenanceIncident(maintenance, routeSlug),
+			mapMaintenanceIncident(maintenance, slug),
 		),
 	].sort(
 		(a, b) => new Date(b.startedAt).getTime() - new Date(a.startedAt).getTime(),
@@ -253,7 +251,6 @@ export async function prepareUpdatesPageData(
 			id: pageConfig.id,
 			name: pageConfig.name,
 			slug: pageConfig.slug,
-			routeSlug,
 			design: {
 				themeId: design.themeId || "default",
 				theme: design.theme,

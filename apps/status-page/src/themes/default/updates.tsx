@@ -10,7 +10,7 @@ import { UpdatesList } from "./components/updates-list";
 export default function DefaultUpdates({ data }: ThemeUpdatesProps) {
 	const { config, incidentsByDate, activeIssues, selectedPeriod } = data;
 	const { design } = config;
-	const updatesPath = buildPath("/updates", config.routeSlug);
+	const updatesPath = buildPath("/updates", config.slug);
 
 	return (
 		<div className="flex min-h-screen flex-col bg-background font-sans text-foreground">
@@ -22,7 +22,7 @@ export default function DefaultUpdates({ data }: ThemeUpdatesProps) {
 
 			<main className="w-full flex-1">
 				<div className="mx-auto max-w-5xl px-4 py-12">
-					<BackLink href={buildPath("/", config.routeSlug)} />
+					<BackLink href={buildPath("/", config.slug)} />
 
 					<h1 className="mb-8 font-bold text-3xl text-foreground">
 						Incident History

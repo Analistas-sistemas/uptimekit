@@ -5,7 +5,7 @@ import { IssueCard } from "./issue-card";
 
 interface PreviousIncidentsProps {
 	pastIncidents: Record<string, Incident[]>;
-	slug?: string;
+	slug: string;
 }
 
 export function PreviousIncidents({

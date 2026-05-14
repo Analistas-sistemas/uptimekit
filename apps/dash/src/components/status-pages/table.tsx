@@ -36,22 +36,10 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableRow } from "@/components/ui/table";
-import { getStatusPageUrl } from "@/lib/status-page-url";
 import { client, orpc } from "@/utils/orpc";
 import { DataPagination } from "../ui/data-pagination";
 import { DropdownMenuLabel, MenuGroup } from "../ui/menu";
 import { CreateStatusPageForm } from "./create-form";
-
-type StatusPageListItem = {
-	id: string;
-	name: string;
-	slug: string;
-	domain: string | null;
-	monitorsCount: number;
-	subscribers: number;
-	public: boolean;
-	description: string | null;
-};
 
 export function StatusPagesTable() {
 	const router = useRouter();
@@ -292,10 +280,17 @@ export function StatusPagesTable() {
 								</TableCell>
 							</TableRow>
 						) : (
-							statusPages.map((page: StatusPageListItem) => {
-								const statusPageUrl = getStatusPageUrl(page);
-
-								return (
+							statusPages.map(
+								(page: {
+									id: string;
+									name: string;
+									slug: string;
+									domain: string | null;
+									monitorsCount: number;
+									subscribers: number;
+									public: boolean;
+									description: string | null;
+								}) => (
 									<TableRow
 										key={page.id}
 										className="group h-[72px] cursor-pointer hover:bg-muted/40"
@@ -313,7 +308,8 @@ export function StatusPagesTable() {
 												</span>
 												<div className="flex items-center gap-1.5 font-medium text-muted-foreground text-xs">
 													<span className="flex items-center gap-1">
-														{statusPageUrl}
+														{page.domain ||
+															`${process.env.NEXT_PUBLIC_STATUS_PAGE_DOMAIN || "status.uptimekit.dev"}/${page.slug}`}
 														<ExternalLink className="h-3 w-3 opacity-50" />
 													</span>
 												</div>
@@ -359,7 +355,7 @@ export function StatusPagesTable() {
 															render={
 																// biome-ignore lint/a11y/useAnchorContent: shhhh its okay.. its okay...
 																<a
-																	href={statusPageUrl}
+																	href={`${process.env.NEXT_PUBLIC_STATUS_PAGE_DOMAIN}/${page.slug}`}
 																	target="_blank"
 																	rel="noopener"
 																/>
@@ -382,8 +378,8 @@ export function StatusPagesTable() {
 											</DropdownMenu>
 										</TableCell>
 									</TableRow>
-								);
-							})
+								),
+							)
 						)}
 					</TableBody>
 				</Table>

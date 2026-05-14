@@ -10,7 +10,6 @@ import { z } from "zod";
 import { protectedProcedure, writeProcedure } from "../index";
 import { hashPassword } from "../lib/password";
 import { redis } from "../lib/redis";
-import { normalizeStatusPageDomain } from "../lib/status-page-domain";
 import { subscribersRouter } from "./subscribers";
 
 function getActiveOrganizationId(
@@ -246,32 +245,6 @@ export const statusPagesRouter = {
 					throw new ORPCError("CONFLICT", { message: "Slug already taken" });
 			}
 
-			let normalizedDomain: string | null | undefined;
-			if (input.domain !== undefined) {
-				try {
-					normalizedDomain = normalizeStatusPageDomain(input.domain);
-				} catch (error) {
-					throw new ORPCError("BAD_REQUEST", {
-						message:
-							error instanceof Error
-								? error.message
-								: "Custom domain must be a valid domain name",
-					});
-				}
-			}
-
-			if (normalizedDomain && normalizedDomain !== existing.domain) {
-				const domainTaken = await db.query.statusPage.findFirst({
-					where: eq(statusPage.domain, normalizedDomain),
-				});
-
-				if (domainTaken && domainTaken.id !== existing.id) {
-					throw new ORPCError("CONFLICT", {
-						message: "Custom domain already taken",
-					});
-				}
-			}
-
 			// Merge design
 			const currentDesign = (existing.design as any) || {};
 			const newDesign = input.design
@@ -296,7 +269,7 @@ export const statusPagesRouter = {
 				.set({
 					name: input.name,
 					slug: input.slug,
-					domain: normalizedDomain,
+					domain: input.domain,
 					description: input.description,
 					public: input.public,
 					design: newDesign,
@@ -308,8 +281,8 @@ export const statusPagesRouter = {
 			if (existing.domain) {
 				await redis.del(`status-page:${existing.domain}`);
 			}
-			if (normalizedDomain && normalizedDomain !== existing.domain) {
-				await redis.del(`status-page:${normalizedDomain}`);
+			if (input.domain && input.domain !== existing.domain) {
+				await redis.del(`status-page:${input.domain}`);
 			}
 			// Invalidate slug-based cache
 			await redis.del(`status-page:slug:${existing.slug}`);

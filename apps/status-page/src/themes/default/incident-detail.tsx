@@ -22,7 +22,7 @@ export default function DefaultIncidentDetail({
 
 			<main className="w-full flex-1">
 				<div className="mx-auto max-w-3xl px-4 py-12">
-					<BackLink href={buildPath("/", config.routeSlug)} />
+					<BackLink href={buildPath("/", config.slug)} />
 					<CurrentIssuesBanner activeIssues={activeIssues} />
 					<IncidentDetailCard incident={incident} />
 				</div>
