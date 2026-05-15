@@ -19,6 +19,7 @@ interface MonitorListItemProps {
 	className?: string;
 	description?: string | null;
 	barStyle?: "normal" | "length" | "signal";
+	variant?: "list" | "card";
 }
 
 export function MonitorListItem({
@@ -30,11 +31,20 @@ export function MonitorListItem({
 	className,
 	description,
 	barStyle = "normal",
+	variant = "list",
 }: MonitorListItemProps) {
+	const isCard = variant === "card";
+
 	// Status-only mode: show only name and current status
 	if (displayStyle === "status") {
 		return (
-			<div className={cn("group py-4 first:pt-0 last:pb-0", className)}>
+			<div
+				className={cn(
+					"group",
+					isCard ? "h-full" : "py-4 first:pt-0 last:pb-0",
+					className,
+				)}
+			>
 				<div className="flex items-center justify-between">
 					<div className="flex items-center gap-3">
 						<StatusDot status={status} />
@@ -62,7 +72,13 @@ export function MonitorListItem({
 
 	// History mode: show full uptime bar with history
 	return (
-		<div className={cn("group py-6 first:pt-0 last:pb-0", className)}>
+		<div
+			className={cn(
+				"group",
+				isCard ? "h-full" : "py-6 first:pt-0 last:pb-0",
+				className,
+			)}
+		>
 			<div className="mb-3 flex items-center justify-between">
 				<div className="flex items-center gap-3">
 					<StatusDot status={status} />
