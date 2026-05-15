@@ -58,7 +58,7 @@ services:
       POSTGRES_PASSWORD: postgres
       POSTGRES_DB: uptimekit
     volumes:
-      - db_data:/var/lib/postgresql/data
+      - db_data:/var/lib/postgresql
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres -d uptimekit"]
       interval: 5s
