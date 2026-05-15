@@ -16,8 +16,11 @@ import {
 	Plus,
 	Search,
 	ShieldAlert,
+	Trash2,
+	X,
 } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { sileo } from "sileo";
 import {
@@ -31,6 +34,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import {
 	DropdownMenu,
@@ -49,18 +53,38 @@ import { Table, TableBody, TableCell, TableRow } from "@/components/ui/table";
 import { cn } from "@/lib/utils";
 import { client, orpc } from "@/utils/orpc";
 
-/**
- * Renders a paginated, filterable incidents table with search, filters, and per-incident actions (view, delete).
- *
- * The component debounces the search input (500ms) and resets pagination on search or filter changes. It fetches
- * incidents via the incidents list query using status, severity, type, search, limit (10) and offset derived from the
- * current page. Shows loading and empty states, displays severity/type badges and status indicators, and provides
- * a per-incident delete action that confirms with the user, performs a deletion mutation, shows success/error toasts,
- * and invalidates the incidents list cache on success.
- *
- * @returns The component's JSX element containing the incidents table UI.
- */
+type BulkIncidentAction = "acknowledge" | "resolve" | "delete";
+
+function formatIncidentCount(count: number) {
+	return `${count} incident${count === 1 ? "" : "s"}`;
+}
+
+function getBulkActionSuccessTitle(action: BulkIncidentAction, count: number) {
+	const incidentCount = formatIncidentCount(count);
+
+	switch (action) {
+		case "acknowledge":
+			return `${incidentCount} acknowledged`;
+		case "resolve":
+			return `${incidentCount} resolved`;
+		case "delete":
+			return `${incidentCount} deleted`;
+	}
+}
+
+function getBulkActionErrorTitle(action: BulkIncidentAction, message: string) {
+	switch (action) {
+		case "acknowledge":
+			return `Failed to acknowledge incidents: ${message}`;
+		case "resolve":
+			return `Failed to resolve incidents: ${message}`;
+		case "delete":
+			return `Failed to delete incidents: ${message}`;
+	}
+}
+
 export function IncidentsTable() {
+	const router = useRouter();
 	const [statusFilter, setStatusFilter] = useState<
 		"all" | "open" | "resolved" | undefined
 	>("all");
@@ -74,26 +98,20 @@ export function IncidentsTable() {
 	const [searchOpen, setSearchOpen] = useState(false);
 	const [debouncedSearch, setDebouncedSearch] = useState("");
 	const [page, setPage] = useState(1);
+	const [selectedIncidentIds, setSelectedIncidentIds] = useState<Set<string>>(
+		() => new Set(),
+	);
+	const [bulkDeleteIds, setBulkDeleteIds] = useState<string[]>([]);
 	const [incidentToDelete, setIncidentToDelete] = useState<{
 		id: string;
 		title: string;
-		status: string;
-		severity: string;
-		type: string;
-		startedAt: Date;
-		endedAt: Date | null;
-		monitors: { monitor: { id: string; name: string } }[];
-		statusPages: {
-			statusPageId: string;
-			statusPage: { id: string; name: string };
-		}[];
 	} | null>(null);
 	const pageSize = 10;
 
 	useEffect(() => {
 		const timer = setTimeout(() => {
 			setDebouncedSearch(search);
-			setPage(1); // Reset page on search change
+			setPage(1);
 		}, 500);
 		return () => clearTimeout(timer);
 	}, [search]);
@@ -114,14 +132,37 @@ export function IncidentsTable() {
 	const incidents = data?.items;
 	const total = data?.total || 0;
 	const totalPages = Math.ceil(total / pageSize);
+	const currentPageIncidentIds =
+		incidents?.map((incident) => incident.id) ?? [];
+	const selectedIds = Array.from(selectedIncidentIds);
+	const selectedIncidents =
+		incidents?.filter((incident) => selectedIncidentIds.has(incident.id)) ?? [];
+	const selectedOpenIds = selectedIncidents
+		.filter((incident) => !incident.endedAt)
+		.map((incident) => incident.id);
+	const selectedUnacknowledgedOpenIds = selectedIncidents
+		.filter((incident) => !incident.endedAt && !incident.acknowledgedAt)
+		.map((incident) => incident.id);
+	const selectedCount = selectedIds.length;
+	const allCurrentPageSelected =
+		currentPageIncidentIds.length > 0 &&
+		currentPageIncidentIds.every((id) => selectedIncidentIds.has(id));
+	const someCurrentPageSelected =
+		currentPageIncidentIds.length > 0 &&
+		currentPageIncidentIds.some((id) => selectedIncidentIds.has(id));
 
 	const queryClient = useQueryClient();
 
 	const { mutate: deleteIncident, isPending: isDeleting } = useMutation({
 		mutationFn: (id: string) => client.incidents.delete({ id }),
-		onSuccess: () => {
+		onSuccess: (_data, id) => {
 			sileo.success({ title: "Incident deleted" });
 			queryClient.invalidateQueries({ queryKey: orpc.incidents.list.key() });
+			setSelectedIncidentIds((previous) => {
+				const next = new Set(previous);
+				next.delete(id);
+				return next;
+			});
 			setIncidentToDelete(null);
 		},
 		onError: (err) => {
@@ -129,6 +170,59 @@ export function IncidentsTable() {
 			setIncidentToDelete(null);
 		},
 	});
+
+	const bulkIncidentAction = useMutation({
+		mutationFn: async ({
+			action,
+			ids,
+		}: {
+			action: BulkIncidentAction;
+			ids: string[];
+		}) => {
+			if (action === "acknowledge") {
+				await Promise.all(
+					ids.map((id) => client.incidents.acknowledge({ id })),
+				);
+				return;
+			}
+
+			if (action === "resolve") {
+				await Promise.all(ids.map((id) => client.incidents.resolve({ id })));
+				return;
+			}
+
+			await Promise.all(ids.map((id) => client.incidents.delete({ id })));
+		},
+		onSuccess: (_data, { action, ids }) => {
+			sileo.success({
+				title: getBulkActionSuccessTitle(action, ids.length),
+			});
+			setSelectedIncidentIds(new Set());
+			setBulkDeleteIds([]);
+		},
+		onError: (err, { action }) => {
+			sileo.error({ title: getBulkActionErrorTitle(action, err.message) });
+		},
+		onSettled: () => {
+			queryClient.invalidateQueries({ queryKey: orpc.incidents.list.key() });
+		},
+	});
+
+	useEffect(() => {
+		if (!incidents) {
+			return;
+		}
+
+		const currentPageIds = new Set(incidents.map((incident) => incident.id));
+
+		setSelectedIncidentIds((previous) => {
+			const next = new Set(
+				Array.from(previous).filter((id) => currentPageIds.has(id)),
+			);
+
+			return next.size === previous.size ? previous : next;
+		});
+	}, [incidents]);
 
 	const getStatusIcon = (status: string) => {
 		switch (status) {
@@ -156,12 +250,45 @@ export function IncidentsTable() {
 		}
 	};
 
+	const clearSelection = () => {
+		setSelectedIncidentIds(new Set());
+	};
+
+	const toggleIncidentSelection = (id: string, checked: boolean) => {
+		setSelectedIncidentIds((previous) => {
+			const next = new Set(previous);
+
+			if (checked) {
+				next.add(id);
+			} else {
+				next.delete(id);
+			}
+
+			return next;
+		});
+	};
+
+	const toggleCurrentPageSelection = (checked: boolean) => {
+		setSelectedIncidentIds(
+			checked ? new Set(currentPageIncidentIds) : new Set(),
+		);
+	};
+
+	const runBulkAction = (action: BulkIncidentAction, ids: string[]) => {
+		if (ids.length === 0) {
+			return;
+		}
+
+		bulkIncidentAction.mutate({ action, ids });
+	};
+
 	const clearFilters = () => {
 		setSearch("");
 		setStatusFilter("all");
 		setSeverityFilter(undefined);
 		setTypeFilter(undefined);
 		setPage(1);
+		clearSelection();
 	};
 
 	const activeFilterCount = [
@@ -379,21 +506,102 @@ export function IncidentsTable() {
 			</div>
 
 			<div className="overflow-hidden rounded-xl border bg-card shadow-sm">
-				<div className="flex items-center gap-2 border-b bg-muted/20 px-4 py-3 font-medium text-muted-foreground text-sm">
-					<ChevronDown className="h-4 w-4" />
-					Incidents
+				<div className="grid min-h-[52px] grid-cols-[minmax(0,1fr)_auto] items-center gap-3 border-b bg-muted/20 px-4">
+					<div className="flex items-center gap-3 font-medium text-muted-foreground text-sm">
+						{currentPageIncidentIds.length > 0 ? (
+							<Checkbox
+								aria-label={
+									allCurrentPageSelected
+										? "Deselect all incidents on this page"
+										: "Select all incidents on this page"
+								}
+								checked={allCurrentPageSelected}
+								indeterminate={
+									someCurrentPageSelected && !allCurrentPageSelected
+								}
+								onCheckedChange={(checked) =>
+									toggleCurrentPageSelection(checked === true)
+								}
+							/>
+						) : (
+							<ChevronDown className="h-4 w-4" />
+						)}
+						<span>Incidents</span>
+						{total > 0 && (
+							<span className="rounded-full bg-muted px-2 py-0.5 text-muted-foreground text-xs">
+								{total}
+							</span>
+						)}
+					</div>
+					<div
+						aria-hidden={selectedCount === 0}
+						className={cn(
+							"flex h-7 min-w-max items-center justify-end gap-2 transition-opacity",
+							selectedCount === 0 && "pointer-events-none invisible",
+						)}
+					>
+						<span className="mr-1 whitespace-nowrap text-muted-foreground text-sm">
+							{formatIncidentCount(selectedCount)} selected
+						</span>
+						<Button
+							variant="outline"
+							size="xs"
+							onClick={() =>
+								runBulkAction("acknowledge", selectedUnacknowledgedOpenIds)
+							}
+							disabled={
+								selectedCount === 0 ||
+								bulkIncidentAction.isPending ||
+								selectedUnacknowledgedOpenIds.length === 0
+							}
+						>
+							<Check className="h-4 w-4" />
+							<span className="hidden sm:inline">Acknowledge</span>
+						</Button>
+						<Button
+							variant="outline"
+							size="xs"
+							onClick={() => runBulkAction("resolve", selectedOpenIds)}
+							disabled={
+								selectedCount === 0 ||
+								bulkIncidentAction.isPending ||
+								selectedOpenIds.length === 0
+							}
+						>
+							<CheckCircle2 className="h-4 w-4" />
+							<span className="hidden sm:inline">Resolve</span>
+						</Button>
+						<Button
+							variant="destructive-outline"
+							size="xs"
+							onClick={() => setBulkDeleteIds(selectedIds)}
+							disabled={selectedCount === 0 || bulkIncidentAction.isPending}
+						>
+							<Trash2 className="h-4 w-4" />
+							<span className="hidden sm:inline">Delete</span>
+						</Button>
+						<Button
+							variant="ghost"
+							size="icon-xs"
+							aria-label="Clear selection"
+							onClick={clearSelection}
+							disabled={selectedCount === 0 || bulkIncidentAction.isPending}
+						>
+							<X className="h-4 w-4" />
+						</Button>
+					</div>
 				</div>
 				<Table>
 					<TableBody>
 						{isLoading ? (
 							<TableRow>
-								<TableCell colSpan={3} className="h-24 text-center">
+								<TableCell colSpan={5} className="h-24 text-center">
 									<Loader2 className="mx-auto h-6 w-6 animate-spin text-muted-foreground" />
 								</TableCell>
 							</TableRow>
 						) : !incidents || incidents.length === 0 ? (
 							<TableRow>
-								<TableCell colSpan={3} className="h-24 text-center">
+								<TableCell colSpan={5} className="h-24 text-center">
 									<div className="flex flex-col items-center justify-center gap-2 py-6">
 										<div className="flex h-12 w-12 items-center justify-center rounded-full bg-muted/50">
 											<ShieldAlert className="h-6 w-6 text-muted-foreground" />
@@ -423,130 +631,155 @@ export function IncidentsTable() {
 								</TableCell>
 							</TableRow>
 						) : (
-							incidents.map((incident) => (
-								<TableRow
-									key={incident.id}
-									className="group h-[72px] cursor-pointer hover:bg-muted/40"
-								>
-									<TableCell className="pl-6">
-										<Link
-											href={`/incidents/${incident.id}`}
-											className="flex items-center gap-4"
+							incidents.map((incident) => {
+								const isSelected = selectedIncidentIds.has(incident.id);
+
+								return (
+									<TableRow
+										key={incident.id}
+										className="group h-[72px] cursor-pointer hover:bg-muted/40"
+										data-state={isSelected ? "selected" : undefined}
+										onClick={() => router.push(`/incidents/${incident.id}`)}
+									>
+										<TableCell
+											className="w-12 pr-0 pl-4"
+											onClick={(event) => event.stopPropagation()}
 										>
-											<div
-												className={cn(
-													"flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border transition-colors",
-													getStatusColor(incident.status),
-												)}
-											>
-												{getStatusIcon(incident.status)}
-											</div>
-											<div className="grid gap-1">
-												<span className="font-semibold leading-none transition-colors group-hover:text-primary">
-													{incident.title}
-												</span>
-												<div className="flex items-center gap-2 text-muted-foreground text-sm">
-													{incident.monitors.length > 0 && (
-														<span className="flex items-center gap-1">
-															{incident.monitors.length === 1
-																? incident.monitors[0].monitor.name
-																: `${incident.monitors.length} monitors`}
-														</span>
-													)}
-													{incident.type === "automatic" && (
-														<Badge
-															variant="outline"
-															className="h-5 px-1.5 text-[10px]"
-														>
-															Auto
-														</Badge>
-													)}
-													{incident.statusPages.length > 0 && (
-														<Badge
-															variant="secondary"
-															className="h-5 px-1.5 text-[10px]"
-														>
-															Public
-														</Badge>
-													)}
-													{incident.severity && (
-														<Badge
-															variant="outline"
-															className={cn(
-																"h-5 border-none px-1.5 text-[10px] uppercase",
-																incident.severity === "minor" &&
-																	"bg-blue-500/10 text-blue-500",
-																incident.severity === "major" &&
-																	"bg-amber-500/10 text-amber-500",
-																incident.severity === "critical" &&
-																	"bg-red-500/10 text-red-500",
-															)}
-														>
-															{incident.severity}
-														</Badge>
-													)}
-												</div>
-											</div>
-										</Link>
-									</TableCell>
-									<TableCell className="font-medium text-muted-foreground text-sm">
-										{formatDistanceToNow(new Date(incident.startedAt), {
-											addSuffix: true,
-										})}
-									</TableCell>
-									<TableCell>
-										<div className="flex items-center gap-2">
-											<div
-												className={cn(
-													"h-2 w-2 rounded-full",
-													incident.status !== "resolved"
-														? "animate-pulse bg-red-500"
-														: "bg-muted-foreground/30",
-												)}
-											/>
-											<span
-												className={cn(
-													"font-medium text-sm capitalize",
-													incident.status !== "resolved"
-														? "text-red-500"
-														: "text-muted-foreground",
-												)}
-											>
-												{incident.status}
-											</span>
-										</div>
-									</TableCell>
-									<TableCell>
-										<DropdownMenu>
-											<DropdownMenuTrigger
-												render={
-													<Button
-														variant="ghost"
-														size="icon"
-														className="h-8 w-8 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100"
-													/>
+											<Checkbox
+												aria-label={`Select ${incident.title}`}
+												checked={isSelected}
+												onCheckedChange={(checked) =>
+													toggleIncidentSelection(incident.id, checked === true)
 												}
+											/>
+										</TableCell>
+										<TableCell className="min-w-[280px] pl-2">
+											<Link
+												href={`/incidents/${incident.id}`}
+												className="flex items-center gap-4"
+												onClick={(event) => event.stopPropagation()}
 											>
-												<MoreHorizontal className="h-4 w-4" />
-												<span className="sr-only">Open menu</span>
-											</DropdownMenuTrigger>
-											<DropdownMenuContent align="end">
-												<DropdownMenuItem
-													render={<Link href={`/incidents/${incident.id}`} />}
+												<div
+													className={cn(
+														"flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border transition-colors",
+														getStatusColor(incident.status),
+													)}
 												>
-													View details
-												</DropdownMenuItem>
-												<DropdownMenuItem
-													className="text-red-500"
-													onSelect={() => setIncidentToDelete(incident)}
+													{getStatusIcon(incident.status)}
+												</div>
+												<div className="grid gap-1">
+													<span className="font-semibold leading-none transition-colors group-hover:text-primary">
+														{incident.title}
+													</span>
+													<div className="flex flex-wrap items-center gap-2 text-muted-foreground text-sm">
+														{incident.monitors.length > 0 && (
+															<span className="flex items-center gap-1">
+																{incident.monitors.length === 1
+																	? incident.monitors[0].monitor.name
+																	: `${incident.monitors.length} monitors`}
+															</span>
+														)}
+														{incident.type === "automatic" && (
+															<Badge
+																variant="outline"
+																className="h-5 px-1.5 text-[10px]"
+															>
+																Auto
+															</Badge>
+														)}
+														{incident.statusPages.length > 0 && (
+															<Badge
+																variant="secondary"
+																className="h-5 px-1.5 text-[10px]"
+															>
+																Public
+															</Badge>
+														)}
+														{incident.severity && (
+															<Badge
+																variant="outline"
+																className={cn(
+																	"h-5 border-none px-1.5 text-[10px] uppercase",
+																	incident.severity === "minor" &&
+																		"bg-blue-500/10 text-blue-500",
+																	incident.severity === "major" &&
+																		"bg-amber-500/10 text-amber-500",
+																	incident.severity === "critical" &&
+																		"bg-red-500/10 text-red-500",
+																)}
+															>
+																{incident.severity}
+															</Badge>
+														)}
+													</div>
+												</div>
+											</Link>
+										</TableCell>
+										<TableCell className="font-medium text-muted-foreground text-sm">
+											{formatDistanceToNow(new Date(incident.startedAt), {
+												addSuffix: true,
+											})}
+										</TableCell>
+										<TableCell>
+											<div className="flex items-center gap-2">
+												<div
+													className={cn(
+														"h-2 w-2 rounded-full",
+														incident.status !== "resolved"
+															? "animate-pulse bg-red-500"
+															: "bg-muted-foreground/30",
+													)}
+												/>
+												<span
+													className={cn(
+														"font-medium text-sm capitalize",
+														incident.status !== "resolved"
+															? "text-red-500"
+															: "text-muted-foreground",
+													)}
 												>
-													Delete
-												</DropdownMenuItem>
-											</DropdownMenuContent>
-										</DropdownMenu>
-									</TableCell>
-								</TableRow>
-							))
+													{incident.status}
+												</span>
+											</div>
+										</TableCell>
+										<TableCell className="w-[52px] pr-4">
+											<DropdownMenu>
+												<DropdownMenuTrigger
+													render={
+														<Button
+															variant="ghost"
+															size="icon"
+															className="h-8 w-8 text-muted-foreground opacity-0 transition-opacity focus-visible:opacity-100 group-hover:opacity-100 data-[state=open]:opacity-100"
+															onClick={(event) => event.stopPropagation()}
+														/>
+													}
+												>
+													<MoreHorizontal className="h-4 w-4" />
+													<span className="sr-only">Open menu</span>
+												</DropdownMenuTrigger>
+												<DropdownMenuContent align="end">
+													<DropdownMenuItem
+														render={<Link href={`/incidents/${incident.id}`} />}
+													>
+														View details
+													</DropdownMenuItem>
+													<DropdownMenuItem
+														className="text-red-500"
+														onSelect={() =>
+															setIncidentToDelete({
+																id: incident.id,
+																title: incident.title,
+															})
+														}
+													>
+														Delete
+													</DropdownMenuItem>
+												</DropdownMenuContent>
+											</DropdownMenu>
+										</TableCell>
+									</TableRow>
+								);
+							})
 						)}
 					</TableBody>
 				</Table>
@@ -614,6 +847,46 @@ export function IncidentsTable() {
 					</div>
 				)}
 			</div>
+
+			<AlertDialog
+				open={bulkDeleteIds.length > 0}
+				onOpenChange={(open) => {
+					if (!open && !bulkIncidentAction.isPending) {
+						setBulkDeleteIds([]);
+					}
+				}}
+			>
+				<AlertDialogContent>
+					<AlertDialogHeader>
+						<AlertDialogTitle>Delete selected incidents?</AlertDialogTitle>
+						<AlertDialogDescription>
+							This action cannot be undone. This will permanently delete{" "}
+							{formatIncidentCount(bulkDeleteIds.length)} and all of their
+							activity history.
+						</AlertDialogDescription>
+					</AlertDialogHeader>
+					<AlertDialogFooter>
+						<AlertDialogCancel disabled={bulkIncidentAction.isPending}>
+							Cancel
+						</AlertDialogCancel>
+						<Button
+							type="button"
+							variant="destructive"
+							onClick={() => runBulkAction("delete", bulkDeleteIds)}
+							disabled={bulkIncidentAction.isPending}
+						>
+							{bulkIncidentAction.isPending ? (
+								<>
+									<Loader2 className="mr-2 h-4 w-4 animate-spin" />
+									Deleting...
+								</>
+							) : (
+								"Delete"
+							)}
+						</Button>
+					</AlertDialogFooter>
+				</AlertDialogContent>
+			</AlertDialog>
 
 			<AlertDialog
 				open={!!incidentToDelete}
