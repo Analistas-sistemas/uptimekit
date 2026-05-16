@@ -120,6 +120,7 @@ const MonitorGroupItem = memo(
 									displayStyle={monitor.displayStyle}
 									description={monitor.description}
 									barStyle={barStyle}
+									variant={isGrid ? "card" : "list"}
 									className={isGrid ? "rounded-lg border p-3" : undefined}
 								/>
 							))}
