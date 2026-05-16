@@ -83,7 +83,7 @@ export function DateTimePicker({ date, setDate }: DateTimePickerProps) {
 					mode="single"
 					selected={selectedDateTime}
 					onSelect={handleSelect}
-					initialFocus
+					autoFocus
 				/>
 				<div className="border-t bg-background p-3">
 					<div className="flex items-center gap-2">
