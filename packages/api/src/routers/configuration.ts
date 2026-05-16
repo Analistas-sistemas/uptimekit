@@ -10,15 +10,12 @@ import { adminProcedure } from "../index";
 
 export const configurationRouter = {
 	list: adminProcedure
-		.meta({
-			openapi: {
-				method: "GET",
-				path: "/configuration",
-				tags: ["Configuration"],
-				summary: "List all configuration settings",
-				description:
-					"Retrieve all instance configuration settings. Admin only.",
-			},
+		.route({
+			method: "GET",
+			path: "/configuration",
+			tags: ["Configuration"],
+			summary: "List all configuration settings",
+			description: "Retrieve all instance configuration settings. Admin only.",
 		})
 		.handler(async () => {
 			const items = await db.query.configuration.findMany();
@@ -52,15 +49,13 @@ export const configurationRouter = {
 		}),
 
 	get: adminProcedure
-		.meta({
-			openapi: {
-				method: "GET",
-				path: "/configuration/{key}",
-				tags: ["Configuration"],
-				summary: "Get configuration value",
-				description:
-					"Retrieve a specific configuration value by key. Admin only.",
-			},
+		.route({
+			method: "GET",
+			path: "/configuration/{key}",
+			tags: ["Configuration"],
+			summary: "Get configuration value",
+			description:
+				"Retrieve a specific configuration value by key. Admin only.",
 		})
 		.input(z.object({ key: z.string() }))
 		.handler(async ({ input }) => {
@@ -78,14 +73,12 @@ export const configurationRouter = {
 		}),
 
 	set: adminProcedure
-		.meta({
-			openapi: {
-				method: "PUT",
-				path: "/configuration/{key}",
-				tags: ["Configuration"],
-				summary: "Set configuration value",
-				description: "Create or update a configuration value. Admin only.",
-			},
+		.route({
+			method: "PUT",
+			path: "/configuration/{key}",
+			tags: ["Configuration"],
+			summary: "Set configuration value",
+			description: "Create or update a configuration value. Admin only.",
 		})
 		.input(z.object({ key: z.string(), value: z.string() }))
 		.handler(async ({ input }) => {
@@ -115,15 +108,13 @@ export const configurationRouter = {
 		}),
 
 	delete: adminProcedure
-		.meta({
-			openapi: {
-				method: "DELETE",
-				path: "/configuration/{key}",
-				tags: ["Configuration"],
-				summary: "Delete configuration value",
-				description:
-					"Remove a configuration value (reset to default). Admin only.",
-			},
+		.route({
+			method: "DELETE",
+			path: "/configuration/{key}",
+			tags: ["Configuration"],
+			summary: "Delete configuration value",
+			description:
+				"Remove a configuration value (reset to default). Admin only.",
 		})
 		.input(z.object({ key: z.string() }))
 		.handler(async ({ input }) => {

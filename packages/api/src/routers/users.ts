@@ -70,15 +70,13 @@ async function assertAdminActionAllowed({
 
 export const usersRouter = {
 	list: adminProcedure
-		.meta({
-			openapi: {
-				method: "GET",
-				path: "/admin/users",
-				tags: ["Admin - Users"],
-				summary: "List all users",
-				description:
-					"List all registered users with search and filters. Admin only.",
-			},
+		.route({
+			method: "GET",
+			path: "/admin/users",
+			tags: ["Admin - Users"],
+			summary: "List all users",
+			description:
+				"List all registered users with search and filters. Admin only.",
 		})
 		.input(
 			z
@@ -142,14 +140,12 @@ export const usersRouter = {
 		}),
 
 	create: adminProcedure
-		.meta({
-			openapi: {
-				method: "POST",
-				path: "/admin/users",
-				tags: ["Admin - Users"],
-				summary: "Create a user",
-				description: "Create a new user with email and password. Admin only.",
-			},
+		.route({
+			method: "POST",
+			path: "/admin/users",
+			tags: ["Admin - Users"],
+			summary: "Create a user",
+			description: "Create a new user with email and password. Admin only.",
 		})
 		.input(
 			z.object({
@@ -172,15 +168,13 @@ export const usersRouter = {
 		}),
 
 	update: adminProcedure
-		.meta({
-			openapi: {
-				method: "PUT",
-				path: "/admin/users/{id}",
-				tags: ["Admin - Users"],
-				summary: "Update a user",
-				description:
-					"Update profile fields, access, ban status, or password. Admin only.",
-			},
+		.route({
+			method: "PUT",
+			path: "/admin/users/{id}",
+			tags: ["Admin - Users"],
+			summary: "Update a user",
+			description:
+				"Update profile fields, access, ban status, or password. Admin only.",
 		})
 		.input(
 			z.object({
@@ -302,15 +296,13 @@ export const usersRouter = {
 		}),
 
 	ban: adminProcedure
-		.meta({
-			openapi: {
-				method: "POST",
-				path: "/admin/users/{id}/ban",
-				tags: ["Admin - Users"],
-				summary: "Ban a user",
-				description:
-					"Ban a user with optional reason and expiration. Admin only.",
-			},
+		.route({
+			method: "POST",
+			path: "/admin/users/{id}/ban",
+			tags: ["Admin - Users"],
+			summary: "Ban a user",
+			description:
+				"Ban a user with optional reason and expiration. Admin only.",
 		})
 		.input(
 			z.object({
@@ -344,14 +336,12 @@ export const usersRouter = {
 		}),
 
 	unban: adminProcedure
-		.meta({
-			openapi: {
-				method: "POST",
-				path: "/admin/users/{id}/unban",
-				tags: ["Admin - Users"],
-				summary: "Unban a user",
-				description: "Remove ban from a user. Admin only.",
-			},
+		.route({
+			method: "POST",
+			path: "/admin/users/{id}/unban",
+			tags: ["Admin - Users"],
+			summary: "Unban a user",
+			description: "Remove ban from a user. Admin only.",
 		})
 		.input(z.object({ id: z.string() }))
 		.handler(async ({ input }) => {
@@ -369,14 +359,12 @@ export const usersRouter = {
 		}),
 
 	setRole: adminProcedure
-		.meta({
-			openapi: {
-				method: "POST",
-				path: "/admin/users/{id}/role",
-				tags: ["Admin - Users"],
-				summary: "Set user role",
-				description: "Update user role (admin or regular user). Admin only.",
-			},
+		.route({
+			method: "POST",
+			path: "/admin/users/{id}/role",
+			tags: ["Admin - Users"],
+			summary: "Set user role",
+			description: "Update user role (admin or regular user). Admin only.",
 		})
 		.input(
 			z.object({
@@ -410,15 +398,13 @@ export const usersRouter = {
 		}),
 
 	delete: adminProcedure
-		.meta({
-			openapi: {
-				method: "DELETE",
-				path: "/admin/users/{id}",
-				tags: ["Admin - Users"],
-				summary: "Delete a user",
-				description:
-					"Hard-delete a user account while preserving historical records. Admin only.",
-			},
+		.route({
+			method: "DELETE",
+			path: "/admin/users/{id}",
+			tags: ["Admin - Users"],
+			summary: "Delete a user",
+			description:
+				"Hard-delete a user account while preserving historical records. Admin only.",
 		})
 		.input(z.object({ id: z.string() }))
 		.handler(async ({ context, input }) => {

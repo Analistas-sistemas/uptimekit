@@ -73,11 +73,6 @@ const configNav = [
 		icon: Settings,
 	},
 	{
-		title: "Organization",
-		url: "/organization",
-		icon: Building2,
-	},
-	{
 		title: "Admin",
 		url: "/admin",
 		icon: ShieldAlert,
@@ -287,8 +282,8 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
 				</SidebarGroup>
 			</SidebarContent>
 			<SidebarFooter>
-				{/* Reusing existing UserMenu but we might need to adapt it if it's strictly a dropdown trigger without structure. 
-                    Let's check UserMenu again or just embed the logic here for better sidebar integration. 
+				{/* Reusing existing UserMenu but we might need to adapt it if it's strictly a dropdown trigger without structure.
+                    Let's check UserMenu again or just embed the logic here for better sidebar integration.
                     For now, let's wrap it in a menu item */}
 				<SidebarMenu>
 					<SidebarMenuItem>
@@ -375,8 +370,13 @@ function UserMenuComponent() {
 					<User className="mr-2 h-4 w-4" />
 					Settings
 				</DropdownMenuItem>
+				<DropdownMenuItem render={<Link href={"/organization" as any} />}>
+					<User className="mr-2 h-4 w-4" />
+					Organization
+				</DropdownMenuItem>
 				<DropdownMenuSeparator />
 				<DropdownMenuItem
+					variant="destructive"
 					onClick={() => {
 						authClient.signOut({
 							fetchOptions: {

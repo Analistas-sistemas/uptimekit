@@ -12,14 +12,12 @@ import { protectedProcedure, writeProcedure } from "../index";
 
 export const statusUpdatesRouter = {
 	list: protectedProcedure
-		.meta({
-			openapi: {
-				method: "GET",
-				path: "/status-pages/{statusPageId}/reports",
-				tags: ["Status Page Management"],
-				summary: "List reports",
-				description: "List incident reports for a status page.",
-			},
+		.route({
+			method: "GET",
+			path: "/status-pages/{statusPageId}/reports",
+			tags: ["Status Page Management"],
+			summary: "List reports",
+			description: "List incident reports for a status page.",
 		})
 		.input(
 			z.object({
@@ -62,14 +60,12 @@ export const statusUpdatesRouter = {
 		}),
 
 	get: protectedProcedure
-		.meta({
-			openapi: {
-				method: "GET",
-				path: "/status-pages/{statusPageId}/reports/{reportId}",
-				tags: ["Status Page Management"],
-				summary: "Get report",
-				description: "Get details of a specific incident report.",
-			},
+		.route({
+			method: "GET",
+			path: "/status-pages/{statusPageId}/reports/{reportId}",
+			tags: ["Status Page Management"],
+			summary: "Get report",
+			description: "Get details of a specific incident report.",
 		})
 		.input(
 			z.object({
@@ -119,14 +115,12 @@ export const statusUpdatesRouter = {
 		}),
 
 	create: writeProcedure
-		.meta({
-			openapi: {
-				method: "POST",
-				path: "/status-pages/{statusPageId}/reports",
-				tags: ["Status Page Management"],
-				summary: "Create report",
-				description: "Create a new incident report for a status page.",
-			},
+		.route({
+			method: "POST",
+			path: "/status-pages/{statusPageId}/reports",
+			tags: ["Status Page Management"],
+			summary: "Create report",
+			description: "Create a new incident report for a status page.",
 		})
 		.input(
 			z.object({
@@ -209,14 +203,12 @@ export const statusUpdatesRouter = {
 		}),
 
 	addUpdate: writeProcedure
-		.meta({
-			openapi: {
-				method: "POST",
-				path: "/status-pages/{statusPageId}/reports/{reportId}/updates",
-				tags: ["Status Page Management"],
-				summary: "Add report update",
-				description: "Add a new update to an incident report.",
-			},
+		.route({
+			method: "POST",
+			path: "/status-pages/{statusPageId}/reports/{reportId}/updates",
+			tags: ["Status Page Management"],
+			summary: "Add report update",
+			description: "Add a new update to an incident report.",
 		})
 		.input(
 			z.object({
@@ -320,14 +312,12 @@ export const statusUpdatesRouter = {
 		}),
 
 	editUpdate: writeProcedure
-		.meta({
-			openapi: {
-				method: "PATCH",
-				path: "/status-pages/{statusPageId}/updates/{updateId}",
-				tags: ["Status Page Management"],
-				summary: "Edit report update",
-				description: "Edit an existing report update.",
-			},
+		.route({
+			method: "PATCH",
+			path: "/status-pages/{statusPageId}/updates/{updateId}",
+			tags: ["Status Page Management"],
+			summary: "Edit report update",
+			description: "Edit an existing report update.",
 		})
 		.input(
 			z.object({
@@ -430,14 +420,12 @@ export const statusUpdatesRouter = {
 		}),
 
 	deleteUpdate: writeProcedure
-		.meta({
-			openapi: {
-				method: "DELETE",
-				path: "/status-pages/{statusPageId}/updates/{updateId}",
-				tags: ["Status Page Management"],
-				summary: "Delete report update",
-				description: "Delete a status update.",
-			},
+		.route({
+			method: "DELETE",
+			path: "/status-pages/{statusPageId}/updates/{updateId}",
+			tags: ["Status Page Management"],
+			summary: "Delete report update",
+			description: "Delete a status update.",
 		})
 		.input(
 			z.object({
@@ -503,14 +491,12 @@ export const statusUpdatesRouter = {
 		}),
 
 	deleteReport: writeProcedure
-		.meta({
-			openapi: {
-				method: "DELETE",
-				path: "/status-pages/{statusPageId}/reports/{reportId}",
-				tags: ["Status Page Management"],
-				summary: "Delete report",
-				description: "Delete an entire status report and all its updates.",
-			},
+		.route({
+			method: "DELETE",
+			path: "/status-pages/{statusPageId}/reports/{reportId}",
+			tags: ["Status Page Management"],
+			summary: "Delete report",
+			description: "Delete an entire status report and all its updates.",
 		})
 		.input(
 			z.object({
