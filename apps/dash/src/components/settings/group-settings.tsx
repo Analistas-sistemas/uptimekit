@@ -1,6 +1,10 @@
 import { GroupsManager } from "@/components/monitors/groups-manager";
 import { Card, CardContent } from "@/components/ui/card";
 
+type GroupSettingsProps = {
+	readOnly?: boolean;
+};
+
 /**
  * Render a responsive settings view for creating and organizing monitor groups.
  *
@@ -8,7 +12,7 @@ import { Card, CardContent } from "@/components/ui/card";
  *
  * @returns The rendered settings UI as a JSX element
  */
-export function GroupSettings() {
+export function GroupSettings({ readOnly = false }: GroupSettingsProps) {
 	return (
 		<div className="grid grid-cols-1 gap-x-8 gap-y-8 md:grid-cols-3">
 			<div className="space-y-2">
@@ -22,7 +26,7 @@ export function GroupSettings() {
 
 			<Card className="md:col-span-2">
 				<CardContent className="p-6">
-					<GroupsManager />
+					<GroupsManager readOnly={readOnly} />
 				</CardContent>
 			</Card>
 		</div>

@@ -10,7 +10,11 @@ import {
 import { InviteMemberDialog } from "./invite-member-dialog";
 import { MembersTable } from "./members-table";
 
-export function TeamSettings() {
+type TeamSettingsProps = {
+	canManageMembers: boolean;
+};
+
+export function TeamSettings({ canManageMembers }: TeamSettingsProps) {
 	return (
 		<div className="grid grid-cols-1 gap-x-8 gap-y-8 md:grid-cols-3">
 			<div className="space-y-2">
@@ -30,10 +34,10 @@ export function TeamSettings() {
 							People with access to this organization.
 						</CardDescription>
 					</div>
-					<InviteMemberDialog />
+					{canManageMembers && <InviteMemberDialog />}
 				</CardHeader>
 				<CardContent>
-					<MembersTable />
+					<MembersTable canManageMembers={canManageMembers} />
 				</CardContent>
 			</Card>
 		</div>

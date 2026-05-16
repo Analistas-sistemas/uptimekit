@@ -3,6 +3,7 @@
 import {
 	Activity,
 	AlertTriangle,
+	Building2,
 	ChevronDown,
 	Grid2X2,
 	LayoutDashboard,
@@ -72,6 +73,11 @@ const configNav = [
 		icon: Settings,
 	},
 	{
+		title: "Organization",
+		url: "/organization",
+		icon: Building2,
+	},
+	{
 		title: "Admin",
 		url: "/admin",
 		icon: ShieldAlert,
@@ -88,6 +94,9 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
 	const { data: activeOrg } = authClient.useActiveOrganization();
 	const { data: session } = authClient.useSession();
 	const isGlobalAdmin = session?.user?.role === "admin";
+	const organizationSettingsUrl = activeOrg?.id
+		? `/organization/${activeOrg.id}/settings`
+		: "/settings";
 
 	// Use organization info safely
 	// Note: Better-auth might return null/undefined while loading
@@ -252,10 +261,20 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
 								.map((item) => (
 									<SidebarMenuItem key={item.title}>
 										<SidebarMenuButton
-											isActive={pathname.startsWith(item.url)}
+											isActive={
+												item.title === "Organization"
+													? pathname.startsWith("/organization/")
+													: pathname.startsWith(item.url)
+											}
 											tooltip={item.title}
 											render={
-												<Link href={item.url as any}>
+												<Link
+													href={
+														(item.title === "Organization"
+															? organizationSettingsUrl
+															: item.url) as any
+													}
+												>
 													<item.icon />
 													<span>{item.title}</span>
 												</Link>
@@ -352,9 +371,9 @@ function UserMenuComponent() {
 					</div>
 				</DropdownMenuLabel>
 				<DropdownMenuSeparator />
-				<DropdownMenuItem render={<Link href={"/account" as any} />}>
+				<DropdownMenuItem render={<Link href={"/settings" as any} />}>
 					<User className="mr-2 h-4 w-4" />
-					Account
+					Settings
 				</DropdownMenuItem>
 				<DropdownMenuSeparator />
 				<DropdownMenuItem

@@ -1,5 +1,3 @@
-"use client";
-
 import {
 	AD,
 	AE,
@@ -248,6 +246,7 @@ import {
 	ZM,
 	ZW,
 } from "country-flag-icons/react/3x2";
+import * as flagSvgStrings from "country-flag-icons/string/3x2";
 import { Globe } from "lucide-react";
 
 export interface RegionInfo {
@@ -260,6 +259,36 @@ export interface RegionInfo {
 export interface ContinentGroup {
 	continent: string;
 	regions: RegionInfo[];
+}
+
+type FlagSvgCode = keyof typeof flagSvgStrings;
+
+const FLAG_SVGS = flagSvgStrings as Record<FlagSvgCode, string>;
+
+const LEGACY_REGION_FLAG_CODES: Record<string, FlagSvgCode> = {
+	"na-canada": "CA",
+	"sa-brazil": "BR",
+	"eu-general": "EU",
+	"ap-hongkong": "HK",
+	global: "AQ",
+	"oc-syd": "AU",
+};
+
+const FLAG_DATA_URLS = new Map<FlagSvgCode, string>();
+
+function isFlagSvgCode(flagCode: string): flagCode is FlagSvgCode {
+	return flagCode in FLAG_SVGS;
+}
+
+function getFlagSvgCode(countryCode: string): FlagSvgCode {
+	const normalizedCountryCode = countryCode.trim().toLowerCase();
+	const legacyFlagCode = LEGACY_REGION_FLAG_CODES[normalizedCountryCode];
+	if (legacyFlagCode) {
+		return legacyFlagCode;
+	}
+
+	const flagCode = normalizedCountryCode.toUpperCase().replace(/-/g, "_");
+	return isFlagSvgCode(flagCode) ? flagCode : "AQ";
 }
 
 // All countries organized by continent
@@ -724,9 +753,7 @@ export const ALL_REGIONS: RegionInfo[] = REGIONS_BY_CONTINENT.flatMap(
 	(group) => group.regions,
 );
 
-// Complete mapping of region codes to display info
 export const REGION_MAPPING: Record<string, RegionInfo> = {
-	// Legacy worker regions (for backwards compatibility)
 	"na-canada": {
 		value: "na-canada",
 		label: "North America",
@@ -757,19 +784,8 @@ export const REGION_MAPPING: Record<string, RegionInfo> = {
 		label: "Oceania",
 		Flag: AU,
 	},
-	// Add all new regions to mapping
 	...Object.fromEntries(ALL_REGIONS.map((region) => [region.value, region])),
 };
-
-// List of all regions for worker creation (legacy - kept for backwards compatibility)
-/* export const WORKER_REGIONS: RegionInfo[] = [
-	{ value: "na-canada", label: "North America", Flag: CA },
-	{ value: "sa-brazil", label: "South America", Flag: BR },
-	{ value: "eu-general", label: "Europe", Flag: EU },
-	{ value: "ap-hongkong", label: "Asia/Pacific", Flag: HK },
-	{ value: "global", label: "Global", Flag: AQ },
-];
-*/
 
 /**
  * Retrieve RegionInfo for a given region code, returning a fallback entry with the Globe flag when the code is unknown.
@@ -785,4 +801,18 @@ export function getRegionInfo(regionCode: string): RegionInfo {
 			Flag: Globe,
 		}
 	);
+}
+
+export function getFlag(countryCode: string): string {
+	const flagCode = getFlagSvgCode(countryCode);
+	const cachedDataUrl = FLAG_DATA_URLS.get(flagCode);
+	if (cachedDataUrl) {
+		return cachedDataUrl;
+	}
+
+	const dataUrl = `data:image/svg+xml,${encodeURIComponent(
+		FLAG_SVGS[flagCode],
+	)}`;
+	FLAG_DATA_URLS.set(flagCode, dataUrl);
+	return dataUrl;
 }

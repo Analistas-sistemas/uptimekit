@@ -1,6 +1,10 @@
 import { TagsManager } from "@/components/monitors/tags-manager";
 import { Card, CardContent } from "@/components/ui/card";
 
+type TagSettingsProps = {
+	readOnly?: boolean;
+};
+
 /**
  * Render a responsive settings section for creating and managing tags.
  *
@@ -10,7 +14,7 @@ import { Card, CardContent } from "@/components/ui/card";
  *
  * @returns The JSX element containing the heading, description, and a Card with `TagsManager` arranged in a responsive grid.
  */
-export function TagSettings() {
+export function TagSettings({ readOnly = false }: TagSettingsProps) {
 	return (
 		<div className="grid grid-cols-1 gap-x-8 gap-y-8 md:grid-cols-3">
 			<div className="space-y-2">
@@ -24,7 +28,7 @@ export function TagSettings() {
 
 			<Card className="md:col-span-2">
 				<CardContent className="p-6">
-					<TagsManager />
+					<TagsManager readOnly={readOnly} />
 				</CardContent>
 			</Card>
 		</div>

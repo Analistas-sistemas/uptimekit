@@ -25,13 +25,15 @@ type Coordinates = {
 	lng: number;
 };
 
+const DEFAULT_COORDINATES: Coordinates = { lat: 20, lng: 0 };
+
 const LEGACY_REGION_COORDINATES: Record<string, Coordinates> = {
 	"na-canada": { lat: 56.1304, lng: -106.3468 },
 	"sa-brazil": { lat: -14.235, lng: -51.9253 },
 	"eu-general": { lat: 54.526, lng: 15.2551 },
 	"ap-hongkong": { lat: 22.3193, lng: 114.1694 },
 	"oc-syd": { lat: -33.8688, lng: 151.2093 },
-	global: { lat: 20, lng: 0 },
+	global: DEFAULT_COORDINATES,
 };
 
 const CONTINENT_COORDINATES: Record<string, Coordinates> = {
@@ -67,13 +69,10 @@ function getCoordinatesForRegion(regionCode: string): Coordinates {
 
 	const regionInfo = getRegionInfo(normalizedRegionCode);
 	if (regionInfo.continent) {
-		return (
-			CONTINENT_COORDINATES[regionInfo.continent] ||
-			LEGACY_REGION_COORDINATES.global
-		);
+		return CONTINENT_COORDINATES[regionInfo.continent] || DEFAULT_COORDINATES;
 	}
 
-	return LEGACY_REGION_COORDINATES.global;
+	return DEFAULT_COORDINATES;
 }
 
 function getMarkerSize(workerCount: number) {
