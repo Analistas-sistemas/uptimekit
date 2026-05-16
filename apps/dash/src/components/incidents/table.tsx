@@ -55,8 +55,54 @@ import { client, orpc } from "@/utils/orpc";
 
 type BulkIncidentAction = "acknowledge" | "resolve" | "delete";
 
+type BulkIncidentActionFailure = {
+	id: string;
+	message: string;
+};
+
+type BulkIncidentActionResult = {
+	succeededIds: string[];
+	failedIds: string[];
+	failedIncidents: BulkIncidentActionFailure[];
+};
+
 function formatIncidentCount(count: number) {
 	return `${count} incident${count === 1 ? "" : "s"}`;
+}
+
+function getErrorMessage(error: unknown) {
+	return error instanceof Error ? error.message : String(error);
+}
+
+function getBulkActionFailureMessage(
+	failedIncidents: BulkIncidentActionFailure[],
+) {
+	return failedIncidents
+		.map(({ id, message }) => `${id} (${message})`)
+		.join(", ");
+}
+
+function getBulkActionResult(
+	ids: string[],
+	results: PromiseSettledResult<string>[],
+): BulkIncidentActionResult {
+	return results.reduce<BulkIncidentActionResult>(
+		(result, settledResult, index) => {
+			if (settledResult.status === "fulfilled") {
+				result.succeededIds.push(settledResult.value);
+				return result;
+			}
+
+			result.failedIds.push(ids[index]);
+			result.failedIncidents.push({
+				id: ids[index],
+				message: getErrorMessage(settledResult.reason),
+			});
+
+			return result;
+		},
+		{ succeededIds: [], failedIds: [], failedIncidents: [] },
+	);
 }
 
 function getBulkActionSuccessTitle(action: BulkIncidentAction, count: number) {
@@ -180,30 +226,78 @@ export function IncidentsTable() {
 			ids: string[];
 		}) => {
 			if (action === "acknowledge") {
-				await Promise.all(
-					ids.map((id) => client.incidents.acknowledge({ id })),
+				const results = await Promise.allSettled(
+					ids.map(async (id) => {
+						await client.incidents.acknowledge({ id });
+						return id;
+					}),
 				);
-				return;
+
+				return getBulkActionResult(ids, results);
 			}
 
 			if (action === "resolve") {
-				await Promise.all(ids.map((id) => client.incidents.resolve({ id })));
-				return;
+				const results = await Promise.allSettled(
+					ids.map(async (id) => {
+						await client.incidents.resolve({ id });
+						return id;
+					}),
+				);
+
+				return getBulkActionResult(ids, results);
 			}
 
-			await Promise.all(ids.map((id) => client.incidents.delete({ id })));
+			const results = await Promise.allSettled(
+				ids.map(async (id) => {
+					await client.incidents.delete({ id });
+					return id;
+				}),
+			);
+
+			return getBulkActionResult(ids, results);
 		},
-		onSuccess: (_data, { action, ids }) => {
-			sileo.success({
-				title: getBulkActionSuccessTitle(action, ids.length),
+		onError: (err, { action, ids }) => {
+			sileo.error({
+				title: getBulkActionErrorTitle(
+					action,
+					getBulkActionFailureMessage(
+						ids.map((id) => ({ id, message: getErrorMessage(err) })),
+					),
+				),
 			});
-			setSelectedIncidentIds(new Set());
-			setBulkDeleteIds([]);
 		},
-		onError: (err, { action }) => {
-			sileo.error({ title: getBulkActionErrorTitle(action, err.message) });
-		},
-		onSettled: () => {
+		onSettled: (data, _error, { action }) => {
+			if (data) {
+				const succeededIdSet = new Set(data.succeededIds);
+
+				if (data.succeededIds.length > 0) {
+					sileo.success({
+						title: getBulkActionSuccessTitle(action, data.succeededIds.length),
+					});
+					setSelectedIncidentIds((previous) => {
+						const next = new Set(previous);
+
+						for (const id of succeededIdSet) {
+							next.delete(id);
+						}
+
+						return next;
+					});
+					setBulkDeleteIds((previous) =>
+						previous.filter((id) => !succeededIdSet.has(id)),
+					);
+				}
+
+				if (data.failedIds.length > 0) {
+					sileo.error({
+						title: getBulkActionErrorTitle(
+							action,
+							getBulkActionFailureMessage(data.failedIncidents),
+						),
+					});
+				}
+			}
+
 			queryClient.invalidateQueries({ queryKey: orpc.incidents.list.key() });
 		},
 	});
