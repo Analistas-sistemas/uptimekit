@@ -247,20 +247,29 @@ export function OrganizationsTable() {
 											<div className="flex flex-col gap-1 text-muted-foreground text-sm">
 												<span className="flex items-center gap-1.5">
 													<Users className="h-4 w-4" />
-													{org.memberCount} members
+													<span className="text-foreground">
+														{org.memberCount}
+													</span>{" "}
+													members
 												</span>
 												<span className="flex items-center gap-1.5">
 													<Activity className="h-4 w-4" />
-													{org.activeMonitorCount} active /{" "}
-													{org.totalMonitorCount} total
+													<span className="text-foreground">
+														{org.activeMonitorCount}
+													</span>{" "}
+													active /{" "}
+													<span className="text-foreground">
+														{org.totalMonitorCount}
+													</span>{" "}
+													total
 												</span>
 											</div>
 										</TableCell>
 										<TableCell>
 											<div className="grid gap-1 text-sm">
-												<span>
+												<span className="text-muted-foreground">
 													Active monitor limit:{" "}
-													<span className="font-medium">
+													<span className="font-medium text-foreground">
 														{formatLimit(org.activeMonitorLimit)}
 													</span>
 												</span>
