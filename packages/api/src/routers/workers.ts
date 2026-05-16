@@ -46,14 +46,12 @@ function generateApiKey(): string {
 
 export const workersRouter = {
 	list: protectedProcedure
-		.meta({
-			openapi: {
-				method: "GET",
-				path: "/workers",
-				tags: ["Worker Management"],
-				summary: "List workers",
-				description: "List all registered monitoring workers.",
-			},
+		.route({
+			method: "GET",
+			path: "/workers",
+			tags: ["Worker Management"],
+			summary: "List workers",
+			description: "List all registered monitoring workers.",
 		})
 		.input(
 			z
@@ -126,14 +124,12 @@ export const workersRouter = {
 			return { items, total };
 		}),
 	create: protectedProcedure
-		.meta({
-			openapi: {
-				method: "POST",
-				path: "/workers",
-				tags: ["Worker Management"],
-				summary: "Create worker",
-				description: "Register a new monitoring worker.",
-			},
+		.route({
+			method: "POST",
+			path: "/workers",
+			tags: ["Worker Management"],
+			summary: "Create worker",
+			description: "Register a new monitoring worker.",
 		})
 		.input(
 			z.object({
@@ -181,15 +177,13 @@ export const workersRouter = {
 		),
 
 	rotateKey: protectedProcedure
-		.meta({
-			openapi: {
-				method: "POST",
-				path: "/workers/{id}/rotate-key",
-				tags: ["Worker Management"],
-				summary: "Rotate worker key",
-				description:
-					"Generate a new API key for a worker and invalidate the old one.",
-			},
+		.route({
+			method: "POST",
+			path: "/workers/{id}/rotate-key",
+			tags: ["Worker Management"],
+			summary: "Rotate worker key",
+			description:
+				"Generate a new API key for a worker and invalidate the old one.",
 		})
 		.input(z.object({ id: z.string() }))
 		.handler(async ({ input, context }): Promise<{ key: string }> => {
@@ -237,14 +231,12 @@ export const workersRouter = {
 		}),
 
 	delete: protectedProcedure
-		.meta({
-			openapi: {
-				method: "DELETE",
-				path: "/workers/{id}",
-				tags: ["Worker Management"],
-				summary: "Delete worker",
-				description: "Delete a worker and its associated API keys.",
-			},
+		.route({
+			method: "DELETE",
+			path: "/workers/{id}",
+			tags: ["Worker Management"],
+			summary: "Delete worker",
+			description: "Delete a worker and its associated API keys.",
 		})
 		.input(z.object({ id: z.string() }))
 		.handler(async ({ input, context }) => {
@@ -346,14 +338,12 @@ export const workersRouter = {
 		}),
 
 	listLocations: protectedProcedure
-		.meta({
-			openapi: {
-				method: "GET",
-				path: "/workers/locations",
-				tags: ["workers"],
-				summary: "List worker locations",
-				description: "List unique locations of active workers.",
-			},
+		.route({
+			method: "GET",
+			path: "/workers/locations",
+			tags: ["workers"],
+			summary: "List worker locations",
+			description: "List unique locations of active workers.",
 		})
 		.handler(async () => {
 			const locations = await db
@@ -365,14 +355,12 @@ export const workersRouter = {
 		}),
 
 	listActive: protectedProcedure
-		.meta({
-			openapi: {
-				method: "GET",
-				path: "/workers/active",
-				tags: ["workers"],
-				summary: "List active workers",
-				description: "List active workers available for monitor assignment.",
-			},
+		.route({
+			method: "GET",
+			path: "/workers/active",
+			tags: ["workers"],
+			summary: "List active workers",
+			description: "List active workers available for monitor assignment.",
 		})
 		.handler(async () => {
 			return db

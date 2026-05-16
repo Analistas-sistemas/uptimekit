@@ -8,29 +8,53 @@ import {
 	ChevronDown,
 	ChevronLeftIcon,
 	ChevronRightIcon,
+	Edit,
+	Loader2,
 	MoreHorizontal,
+	Plus,
 	Search,
+	Trash2,
 	Users,
 } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import {
+	type Dispatch,
+	type SetStateAction,
+	useEffect,
+	useMemo,
+	useState,
+} from "react";
 import { sileo } from "sileo";
+import {
+	AlertDialog,
+	AlertDialogCancel,
+	AlertDialogContent,
+	AlertDialogDescription,
+	AlertDialogFooter,
+	AlertDialogHeader,
+	AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import {
 	Dialog,
-	DialogContent,
+	DialogClose,
 	DialogDescription,
 	DialogFooter,
 	DialogHeader,
+	DialogPanel,
+	DialogPopup,
 	DialogTitle,
+	DialogTrigger,
 } from "@/components/ui/dialog";
 import {
 	DropdownMenu,
 	DropdownMenuContent,
 	DropdownMenuItem,
+	DropdownMenuSeparator,
 	DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
 	Pagination,
 	PaginationContent,
@@ -45,13 +69,31 @@ interface OrganizationRow {
 	name: string;
 	slug: string;
 	logo: string | null;
-	createdAt: Date;
+	createdAt: Date | string;
 	memberCount: number;
 	activeMonitorCount: number;
 	totalMonitorCount: number;
 	activeMonitorLimit: number | null;
 	regionsPerMonitorLimit: number | null;
 }
+
+type OrganizationFormState = {
+	activeMonitorLimit: string;
+	logo: string;
+	name: string;
+	ownerEmail: string;
+	regionsPerMonitorLimit: string;
+	slug: string;
+};
+
+const emptyCreateForm: OrganizationFormState = {
+	activeMonitorLimit: "",
+	logo: "",
+	name: "",
+	ownerEmail: "",
+	regionsPerMonitorLimit: "",
+	slug: "",
+};
 
 function formatLimit(limit: number | null) {
 	return limit === null ? "Unlimited" : String(limit);
@@ -61,14 +103,67 @@ function toInputValue(limit: number | null) {
 	return limit === null ? "" : String(limit);
 }
 
+function toLimitValue(value: string) {
+	return value.trim() === "" ? null : Number(value);
+}
+
+function slugFromName(name: string) {
+	return name
+		.toLowerCase()
+		.replace(/[^a-z0-9]+/g, "-")
+		.replace(/^-+|-+$/g, "");
+}
+
+function hasValidLimits(
+	form: Pick<
+		OrganizationFormState,
+		"activeMonitorLimit" | "regionsPerMonitorLimit"
+	>,
+) {
+	for (const value of [form.activeMonitorLimit, form.regionsPerMonitorLimit]) {
+		if (value.trim() === "") {
+			continue;
+		}
+
+		const parsed = Number(value);
+		if (!Number.isInteger(parsed) || parsed < 1) {
+			return false;
+		}
+	}
+
+	return true;
+}
+
+function getInitials(org: OrganizationRow) {
+	return org.name.slice(0, 2).toUpperCase();
+}
+
+function getUsageText(result: {
+	autoPausedMonitorCount: number;
+	unpublishedIncidentCount: number;
+}) {
+	if (
+		result.autoPausedMonitorCount > 0 ||
+		result.unpublishedIncidentCount > 0
+	) {
+		return `Updated. Auto-paused ${result.autoPausedMonitorCount} monitor(s) and unpublished ${result.unpublishedIncidentCount} incident link(s).`;
+	}
+
+	return "Organization updated";
+}
+
 export function OrganizationsTable() {
 	const [searchQuery, setSearchQuery] = useState("");
 	const [debouncedSearch, setDebouncedSearch] = useState("");
 	const [page, setPage] = useState(1);
-	const [selectedOrg, setSelectedOrg] = useState<OrganizationRow | null>(null);
-	const [activeMonitorLimitInput, setActiveMonitorLimitInput] = useState("");
-	const [regionsPerMonitorLimitInput, setRegionsPerMonitorLimitInput] =
-		useState("");
+	const [createOpen, setCreateOpen] = useState(false);
+	const [createForm, setCreateForm] =
+		useState<OrganizationFormState>(emptyCreateForm);
+	const [editingOrg, setEditingOrg] = useState<OrganizationRow | null>(null);
+	const [editForm, setEditForm] = useState<OrganizationFormState>({
+		...emptyCreateForm,
+	});
+	const [deletingOrg, setDeletingOrg] = useState<OrganizationRow | null>(null);
 	const pageSize = 10;
 	const queryClient = useQueryClient();
 
@@ -94,91 +189,200 @@ export function OrganizationsTable() {
 	const total = data?.total || 0;
 	const totalPages = Math.ceil(total / pageSize);
 
-	const saveMutation = useMutation({
-		mutationFn: async () => {
-			if (!selectedOrg) {
-				return null;
-			}
+	const invalidateOrganizations = async () => {
+		await queryClient.invalidateQueries({
+			queryKey: orpc.organizations.list.key(),
+		});
+		await queryClient.invalidateQueries({
+			queryKey: orpc.organizations.getActiveQuota.key(),
+		});
+	};
 
-			return client.organizations.updateLimits({
-				id: selectedOrg.id,
-				activeMonitorLimit:
-					activeMonitorLimitInput.trim() === ""
-						? null
-						: Number(activeMonitorLimitInput),
-				regionsPerMonitorLimit:
-					regionsPerMonitorLimitInput.trim() === ""
-						? null
-						: Number(regionsPerMonitorLimitInput),
-			});
+	const createMutation = useMutation({
+		mutationFn: async () =>
+			client.organizations.create({
+				activeMonitorLimit: toLimitValue(createForm.activeMonitorLimit),
+				logo: createForm.logo.trim() || null,
+				name: createForm.name.trim(),
+				ownerEmail: createForm.ownerEmail.trim(),
+				regionsPerMonitorLimit: toLimitValue(createForm.regionsPerMonitorLimit),
+				slug: createForm.slug.trim(),
+			}),
+		onSuccess: async () => {
+			await invalidateOrganizations();
+			sileo.success({ title: "Organization created" });
+			setCreateOpen(false);
+			setCreateForm(emptyCreateForm);
 		},
-		onSuccess: async (result) => {
-			if (!result) {
-				return;
-			}
-
-			await queryClient.invalidateQueries({
-				queryKey: orpc.organizations.list.key(),
-			});
-			await queryClient.invalidateQueries({
-				queryKey: orpc.organizations.getActiveQuota.key(),
-			});
-
-			sileo.success({
-				title:
-					result.autoPausedMonitorCount > 0 ||
-					result.unpublishedIncidentCount > 0
-						? `Limits updated. Auto-paused ${result.autoPausedMonitorCount} monitor(s) and unpublished ${result.unpublishedIncidentCount} incident link(s).`
-						: "Organization limits updated",
-			});
-			setSelectedOrg(null);
-		},
-		onError: (error) => {
-			sileo.error({
-				title: error.message || "Failed to update organization limits",
-			});
+		onError: (error: Error) => {
+			sileo.error({ title: error.message || "Failed to create organization" });
 		},
 	});
 
-	const canSave = useMemo(() => {
-		for (const value of [
-			activeMonitorLimitInput,
-			regionsPerMonitorLimitInput,
-		]) {
-			if (value.trim() === "") {
-				continue;
+	const updateMutation = useMutation({
+		mutationFn: async () => {
+			if (!editingOrg) {
+				throw new Error("No organization selected");
 			}
 
-			const parsed = Number(value);
-			if (!Number.isInteger(parsed) || parsed < 1) {
-				return false;
-			}
-		}
+			return client.organizations.update({
+				id: editingOrg.id,
+				activeMonitorLimit: toLimitValue(editForm.activeMonitorLimit),
+				logo: editForm.logo.trim() || null,
+				name: editForm.name.trim(),
+				regionsPerMonitorLimit: toLimitValue(editForm.regionsPerMonitorLimit),
+				slug: editForm.slug.trim(),
+			});
+		},
+		onSuccess: async (result) => {
+			await invalidateOrganizations();
+			sileo.success({ title: getUsageText(result) });
+			setEditingOrg(null);
+		},
+		onError: (error: Error) => {
+			sileo.error({ title: error.message || "Failed to update organization" });
+		},
+	});
 
-		return true;
-	}, [activeMonitorLimitInput, regionsPerMonitorLimitInput]);
+	const deleteMutation = useMutation({
+		mutationFn: async (organizationId: string) =>
+			client.organizations.delete({ id: organizationId }),
+		onSuccess: async () => {
+			await invalidateOrganizations();
+			sileo.success({ title: "Organization deleted" });
+			setDeletingOrg(null);
+		},
+		onError: (error: Error) => {
+			sileo.error({ title: error.message || "Failed to delete organization" });
+		},
+	});
 
-	const openLimitDialog = (organization: OrganizationRow) => {
-		setSelectedOrg(organization);
-		setActiveMonitorLimitInput(toInputValue(organization.activeMonitorLimit));
-		setRegionsPerMonitorLimitInput(
-			toInputValue(organization.regionsPerMonitorLimit),
-		);
+	const createCanSave = useMemo(
+		() =>
+			createForm.name.trim().length >= 2 &&
+			createForm.slug.trim().length >= 2 &&
+			createForm.ownerEmail.trim().length > 0 &&
+			hasValidLimits(createForm),
+		[createForm],
+	);
+
+	const editCanSave = useMemo(
+		() =>
+			editForm.name.trim().length >= 2 &&
+			editForm.slug.trim().length >= 2 &&
+			hasValidLimits(editForm),
+		[editForm],
+	);
+
+	const openEditDialog = (organization: OrganizationRow) => {
+		setEditingOrg(organization);
+		setEditForm({
+			activeMonitorLimit: toInputValue(organization.activeMonitorLimit),
+			logo: organization.logo || "",
+			name: organization.name,
+			ownerEmail: "",
+			regionsPerMonitorLimit: toInputValue(organization.regionsPerMonitorLimit),
+			slug: organization.slug,
+		});
 	};
 
 	return (
 		<>
 			<div className="mx-auto w-full max-w-6xl space-y-4">
-				<div className="flex items-center justify-between gap-4">
+				<div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
 					<h1 className="font-bold text-2xl tracking-tight">Organizations</h1>
-					<div className="relative w-64">
-						<Search className="absolute top-2.5 left-2 h-4 w-4 text-muted-foreground" />
-						<Input
-							placeholder="Search by name or slug"
-							className="pl-8"
-							value={searchQuery}
-							onChange={(e) => setSearchQuery(e.target.value)}
-						/>
+					<div className="flex flex-wrap items-center gap-2">
+						<Dialog open={createOpen} onOpenChange={setCreateOpen}>
+							<DialogTrigger render={<Button />}>
+								<Plus className="mr-2 h-4 w-4" />
+								Create Organization
+							</DialogTrigger>
+							<DialogPopup className="sm:max-w-lg">
+								<DialogHeader>
+									<DialogTitle>Create Organization</DialogTitle>
+									<DialogDescription>
+										Create an organization for an existing owner user.
+									</DialogDescription>
+								</DialogHeader>
+								<DialogPanel className="grid gap-4">
+									<div className="grid gap-4 sm:grid-cols-2">
+										<div className="space-y-2">
+											<Label htmlFor="create-org-name">Name</Label>
+											<Input
+												id="create-org-name"
+												value={createForm.name}
+												onChange={(event) => {
+													const name = event.target.value;
+													setCreateForm((current) => ({
+														...current,
+														name,
+														slug: slugFromName(name),
+													}));
+												}}
+												placeholder="Acme Corp"
+											/>
+										</div>
+										<div className="space-y-2">
+											<Label htmlFor="create-org-slug">Slug</Label>
+											<Input
+												id="create-org-slug"
+												value={createForm.slug}
+												onChange={(event) =>
+													setCreateForm((current) => ({
+														...current,
+														slug: event.target.value,
+													}))
+												}
+												placeholder="acme-corp"
+											/>
+										</div>
+									</div>
+									<div className="space-y-2">
+										<Label htmlFor="create-owner-email">Owner Email</Label>
+										<Input
+											id="create-owner-email"
+											type="email"
+											value={createForm.ownerEmail}
+											onChange={(event) =>
+												setCreateForm((current) => ({
+													...current,
+													ownerEmail: event.target.value,
+												}))
+											}
+											placeholder="owner@example.com"
+										/>
+									</div>
+									<OrganizationFields
+										form={createForm}
+										idPrefix="create"
+										setForm={setCreateForm}
+									/>
+								</DialogPanel>
+								<DialogFooter>
+									<DialogClose render={<Button variant="ghost" />}>
+										Cancel
+									</DialogClose>
+									<Button
+										onClick={() => createMutation.mutate()}
+										disabled={!createCanSave || createMutation.isPending}
+									>
+										{createMutation.isPending && (
+											<Loader2 className="mr-2 h-4 w-4 animate-spin" />
+										)}
+										Create Organization
+									</Button>
+								</DialogFooter>
+							</DialogPopup>
+						</Dialog>
+						<div className="relative w-full sm:w-64">
+							<Search className="absolute top-2.5 left-2 h-4 w-4 text-muted-foreground" />
+							<Input
+								placeholder="Search by name or slug"
+								className="pl-8"
+								value={searchQuery}
+								onChange={(event) => setSearchQuery(event.target.value)}
+							/>
+						</div>
 					</div>
 				</div>
 
@@ -223,7 +427,7 @@ export function OrganizationsTable() {
 											<Avatar className="h-10 w-10 rounded-lg">
 												<AvatarImage src={org.logo || ""} alt={org.name} />
 												<AvatarFallback className="rounded-lg bg-primary/10 text-primary">
-													{org.name.slice(0, 2).toUpperCase()}
+													{getInitials(org)}
 												</AvatarFallback>
 											</Avatar>
 										</TableCell>
@@ -289,10 +493,17 @@ export function OrganizationsTable() {
 													<MoreHorizontal className="h-4 w-4" />
 												</DropdownMenuTrigger>
 												<DropdownMenuContent align="end">
+													<DropdownMenuItem onClick={() => openEditDialog(org)}>
+														<Edit className="mr-2 h-4 w-4" />
+														Edit Organization
+													</DropdownMenuItem>
+													<DropdownMenuSeparator />
 													<DropdownMenuItem
-														onClick={() => openLimitDialog(org)}
+														onClick={() => setDeletingOrg(org)}
+														className="text-red-500"
 													>
-														Edit limits
+														<Trash2 className="mr-2 h-4 w-4" />
+														Delete Organization
 													</DropdownMenuItem>
 												</DropdownMenuContent>
 											</DropdownMenu>
@@ -317,36 +528,38 @@ export function OrganizationsTable() {
 											<ChevronLeftIcon className="h-4 w-4" />
 										</Button>
 									</PaginationItem>
-									{Array.from({ length: totalPages }, (_, i) => i + 1).map(
-										(p) => {
-											if (
-												totalPages > 7 &&
-												(p < page - 2 || p > page + 2) &&
-												p !== 1 &&
-												p !== totalPages
-											) {
-												if (p === page - 3 || p === page + 3) {
-													return (
-														<PaginationItem key={p}>
-															<PaginationEllipsis />
-														</PaginationItem>
-													);
-												}
-												return null;
+									{Array.from(
+										{ length: totalPages },
+										(_, index) => index + 1,
+									).map((pageNumber) => {
+										if (
+											totalPages > 7 &&
+											(pageNumber < page - 2 || pageNumber > page + 2) &&
+											pageNumber !== 1 &&
+											pageNumber !== totalPages
+										) {
+											if (pageNumber === page - 3 || pageNumber === page + 3) {
+												return (
+													<PaginationItem key={pageNumber}>
+														<PaginationEllipsis />
+													</PaginationItem>
+												);
 											}
-											return (
-												<PaginationItem key={p}>
-													<Button
-														variant={p === page ? "outline" : "ghost"}
-														size="icon"
-														onClick={() => setPage(p)}
-													>
-														{p}
-													</Button>
-												</PaginationItem>
-											);
-										},
-									)}
+											return null;
+										}
+
+										return (
+											<PaginationItem key={pageNumber}>
+												<Button
+													variant={pageNumber === page ? "outline" : "ghost"}
+													size="icon"
+													onClick={() => setPage(pageNumber)}
+												>
+													{pageNumber}
+												</Button>
+											</PaginationItem>
+										);
+									})}
 									<PaginationItem>
 										<Button
 											variant="ghost"
@@ -365,95 +578,198 @@ export function OrganizationsTable() {
 			</div>
 
 			<Dialog
-				open={!!selectedOrg}
-				onOpenChange={(open) => !open && setSelectedOrg(null)}
+				open={!!editingOrg}
+				onOpenChange={(open) => {
+					if (!open) {
+						setEditingOrg(null);
+					}
+				}}
 			>
-				<DialogContent className="sm:max-w-[480px]">
+				<DialogPopup className="sm:max-w-lg">
 					<DialogHeader>
-						<DialogTitle>Edit Organization Limits</DialogTitle>
+						<DialogTitle>Edit Organization</DialogTitle>
 						<DialogDescription>
-							{selectedOrg?.name
-								? `Update quota limits for ${selectedOrg.name}. Leave a field blank for unlimited.`
-								: "Update organization quota limits."}
+							Update organization details and quota limits.
 						</DialogDescription>
 					</DialogHeader>
-
-					<div className="space-y-4 p-6 pt-0">
+					<DialogPanel className="grid gap-4">
 						<div className="rounded-lg border bg-muted/20 p-3 text-sm">
 							<p>
 								Current active usage:{" "}
 								<span className="font-medium">
-									{selectedOrg?.activeMonitorCount ?? 0}
+									{editingOrg?.activeMonitorCount ?? 0}
 								</span>
 							</p>
 							<p className="text-muted-foreground">
-								Total saved monitors: {selectedOrg?.totalMonitorCount ?? 0}
+								Total saved monitors: {editingOrg?.totalMonitorCount ?? 0}
 							</p>
 						</div>
-
-						<div className="space-y-2">
-							<label
-								className="font-medium text-sm"
-								htmlFor="active-monitor-limit"
-							>
-								Active monitor limit
-							</label>
-							<Input
-								id="active-monitor-limit"
-								type="number"
-								min={1}
-								placeholder="Unlimited"
-								value={activeMonitorLimitInput}
-								onChange={(event) =>
-									setActiveMonitorLimitInput(event.target.value)
-								}
-							/>
+						<div className="grid gap-4 sm:grid-cols-2">
+							<div className="space-y-2">
+								<Label htmlFor="edit-org-name">Name</Label>
+								<Input
+									id="edit-org-name"
+									value={editForm.name}
+									onChange={(event) =>
+										setEditForm((current) => ({
+											...current,
+											name: event.target.value,
+										}))
+									}
+								/>
+							</div>
+							<div className="space-y-2">
+								<Label htmlFor="edit-org-slug">Slug</Label>
+								<Input
+									id="edit-org-slug"
+									value={editForm.slug}
+									onChange={(event) =>
+										setEditForm((current) => ({
+											...current,
+											slug: event.target.value,
+										}))
+									}
+								/>
+							</div>
 						</div>
-
-						<div className="space-y-2">
-							<label
-								className="font-medium text-sm"
-								htmlFor="regions-per-monitor-limit"
-							>
-								Regions per monitor limit
-							</label>
-							<Input
-								id="regions-per-monitor-limit"
-								type="number"
-								min={1}
-								placeholder="Unlimited"
-								value={regionsPerMonitorLimitInput}
-								onChange={(event) =>
-									setRegionsPerMonitorLimitInput(event.target.value)
-								}
-							/>
-						</div>
-
-						{!canSave && (
-							<p className="text-destructive text-sm">
-								Limits must be whole numbers greater than or equal to 1, or left
-								blank for unlimited.
-							</p>
-						)}
-					</div>
-
+						<OrganizationFields
+							form={editForm}
+							idPrefix="edit"
+							setForm={setEditForm}
+						/>
+					</DialogPanel>
 					<DialogFooter>
-						<Button
-							variant="ghost"
-							onClick={() => setSelectedOrg(null)}
-							disabled={saveMutation.isPending}
-						>
+						<DialogClose render={<Button variant="ghost" />}>
 							Cancel
-						</Button>
+						</DialogClose>
 						<Button
-							onClick={() => saveMutation.mutate()}
-							disabled={!selectedOrg || !canSave || saveMutation.isPending}
+							onClick={() => updateMutation.mutate()}
+							disabled={!editingOrg || !editCanSave || updateMutation.isPending}
 						>
-							Save limits
+							{updateMutation.isPending && (
+								<Loader2 className="mr-2 h-4 w-4 animate-spin" />
+							)}
+							Save Changes
 						</Button>
 					</DialogFooter>
-				</DialogContent>
+				</DialogPopup>
 			</Dialog>
+
+			<AlertDialog
+				open={!!deletingOrg}
+				onOpenChange={(open) => {
+					if (!open) {
+						setDeletingOrg(null);
+					}
+				}}
+			>
+				<AlertDialogContent>
+					<AlertDialogHeader>
+						<AlertDialogTitle>Delete organization?</AlertDialogTitle>
+						<AlertDialogDescription>
+							This will permanently delete{" "}
+							<span className="font-semibold">{deletingOrg?.name}</span> and its
+							monitors, status pages, incidents, maintenance windows,
+							integrations, API keys, members, and invitations.
+						</AlertDialogDescription>
+					</AlertDialogHeader>
+					<AlertDialogFooter>
+						<AlertDialogCancel disabled={deleteMutation.isPending}>
+							Cancel
+						</AlertDialogCancel>
+						<Button
+							type="button"
+							onClick={() => {
+								if (deletingOrg) {
+									deleteMutation.mutate(deletingOrg.id);
+								}
+							}}
+							disabled={deleteMutation.isPending}
+							className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+						>
+							{deleteMutation.isPending && (
+								<Loader2 className="mr-2 h-4 w-4 animate-spin" />
+							)}
+							Delete Organization
+						</Button>
+					</AlertDialogFooter>
+				</AlertDialogContent>
+			</AlertDialog>
+		</>
+	);
+}
+
+function OrganizationFields({
+	form,
+	idPrefix,
+	setForm,
+}: {
+	form: OrganizationFormState;
+	idPrefix: string;
+	setForm: Dispatch<SetStateAction<OrganizationFormState>>;
+}) {
+	const validLimits = hasValidLimits(form);
+
+	return (
+		<>
+			<div className="space-y-2">
+				<Label htmlFor={`${idPrefix}-org-logo`}>Logo URL</Label>
+				<Input
+					id={`${idPrefix}-org-logo`}
+					value={form.logo}
+					onChange={(event) =>
+						setForm((current) => ({
+							...current,
+							logo: event.target.value,
+						}))
+					}
+					placeholder="https://example.com/logo.png"
+				/>
+			</div>
+			<div className="grid gap-4 sm:grid-cols-2">
+				<div className="space-y-2">
+					<Label htmlFor={`${idPrefix}-active-limit`}>
+						Active monitor limit
+					</Label>
+					<Input
+						id={`${idPrefix}-active-limit`}
+						type="number"
+						min={1}
+						placeholder="Unlimited"
+						value={form.activeMonitorLimit}
+						onChange={(event) =>
+							setForm((current) => ({
+								...current,
+								activeMonitorLimit: event.target.value,
+							}))
+						}
+					/>
+				</div>
+				<div className="space-y-2">
+					<Label htmlFor={`${idPrefix}-regions-limit`}>
+						Regions per monitor
+					</Label>
+					<Input
+						id={`${idPrefix}-regions-limit`}
+						type="number"
+						min={1}
+						placeholder="Unlimited"
+						value={form.regionsPerMonitorLimit}
+						onChange={(event) =>
+							setForm((current) => ({
+								...current,
+								regionsPerMonitorLimit: event.target.value,
+							}))
+						}
+					/>
+				</div>
+			</div>
+			{!validLimits && (
+				<p className="text-destructive text-sm">
+					Limits must be whole numbers greater than or equal to 1, or left blank
+					for unlimited.
+				</p>
+			)}
 		</>
 	);
 }

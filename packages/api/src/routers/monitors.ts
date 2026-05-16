@@ -206,15 +206,13 @@ export const monitorsRouter = {
 				})
 				.optional(),
 		)
-		.meta({
-			openapi: {
-				method: "GET",
-				path: "/monitors",
-				tags: ["Monitor Management"],
-				summary: "List monitors",
-				description:
-					"Retrieve a list of monitors with optional filtering by status, type, and search query.",
-			},
+		.route({
+			method: "GET",
+			path: "/monitors",
+			tags: ["Monitor Management"],
+			summary: "List monitors",
+			description:
+				"Retrieve a list of monitors with optional filtering by status, type, and search query.",
 		})
 		.handler(async ({ input, context }) => {
 			const filters = [
@@ -415,14 +413,12 @@ export const monitorsRouter = {
 		}),
 
 	listGroups: protectedProcedure
-		.meta({
-			openapi: {
-				method: "GET",
-				path: "/monitors/groups",
-				tags: ["Monitor Management"],
-				summary: "List monitor groups",
-				description: "Retrieve all monitor groups.",
-			},
+		.route({
+			method: "GET",
+			path: "/monitors/groups",
+			tags: ["Monitor Management"],
+			summary: "List monitor groups",
+			description: "Retrieve all monitor groups.",
 		})
 		.handler(async ({ context }) => {
 			const groups = await db
@@ -439,14 +435,12 @@ export const monitorsRouter = {
 		}),
 
 	createGroup: writeProcedure
-		.meta({
-			openapi: {
-				method: "POST",
-				path: "/monitors/groups",
-				tags: ["Monitor Management"],
-				summary: "Create monitor group",
-				description: "Create a new group for organizing monitors.",
-			},
+		.route({
+			method: "POST",
+			path: "/monitors/groups",
+			tags: ["Monitor Management"],
+			summary: "Create monitor group",
+			description: "Create a new group for organizing monitors.",
 		})
 		.input(z.object({ name: z.string().min(1) }))
 		.handler(async ({ input, context }) => {
@@ -462,14 +456,12 @@ export const monitorsRouter = {
 		}),
 
 	create: writeProcedure
-		.meta({
-			openapi: {
-				method: "POST",
-				path: "/monitors",
-				tags: ["Monitor Management"],
-				summary: "Create monitor",
-				description: "Create a new monitor with specified configuration.",
-			},
+		.route({
+			method: "POST",
+			path: "/monitors",
+			tags: ["Monitor Management"],
+			summary: "Create monitor",
+			description: "Create a new monitor with specified configuration.",
 		})
 		.input(
 			z.object({
@@ -559,14 +551,12 @@ export const monitorsRouter = {
 		}),
 
 	delete: writeProcedure
-		.meta({
-			openapi: {
-				method: "DELETE",
-				path: "/monitors/{id}",
-				tags: ["Monitor Management"],
-				summary: "Delete monitor",
-				description: "Delete a specific monitor by ID.",
-			},
+		.route({
+			method: "DELETE",
+			path: "/monitors/{id}",
+			tags: ["Monitor Management"],
+			summary: "Delete monitor",
+			description: "Delete a specific monitor by ID.",
 		})
 		.input(z.object({ id: z.string() }))
 		.handler(async ({ input, context }) => {
@@ -633,14 +623,12 @@ export const monitorsRouter = {
 		}),
 
 	toggle: writeProcedure
-		.meta({
-			openapi: {
-				method: "POST",
-				path: "/monitors/{id}/toggle",
-				tags: ["Monitor Management"],
-				summary: "Toggle monitor status",
-				description: "Enable or disable a specific monitor.",
-			},
+		.route({
+			method: "POST",
+			path: "/monitors/{id}/toggle",
+			tags: ["Monitor Management"],
+			summary: "Toggle monitor status",
+			description: "Enable or disable a specific monitor.",
 		})
 		.input(z.object({ id: z.string(), active: z.boolean() }))
 		.handler(async ({ input, context }) => {
@@ -685,14 +673,12 @@ export const monitorsRouter = {
 		}),
 
 	update: writeProcedure
-		.meta({
-			openapi: {
-				method: "PATCH",
-				path: "/monitors/{id}",
-				tags: ["Monitor Management"],
-				summary: "Update monitor",
-				description: "Update the configuration of an existing monitor.",
-			},
+		.route({
+			method: "PATCH",
+			path: "/monitors/{id}",
+			tags: ["Monitor Management"],
+			summary: "Update monitor",
+			description: "Update the configuration of an existing monitor.",
 		})
 		.input(
 			z.object({
@@ -802,14 +788,12 @@ export const monitorsRouter = {
 		}),
 
 	get: protectedProcedure
-		.meta({
-			openapi: {
-				method: "GET",
-				path: "/monitors/{id}",
-				tags: ["Monitor Management"],
-				summary: "Get monitor",
-				description: "Retrieve details of a specific monitor.",
-			},
+		.route({
+			method: "GET",
+			path: "/monitors/{id}",
+			tags: ["Monitor Management"],
+			summary: "Get monitor",
+			description: "Retrieve details of a specific monitor.",
 		})
 		.input(z.object({ id: z.string() }))
 		.handler(async ({ input, context }) => {
@@ -911,14 +895,12 @@ export const monitorsRouter = {
 		}),
 
 	getStats: protectedProcedure
-		.meta({
-			openapi: {
-				method: "GET",
-				path: "/monitors/{monitorId}/stats",
-				tags: ["Monitor Management"],
-				summary: "Get monitor stats",
-				description: "Get uptime and latency statistics for a monitor.",
-			},
+		.route({
+			method: "GET",
+			path: "/monitors/{monitorId}/stats",
+			tags: ["Monitor Management"],
+			summary: "Get monitor stats",
+			description: "Get uptime and latency statistics for a monitor.",
 		})
 		.input(
 			z.object({
@@ -968,14 +950,12 @@ export const monitorsRouter = {
 		}),
 
 	getTimeline: protectedProcedure
-		.meta({
-			openapi: {
-				method: "GET",
-				path: "/monitors/{monitorId}/timeline",
-				tags: ["Monitor Management"],
-				summary: "Get monitor status timeline",
-				description: "Get paginated status changes for a monitor",
-			},
+		.route({
+			method: "GET",
+			path: "/monitors/{monitorId}/timeline",
+			tags: ["Monitor Management"],
+			summary: "Get monitor status timeline",
+			description: "Get paginated status changes for a monitor",
 		})
 		.input(
 			z.object({
@@ -1078,14 +1058,12 @@ export const monitorsRouter = {
 		}),
 
 	getResponseTimes: protectedProcedure
-		.meta({
-			openapi: {
-				method: "GET",
-				path: "/monitors/{monitorId}/response-times",
-				tags: ["monitors"],
-				summary: "Get response times",
-				description: "Retrieve historical response time data for charts.",
-			},
+		.route({
+			method: "GET",
+			path: "/monitors/{monitorId}/response-times",
+			tags: ["monitors"],
+			summary: "Get response times",
+			description: "Retrieve historical response time data for charts.",
 		})
 		.input(
 			z.object({
@@ -1169,15 +1147,13 @@ export const monitorsRouter = {
 		}),
 
 	getAvailability: protectedProcedure
-		.meta({
-			openapi: {
-				method: "GET",
-				path: "/monitors/{monitorId}/availability",
-				tags: ["monitors"],
-				summary: "Get availability",
-				description:
-					"Calculate availability percentage and incident statistics for a monitor over time.",
-			},
+		.route({
+			method: "GET",
+			path: "/monitors/{monitorId}/availability",
+			tags: ["monitors"],
+			summary: "Get availability",
+			description:
+				"Calculate availability percentage and incident statistics for a monitor over time.",
 		})
 		.input(z.object({ monitorId: z.string() }))
 		.handler(async ({ input, context }) => {
@@ -1344,14 +1320,12 @@ export const monitorsRouter = {
 		}),
 
 	updateGroup: writeProcedure
-		.meta({
-			openapi: {
-				method: "PATCH",
-				path: "/monitors/groups/{id}",
-				tags: ["Monitor Management"],
-				summary: "Update monitor group",
-				description: "Update the name of an existing monitor group.",
-			},
+		.route({
+			method: "PATCH",
+			path: "/monitors/groups/{id}",
+			tags: ["Monitor Management"],
+			summary: "Update monitor group",
+			description: "Update the name of an existing monitor group.",
 		})
 		.input(z.object({ id: z.string(), name: z.string().min(1) }))
 		.handler(async ({ input, context }) => {
@@ -1376,15 +1350,13 @@ export const monitorsRouter = {
 		}),
 
 	deleteGroup: writeProcedure
-		.meta({
-			openapi: {
-				method: "DELETE",
-				path: "/monitors/groups/{id}",
-				tags: ["Monitor Management"],
-				summary: "Delete monitor group",
-				description:
-					"Delete a monitor group. Monitors in this group will have their groupId set to null.",
-			},
+		.route({
+			method: "DELETE",
+			path: "/monitors/groups/{id}",
+			tags: ["Monitor Management"],
+			summary: "Delete monitor group",
+			description:
+				"Delete a monitor group. Monitors in this group will have their groupId set to null.",
 		})
 		.input(z.object({ id: z.string() }))
 		.handler(async ({ input, context }) => {
@@ -1404,14 +1376,12 @@ export const monitorsRouter = {
 		}),
 
 	listTags: protectedProcedure
-		.meta({
-			openapi: {
-				method: "GET",
-				path: "/monitors/tags",
-				tags: ["Monitor Management"],
-				summary: "List monitor tags",
-				description: "Retrieve all monitor tags.",
-			},
+		.route({
+			method: "GET",
+			path: "/monitors/tags",
+			tags: ["Monitor Management"],
+			summary: "List monitor tags",
+			description: "Retrieve all monitor tags.",
 		})
 		.handler(async ({ context }) => {
 			const tags = await db
@@ -1425,14 +1395,12 @@ export const monitorsRouter = {
 		}),
 
 	createTag: writeProcedure
-		.meta({
-			openapi: {
-				method: "POST",
-				path: "/monitors/tags",
-				tags: ["Monitor Management"],
-				summary: "Create monitor tag",
-				description: "Create a new tag for organizing monitors.",
-			},
+		.route({
+			method: "POST",
+			path: "/monitors/tags",
+			tags: ["Monitor Management"],
+			summary: "Create monitor tag",
+			description: "Create a new tag for organizing monitors.",
 		})
 		.input(
 			z.object({
@@ -1454,14 +1422,12 @@ export const monitorsRouter = {
 		}),
 
 	updateTag: writeProcedure
-		.meta({
-			openapi: {
-				method: "PATCH",
-				path: "/monitors/tags/{id}",
-				tags: ["Monitor Management"],
-				summary: "Update monitor tag",
-				description: "Update a tag's name or color.",
-			},
+		.route({
+			method: "PATCH",
+			path: "/monitors/tags/{id}",
+			tags: ["Monitor Management"],
+			summary: "Update monitor tag",
+			description: "Update a tag's name or color.",
 		})
 		.input(
 			z.object({
@@ -1496,15 +1462,13 @@ export const monitorsRouter = {
 		}),
 
 	deleteTag: writeProcedure
-		.meta({
-			openapi: {
-				method: "DELETE",
-				path: "/monitors/tags/{id}",
-				tags: ["Monitor Management"],
-				summary: "Delete monitor tag",
-				description:
-					"Delete a tag. This will also remove the tag from all monitors.",
-			},
+		.route({
+			method: "DELETE",
+			path: "/monitors/tags/{id}",
+			tags: ["Monitor Management"],
+			summary: "Delete monitor tag",
+			description:
+				"Delete a tag. This will also remove the tag from all monitors.",
 		})
 		.input(z.object({ id: z.string() }))
 		.handler(async ({ input, context }) => {
@@ -1524,14 +1488,12 @@ export const monitorsRouter = {
 		}),
 
 	addTagToMonitor: writeProcedure
-		.meta({
-			openapi: {
-				method: "POST",
-				path: "/monitors/{monitorId}/tags/{tagId}",
-				tags: ["Monitor Management"],
-				summary: "Add tag to monitor",
-				description: "Associate a tag with a monitor.",
-			},
+		.route({
+			method: "POST",
+			path: "/monitors/{monitorId}/tags/{tagId}",
+			tags: ["Monitor Management"],
+			summary: "Add tag to monitor",
+			description: "Associate a tag with a monitor.",
 		})
 		.input(z.object({ monitorId: z.string(), tagId: z.string() }))
 		.handler(async ({ input, context }) => {
@@ -1570,14 +1532,12 @@ export const monitorsRouter = {
 		}),
 
 	removeTagFromMonitor: writeProcedure
-		.meta({
-			openapi: {
-				method: "DELETE",
-				path: "/monitors/{monitorId}/tags/{tagId}",
-				tags: ["Monitor Management"],
-				summary: "Remove tag from monitor",
-				description: "Remove a tag association from a monitor.",
-			},
+		.route({
+			method: "DELETE",
+			path: "/monitors/{monitorId}/tags/{tagId}",
+			tags: ["Monitor Management"],
+			summary: "Remove tag from monitor",
+			description: "Remove a tag association from a monitor.",
 		})
 		.input(z.object({ monitorId: z.string(), tagId: z.string() }))
 		.handler(async ({ input, context }) => {

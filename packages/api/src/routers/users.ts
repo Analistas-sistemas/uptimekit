@@ -1,21 +1,82 @@
+import { ORPCError } from "@orpc/server";
 import { auth } from "@uptimekit/auth";
 import { db } from "@uptimekit/db";
-import { user } from "@uptimekit/db/schema/auth";
+import { session as authSession, user } from "@uptimekit/db/schema/auth";
+import { incident, incidentActivity } from "@uptimekit/db/schema/incidents";
+import { statusPageReportUpdate } from "@uptimekit/db/schema/status-updates";
 import { and, count, desc, eq, ilike, or, sql } from "drizzle-orm";
 import { z } from "zod";
 import { adminProcedure } from "../index";
+import {
+	getAdminUserActionError,
+	isInstanceAdminRole,
+} from "../lib/admin-users";
+
+function adminRoleCondition() {
+	return or(
+		eq(user.role, "admin"),
+		sql`${user.role} LIKE 'admin,%'`,
+		sql`${user.role} LIKE '%,admin'`,
+		sql`${user.role} LIKE '%,admin,%'`,
+	);
+}
+
+async function getAdminCount() {
+	const [result] = await db
+		.select({ count: count() })
+		.from(user)
+		.where(adminRoleCondition());
+
+	return result?.count || 0;
+}
+
+async function getUserOrThrow(id: string) {
+	const [targetUser] = await db
+		.select()
+		.from(user)
+		.where(eq(user.id, id))
+		.limit(1);
+
+	if (!targetUser) {
+		throw new ORPCError("NOT_FOUND", { message: "User not found" });
+	}
+
+	return targetUser;
+}
+
+async function assertAdminActionAllowed({
+	action,
+	currentUserId,
+	targetRole,
+	targetUserId,
+}: {
+	action: "ban" | "delete" | "demote";
+	currentUserId: string;
+	targetRole: string | null | undefined;
+	targetUserId: string;
+}) {
+	const error = getAdminUserActionError({
+		action,
+		adminCount: await getAdminCount(),
+		currentUserId,
+		targetRole,
+		targetUserId,
+	});
+
+	if (error) {
+		throw new ORPCError("BAD_REQUEST", { message: error });
+	}
+}
 
 export const usersRouter = {
 	list: adminProcedure
-		.meta({
-			openapi: {
-				method: "GET",
-				path: "/admin/users",
-				tags: ["Admin - Users"],
-				summary: "List all users",
-				description:
-					"List all registered users with search and filters. Admin only.",
-			},
+		.route({
+			method: "GET",
+			path: "/admin/users",
+			tags: ["Admin - Users"],
+			summary: "List all users",
+			description:
+				"List all registered users with search and filters. Admin only.",
 		})
 		.input(
 			z
@@ -41,7 +102,7 @@ export const usersRouter = {
 			}
 
 			if (input?.role === "admin") {
-				filters.push(eq(user.role, "admin"));
+				filters.push(adminRoleCondition());
 			} else if (input?.role === "user") {
 				filters.push(or(eq(user.role, "user"), sql`${user.role} IS NULL`));
 			}
@@ -79,43 +140,169 @@ export const usersRouter = {
 		}),
 
 	create: adminProcedure
-		.meta({
-			openapi: {
-				method: "POST",
-				path: "/admin/users",
-				tags: ["Admin - Users"],
-				summary: "Create a user",
-				description: "Create a new user with email and password. Admin only.",
-			},
+		.route({
+			method: "POST",
+			path: "/admin/users",
+			tags: ["Admin - Users"],
+			summary: "Create a user",
+			description: "Create a new user with email and password. Admin only.",
 		})
 		.input(
 			z.object({
-				name: z.string().min(1),
-				email: z.string().email(),
+				name: z.string().trim().min(1),
+				email: z.string().trim().email(),
 				password: z.string().min(8),
+				role: z.enum(["admin", "user"]).default("user"),
 			}),
 		)
 		.handler(async ({ input }) => {
 			const created = await auth.api.createUser({
 				body: {
-					email: input.email,
+					email: input.email.toLowerCase(),
 					password: input.password,
 					name: input.name,
+					role: input.role,
 				},
 			});
 			return created;
 		}),
 
+	update: adminProcedure
+		.route({
+			method: "PUT",
+			path: "/admin/users/{id}",
+			tags: ["Admin - Users"],
+			summary: "Update a user",
+			description:
+				"Update profile fields, access, ban status, or password. Admin only.",
+		})
+		.input(
+			z.object({
+				id: z.string(),
+				name: z.string().trim().min(1).optional(),
+				email: z.string().trim().email().optional(),
+				image: z.string().trim().nullable().optional(),
+				role: z.enum(["admin", "user"]).optional(),
+				banned: z.boolean().optional(),
+				banReason: z.string().trim().nullable().optional(),
+				banExpires: z.string().datetime().nullable().optional(),
+				newPassword: z.string().min(8).optional(),
+			}),
+		)
+		.handler(async ({ context, input }) => {
+			const targetUser = await getUserOrThrow(input.id);
+
+			if (input.role === "user" && isInstanceAdminRole(targetUser.role)) {
+				await assertAdminActionAllowed({
+					action: "demote",
+					currentUserId: context.session.user.id,
+					targetRole: targetUser.role,
+					targetUserId: targetUser.id,
+				});
+			}
+
+			if (input.banned === true && targetUser.banned !== true) {
+				await assertAdminActionAllowed({
+					action: "ban",
+					currentUserId: context.session.user.id,
+					targetRole: targetUser.role,
+					targetUserId: targetUser.id,
+				});
+			}
+
+			if (input.email) {
+				const normalizedEmail = input.email.toLowerCase();
+				const [existingUser] = await db
+					.select({ id: user.id })
+					.from(user)
+					.where(eq(user.email, normalizedEmail))
+					.limit(1);
+
+				if (existingUser && existingUser.id !== input.id) {
+					throw new ORPCError("CONFLICT", {
+						message: "A user with this email already exists.",
+					});
+				}
+			}
+
+			const updateData: Partial<typeof user.$inferInsert> = {};
+
+			if (input.name !== undefined) {
+				updateData.name = input.name;
+			}
+
+			if (input.email !== undefined) {
+				updateData.email = input.email.toLowerCase();
+			}
+
+			if (input.image !== undefined) {
+				updateData.image = input.image || null;
+			}
+
+			if (input.role !== undefined) {
+				updateData.role = input.role === "admin" ? "admin" : null;
+			}
+
+			if (input.banned !== undefined) {
+				updateData.banned = input.banned;
+				updateData.banReason = input.banned ? input.banReason || null : null;
+				updateData.banExpires =
+					input.banned && input.banExpires ? new Date(input.banExpires) : null;
+			}
+
+			if (Object.keys(updateData).length === 0 && !input.newPassword) {
+				throw new ORPCError("BAD_REQUEST", {
+					message: "No user changes were provided.",
+				});
+			}
+
+			let updated = targetUser;
+
+			if (Object.keys(updateData).length > 0) {
+				const [updatedUser] = await db
+					.update(user)
+					.set(updateData)
+					.where(eq(user.id, input.id))
+					.returning();
+
+				if (!updatedUser) {
+					throw new ORPCError("NOT_FOUND", { message: "User not found" });
+				}
+
+				updated = updatedUser;
+			}
+
+			const targetRole = isInstanceAdminRole(targetUser.role)
+				? "admin"
+				: "user";
+			const roleChanged = input.role !== undefined && input.role !== targetRole;
+			const newlyBanned = input.banned === true && targetUser.banned !== true;
+
+			if (roleChanged || newlyBanned) {
+				await db.delete(authSession).where(eq(authSession.userId, input.id));
+			}
+
+			if (input.newPassword) {
+				await auth.api.setUserPassword({
+					body: {
+						newPassword: input.newPassword,
+						userId: input.id,
+					},
+					headers: context.headers as Headers,
+				});
+			}
+
+			return updated;
+		}),
+
 	ban: adminProcedure
-		.meta({
-			openapi: {
-				method: "POST",
-				path: "/admin/users/{id}/ban",
-				tags: ["Admin - Users"],
-				summary: "Ban a user",
-				description:
-					"Ban a user with optional reason and expiration. Admin only.",
-			},
+		.route({
+			method: "POST",
+			path: "/admin/users/{id}/ban",
+			tags: ["Admin - Users"],
+			summary: "Ban a user",
+			description:
+				"Ban a user with optional reason and expiration. Admin only.",
 		})
 		.input(
 			z.object({
@@ -124,7 +311,15 @@ export const usersRouter = {
 				expiresAt: z.string().datetime().optional(),
 			}),
 		)
-		.handler(async ({ input }) => {
+		.handler(async ({ context, input }) => {
+			const targetUser = await getUserOrThrow(input.id);
+			await assertAdminActionAllowed({
+				action: "ban",
+				currentUserId: context.session.user.id,
+				targetRole: targetUser.role,
+				targetUserId: targetUser.id,
+			});
+
 			const [updated] = await db
 				.update(user)
 				.set({
@@ -135,18 +330,18 @@ export const usersRouter = {
 				.where(eq(user.id, input.id))
 				.returning();
 
+			await db.delete(authSession).where(eq(authSession.userId, input.id));
+
 			return updated;
 		}),
 
 	unban: adminProcedure
-		.meta({
-			openapi: {
-				method: "POST",
-				path: "/admin/users/{id}/unban",
-				tags: ["Admin - Users"],
-				summary: "Unban a user",
-				description: "Remove ban from a user. Admin only.",
-			},
+		.route({
+			method: "POST",
+			path: "/admin/users/{id}/unban",
+			tags: ["Admin - Users"],
+			summary: "Unban a user",
+			description: "Remove ban from a user. Admin only.",
 		})
 		.input(z.object({ id: z.string() }))
 		.handler(async ({ input }) => {
@@ -164,14 +359,12 @@ export const usersRouter = {
 		}),
 
 	setRole: adminProcedure
-		.meta({
-			openapi: {
-				method: "POST",
-				path: "/admin/users/{id}/role",
-				tags: ["Admin - Users"],
-				summary: "Set user role",
-				description: "Update user role (admin or regular user). Admin only.",
-			},
+		.route({
+			method: "POST",
+			path: "/admin/users/{id}/role",
+			tags: ["Admin - Users"],
+			summary: "Set user role",
+			description: "Update user role (admin or regular user). Admin only.",
 		})
 		.input(
 			z.object({
@@ -179,7 +372,18 @@ export const usersRouter = {
 				role: z.enum(["admin", "user"]),
 			}),
 		)
-		.handler(async ({ input }) => {
+		.handler(async ({ context, input }) => {
+			const targetUser = await getUserOrThrow(input.id);
+
+			if (input.role === "user" && isInstanceAdminRole(targetUser.role)) {
+				await assertAdminActionAllowed({
+					action: "demote",
+					currentUserId: context.session.user.id,
+					targetRole: targetUser.role,
+					targetUserId: targetUser.id,
+				});
+			}
+
 			const [updated] = await db
 				.update(user)
 				.set({
@@ -188,6 +392,47 @@ export const usersRouter = {
 				.where(eq(user.id, input.id))
 				.returning();
 
+			await db.delete(authSession).where(eq(authSession.userId, input.id));
+
 			return updated;
+		}),
+
+	delete: adminProcedure
+		.route({
+			method: "DELETE",
+			path: "/admin/users/{id}",
+			tags: ["Admin - Users"],
+			summary: "Delete a user",
+			description:
+				"Hard-delete a user account while preserving historical records. Admin only.",
+		})
+		.input(z.object({ id: z.string() }))
+		.handler(async ({ context, input }) => {
+			const targetUser = await getUserOrThrow(input.id);
+
+			await assertAdminActionAllowed({
+				action: "delete",
+				currentUserId: context.session.user.id,
+				targetRole: targetUser.role,
+				targetUserId: targetUser.id,
+			});
+
+			await db.transaction(async (tx) => {
+				await tx
+					.update(incident)
+					.set({ acknowledgedBy: null })
+					.where(eq(incident.acknowledgedBy, input.id));
+				await tx
+					.update(incidentActivity)
+					.set({ userId: null })
+					.where(eq(incidentActivity.userId, input.id));
+				await tx
+					.update(statusPageReportUpdate)
+					.set({ userId: null })
+					.where(eq(statusPageReportUpdate.userId, input.id));
+				await tx.delete(user).where(eq(user.id, input.id));
+			});
+
+			return { success: true };
 		}),
 };

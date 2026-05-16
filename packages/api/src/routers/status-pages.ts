@@ -27,15 +27,13 @@ function getActiveOrganizationId(
 
 export const statusPagesRouter = {
 	list: protectedProcedure
-		.meta({
-			openapi: {
-				method: "GET",
-				path: "/status-pages",
-				tags: ["Status Page Management"],
-				summary: "List status pages",
-				description:
-					"Retrieve a list of status pages with optional searching and filtering.",
-			},
+		.route({
+			method: "GET",
+			path: "/status-pages",
+			tags: ["Status Page Management"],
+			summary: "List status pages",
+			description:
+				"Retrieve a list of status pages with optional searching and filtering.",
 		})
 		.input(
 			z
@@ -102,14 +100,12 @@ export const statusPagesRouter = {
 		}),
 
 	create: writeProcedure
-		.meta({
-			openapi: {
-				method: "POST",
-				path: "/status-pages",
-				tags: ["Status Page Management"],
-				summary: "Create status page",
-				description: "Create a new status page.",
-			},
+		.route({
+			method: "POST",
+			path: "/status-pages",
+			tags: ["Status Page Management"],
+			summary: "Create status page",
+			description: "Create a new status page.",
 		})
 		.input(
 			z.object({
@@ -145,14 +141,12 @@ export const statusPagesRouter = {
 		}),
 
 	get: protectedProcedure
-		.meta({
-			openapi: {
-				method: "GET",
-				path: "/status-pages/{id}",
-				tags: ["Status Page Management"],
-				summary: "Get status page",
-				description: "Retrieve details of a specific status page.",
-			},
+		.route({
+			method: "GET",
+			path: "/status-pages/{id}",
+			tags: ["Status Page Management"],
+			summary: "Get status page",
+			description: "Retrieve details of a specific status page.",
 		})
 		.input(z.object({ id: z.string() }))
 		.handler(async ({ input, context }) => {
@@ -180,14 +174,12 @@ export const statusPagesRouter = {
 		}),
 
 	update: writeProcedure
-		.meta({
-			openapi: {
-				method: "PATCH",
-				path: "/status-pages/{id}",
-				tags: ["Status Page Management"],
-				summary: "Update status page",
-				description: "Update the configuration of a status page.",
-			},
+		.route({
+			method: "PATCH",
+			path: "/status-pages/{id}",
+			tags: ["Status Page Management"],
+			summary: "Update status page",
+			description: "Update the configuration of a status page.",
 		})
 		.input(
 			z.object({
@@ -322,14 +314,12 @@ export const statusPagesRouter = {
 
 	// Structure management
 	getStructure: protectedProcedure
-		.meta({
-			openapi: {
-				method: "GET",
-				path: "/status-pages/{id}/structure",
-				tags: ["Status Page Management"],
-				summary: "Get structure",
-				description: "Get the layout structure of a status page.",
-			},
+		.route({
+			method: "GET",
+			path: "/status-pages/{id}/structure",
+			tags: ["Status Page Management"],
+			summary: "Get structure",
+			description: "Get the layout structure of a status page.",
 		})
 		.input(z.object({ id: z.string() }))
 		.handler(async ({ input, context }) => {
@@ -375,14 +365,12 @@ export const statusPagesRouter = {
 		}),
 
 	updateStructure: writeProcedure
-		.meta({
-			openapi: {
-				method: "PUT",
-				path: "/status-pages/{id}/structure",
-				tags: ["Status Page Management"],
-				summary: "Update structure",
-				description: "Update the layout structure of a status page.",
-			},
+		.route({
+			method: "PUT",
+			path: "/status-pages/{id}/structure",
+			tags: ["Status Page Management"],
+			summary: "Update structure",
+			description: "Update the layout structure of a status page.",
 		})
 		.input(
 			z.object({
@@ -459,14 +447,12 @@ export const statusPagesRouter = {
 		}),
 
 	delete: writeProcedure
-		.meta({
-			openapi: {
-				method: "DELETE",
-				path: "/status-pages/{id}",
-				tags: ["Status Page Management"],
-				summary: "Delete status page",
-				description: "Delete a specific status page by ID.",
-			},
+		.route({
+			method: "DELETE",
+			path: "/status-pages/{id}",
+			tags: ["Status Page Management"],
+			summary: "Delete status page",
+			description: "Delete a specific status page by ID.",
 		})
 		.input(z.object({ id: z.string() }))
 		.handler(async ({ input, context }) => {

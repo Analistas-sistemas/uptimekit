@@ -3,6 +3,7 @@
 import {
 	Activity,
 	AlertTriangle,
+	Building2,
 	ChevronDown,
 	Grid2X2,
 	LayoutDashboard,
@@ -88,6 +89,9 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
 	const { data: activeOrg } = authClient.useActiveOrganization();
 	const { data: session } = authClient.useSession();
 	const isGlobalAdmin = session?.user?.role === "admin";
+	const organizationSettingsUrl = activeOrg?.id
+		? `/organization/${activeOrg.id}/settings`
+		: "/settings";
 
 	// Use organization info safely
 	// Note: Better-auth might return null/undefined while loading
@@ -252,10 +256,20 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
 								.map((item) => (
 									<SidebarMenuItem key={item.title}>
 										<SidebarMenuButton
-											isActive={pathname.startsWith(item.url)}
+											isActive={
+												item.title === "Organization"
+													? pathname.startsWith("/organization/")
+													: pathname.startsWith(item.url)
+											}
 											tooltip={item.title}
 											render={
-												<Link href={item.url as any}>
+												<Link
+													href={
+														(item.title === "Organization"
+															? organizationSettingsUrl
+															: item.url) as any
+													}
+												>
 													<item.icon />
 													<span>{item.title}</span>
 												</Link>
@@ -268,8 +282,8 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
 				</SidebarGroup>
 			</SidebarContent>
 			<SidebarFooter>
-				{/* Reusing existing UserMenu but we might need to adapt it if it's strictly a dropdown trigger without structure. 
-                    Let's check UserMenu again or just embed the logic here for better sidebar integration. 
+				{/* Reusing existing UserMenu but we might need to adapt it if it's strictly a dropdown trigger without structure.
+                    Let's check UserMenu again or just embed the logic here for better sidebar integration.
                     For now, let's wrap it in a menu item */}
 				<SidebarMenu>
 					<SidebarMenuItem>
@@ -352,12 +366,17 @@ function UserMenuComponent() {
 					</div>
 				</DropdownMenuLabel>
 				<DropdownMenuSeparator />
-				<DropdownMenuItem render={<Link href={"/account" as any} />}>
+				<DropdownMenuItem render={<Link href={"/settings" as any} />}>
 					<User className="mr-2 h-4 w-4" />
-					Account
+					Settings
+				</DropdownMenuItem>
+				<DropdownMenuItem render={<Link href={"/organization" as any} />}>
+					<User className="mr-2 h-4 w-4" />
+					Organization
 				</DropdownMenuItem>
 				<DropdownMenuSeparator />
 				<DropdownMenuItem
+					variant="destructive"
 					onClick={() => {
 						authClient.signOut({
 							fetchOptions: {

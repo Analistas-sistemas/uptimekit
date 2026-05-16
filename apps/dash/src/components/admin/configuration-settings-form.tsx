@@ -47,9 +47,7 @@ export function ConfigurationSettingsForm() {
 	});
 
 	// Fetch all configuration values
-	const { data, isLoading } = useQuery({
-		...orpc.configuration.list.queryOptions(),
-	});
+	const { data, isLoading } = useQuery(orpc.configuration.list.queryOptions());
 
 	// Populate form with fetched values
 	useEffect(() => {

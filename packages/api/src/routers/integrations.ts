@@ -13,14 +13,12 @@ import { integrationRegistry } from "../pkg/integrations/registry";
 
 export const integrationsRouter = {
 	listAvailable: protectedProcedure
-		.meta({
-			openapi: {
-				method: "GET",
-				path: "/integrations/available",
-				tags: ["Integration Management"],
-				summary: "List available integrations",
-				description: "List all supported integration types.",
-			},
+		.route({
+			method: "GET",
+			path: "/integrations/available",
+			tags: ["Integration Management"],
+			summary: "List available integrations",
+			description: "List all supported integration types.",
 		})
 		.handler(async () => {
 			const integrations = integrationRegistry.list();
@@ -35,14 +33,12 @@ export const integrationsRouter = {
 		}),
 
 	listConfigured: writeProcedure
-		.meta({
-			openapi: {
-				method: "GET",
-				path: "/integrations/configured",
-				tags: ["Integration Management"],
-				summary: "List configured integrations",
-				description: "List all integrations configured for the organization.",
-			},
+		.route({
+			method: "GET",
+			path: "/integrations/configured",
+			tags: ["Integration Management"],
+			summary: "List configured integrations",
+			description: "List all integrations configured for the organization.",
 		})
 		.handler(async ({ context }) => {
 			const organizationId = context.session.session.activeOrganizationId;
@@ -62,14 +58,12 @@ export const integrationsRouter = {
 		}),
 
 	configure: writeProcedure
-		.meta({
-			openapi: {
-				method: "POST",
-				path: "/integrations/configure",
-				tags: ["Integration Management"],
-				summary: "Configure integration",
-				description: "Create or update an integration configuration.",
-			},
+		.route({
+			method: "POST",
+			path: "/integrations/configure",
+			tags: ["Integration Management"],
+			summary: "Configure integration",
+			description: "Create or update an integration configuration.",
 		})
 		.input(
 			z.object({
@@ -160,14 +154,12 @@ export const integrationsRouter = {
 		}),
 
 	delete: writeProcedure
-		.meta({
-			openapi: {
-				method: "DELETE",
-				path: "/integrations/{id}",
-				tags: ["Integration Management"],
-				summary: "Delete integration",
-				description: "Remove an integration configuration.",
-			},
+		.route({
+			method: "DELETE",
+			path: "/integrations/{id}",
+			tags: ["Integration Management"],
+			summary: "Delete integration",
+			description: "Remove an integration configuration.",
 		})
 		.input(z.object({ id: z.string() }))
 		.handler(async ({ context, input }) => {
@@ -186,14 +178,12 @@ export const integrationsRouter = {
 		}),
 
 	toggle: writeProcedure
-		.meta({
-			openapi: {
-				method: "POST",
-				path: "/integrations/{id}/toggle",
-				tags: ["integrations"],
-				summary: "Toggle integration",
-				description: "Enable or disable an integration.",
-			},
+		.route({
+			method: "POST",
+			path: "/integrations/{id}/toggle",
+			tags: ["integrations"],
+			summary: "Toggle integration",
+			description: "Enable or disable an integration.",
 		})
 		.input(z.object({ id: z.string(), active: z.boolean() }))
 		.handler(async ({ context, input }) => {
@@ -213,14 +203,12 @@ export const integrationsRouter = {
 		}),
 
 	test: writeProcedure
-		.meta({
-			openapi: {
-				method: "POST",
-				path: "/integrations/{id}/test",
-				tags: ["Integration Management"],
-				summary: "Test integration",
-				description: "Send a test event to verify the integration is working.",
-			},
+		.route({
+			method: "POST",
+			path: "/integrations/{id}/test",
+			tags: ["Integration Management"],
+			summary: "Test integration",
+			description: "Send a test event to verify the integration is working.",
 		})
 		.input(z.object({ id: z.string() }))
 		.handler(async ({ context, input }) => {

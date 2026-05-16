@@ -11,6 +11,7 @@ import {
 	BreadcrumbPage,
 	BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
+import { authClient } from "@/lib/auth-client";
 import { orpc } from "@/utils/orpc";
 
 function isUUID(str: string): boolean {
@@ -39,6 +40,7 @@ function formatSegment(segment: string): string {
 export function DashboardBreadcrumbs() {
 	const pathname = usePathname();
 	const queryClient = useQueryClient();
+	const { data: organizations } = authClient.useListOrganizations();
 	const segments = pathname.split("/").filter((segment) => segment !== "");
 
 	const uuidSegments = segments
@@ -78,11 +80,18 @@ export function DashboardBreadcrumbs() {
 	});
 
 	const getResolvedTitle = (segment: string, index: number): string => {
+		const previousSegment = segments[index - 1];
+
+		if (segment === "organization") return "Organization";
+
+		if (previousSegment === "organization") {
+			const organization = organizations?.find((org) => org.id === segment);
+			return organization?.name || `${segment.slice(0, 8)}...`;
+		}
+
 		if (!isUUID(segment)) {
 			return formatSegment(segment);
 		}
-
-		const previousSegment = segments[index - 1];
 
 		if (previousSegment === "status-pages") {
 			const queryKey = orpc.statusPages.get.queryOptions({
@@ -131,6 +140,9 @@ export function DashboardBreadcrumbs() {
 					segments.map((segment, index) => {
 						const href = `/${segments.slice(0, index + 1).join("/")}`;
 						const isLast = index === segments.length - 1;
+						const isOrganizationSegment =
+							segment === "organization" ||
+							segments[index - 1] === "organization";
 						const title = getResolvedTitle(segment, index);
 
 						return (
@@ -139,7 +151,7 @@ export function DashboardBreadcrumbs() {
 									<BreadcrumbSeparator className="hidden md:block" />
 								)}
 								<BreadcrumbItem>
-									{isLast ? (
+									{isLast || isOrganizationSegment ? (
 										<BreadcrumbPage>{title}</BreadcrumbPage>
 									) : (
 										<BreadcrumbLink href={href}>{title}</BreadcrumbLink>

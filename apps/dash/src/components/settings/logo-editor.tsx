@@ -28,9 +28,14 @@ import { Label } from "@/components/ui/label";
 interface LogoEditorProps {
 	value?: string;
 	onChange: (value: string) => void;
+	readOnly?: boolean;
 }
 
-export function LogoEditor({ value, onChange }: LogoEditorProps) {
+export function LogoEditor({
+	value,
+	onChange,
+	readOnly = false,
+}: LogoEditorProps) {
 	const [dialogOpen, setDialogOpen] = useState(false);
 	const [tempUrl, setTempUrl] = useState("");
 
@@ -54,6 +59,23 @@ export function LogoEditor({ value, onChange }: LogoEditorProps) {
 	const handleRemove = () => {
 		onChange("");
 	};
+
+	if (readOnly) {
+		return (
+			<div className="flex h-20 w-20 items-center justify-center overflow-hidden rounded-full border bg-muted">
+				{value ? (
+					// biome-ignore lint/performance/noImgElement: arbitrary external logo URL
+					<img
+						src={value}
+						alt="Organization logo"
+						className="h-full w-full object-cover"
+					/>
+				) : (
+					<ImageIcon className="h-8 w-8 text-muted-foreground" />
+				)}
+			</div>
+		);
+	}
 
 	if (value) {
 		return (

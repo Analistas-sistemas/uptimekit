@@ -181,13 +181,20 @@ const authConfig: BetterAuthOptions = {
 	databaseHooks: {
 		user: {
 			create: {
-				before: async (user) => {
+				before: async (user, ctx) => {
 					const [invite] = await db
 						.select()
 						.from(schema.invitation)
 						.where(eq(schema.invitation.email, user.email))
 						.limit(1);
 					if (invite) {
+						return;
+					}
+
+					const isAdminCreate =
+						(ctx as { path?: string } | null | undefined)?.path ===
+						"/admin/create-user";
+					if (isAdminCreate) {
 						return;
 					}
 

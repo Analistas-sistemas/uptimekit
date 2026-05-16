@@ -54,7 +54,11 @@ const memberRoleOptions = [
 	{ label: "Member", value: "member" },
 ] as const;
 
-export function MembersTable() {
+type MembersTableProps = {
+	canManageMembers: boolean;
+};
+
+export function MembersTable({ canManageMembers }: MembersTableProps) {
 	const {
 		data: activeOrg,
 		isPending,
@@ -114,9 +118,6 @@ export function MembersTable() {
 		);
 	}
 
-	const isOwner =
-		members?.find((m) => m.userId === session?.user.id)?.role === "owner";
-
 	return (
 		<>
 			<div className="rounded-md border">
@@ -157,41 +158,43 @@ export function MembersTable() {
 									{format(new Date(member.createdAt), "MMM d, yyyy")}
 								</TableCell>
 								<TableCell>
-									{isOwner && member.userId !== session?.user.id && (
-										<DropdownMenu>
-											<DropdownMenuTrigger
-												render={
-													<Button
-														variant="ghost"
-														size="icon"
-														className="h-8 w-8"
-													/>
-												}
-											>
-												<MoreHorizontal className="h-4 w-4" />
-											</DropdownMenuTrigger>
-											<DropdownMenuContent align="end">
-												<DropdownMenuItem
-													onClick={() => {
-														setSelectedMember(member);
-														setNewRole(member.role);
-														setIsRoleDialogOpen(true);
-													}}
+									{canManageMembers &&
+										member.userId !== session?.user.id &&
+										member.role !== "owner" && (
+											<DropdownMenu>
+												<DropdownMenuTrigger
+													render={
+														<Button
+															variant="ghost"
+															size="icon"
+															className="h-8 w-8"
+														/>
+													}
 												>
-													Change Role
-												</DropdownMenuItem>
-												<DropdownMenuItem
-													className="text-destructive focus:text-destructive"
-													onClick={() => {
-														setSelectedMember(member);
-														setIsDeleteDialogOpen(true);
-													}}
-												>
-													Remove Member
-												</DropdownMenuItem>
-											</DropdownMenuContent>
-										</DropdownMenu>
-									)}
+													<MoreHorizontal className="h-4 w-4" />
+												</DropdownMenuTrigger>
+												<DropdownMenuContent align="end">
+													<DropdownMenuItem
+														onClick={() => {
+															setSelectedMember(member);
+															setNewRole(member.role);
+															setIsRoleDialogOpen(true);
+														}}
+													>
+														Change Role
+													</DropdownMenuItem>
+													<DropdownMenuItem
+														className="text-destructive focus:text-destructive"
+														onClick={() => {
+															setSelectedMember(member);
+															setIsDeleteDialogOpen(true);
+														}}
+													>
+														Remove Member
+													</DropdownMenuItem>
+												</DropdownMenuContent>
+											</DropdownMenu>
+										)}
 								</TableCell>
 							</TableRow>
 						))}
@@ -223,7 +226,7 @@ export function MembersTable() {
 										{format(new Date(invitation.createdAt), "MMM d, yyyy")}
 									</TableCell>
 									<TableCell>
-										{isOwner && (
+										{canManageMembers && (
 											<Button
 												variant="ghost"
 												size="icon"

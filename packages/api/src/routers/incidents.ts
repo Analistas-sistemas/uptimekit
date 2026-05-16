@@ -125,14 +125,12 @@ async function assertOrganizationResources(
 
 export const incidentsRouter = {
 	list: protectedProcedure
-		.meta({
-			openapi: {
-				method: "GET",
-				path: "/incidents",
-				tags: ["Incident Management"],
-				summary: "List incidents",
-				description: "Retrieve a list of incidents with optional filtering.",
-			},
+		.route({
+			method: "GET",
+			path: "/incidents",
+			tags: ["Incident Management"],
+			summary: "List incidents",
+			description: "Retrieve a list of incidents with optional filtering.",
 		})
 		.input(
 			z.object({
@@ -203,14 +201,12 @@ export const incidentsRouter = {
 		}),
 
 	get: protectedProcedure
-		.meta({
-			openapi: {
-				method: "GET",
-				path: "/incidents/{id}",
-				tags: ["Incident Management"],
-				summary: "Get incident",
-				description: "Retrieve details of a specific incident.",
-			},
+		.route({
+			method: "GET",
+			path: "/incidents/{id}",
+			tags: ["Incident Management"],
+			summary: "Get incident",
+			description: "Retrieve details of a specific incident.",
 		})
 		.input(z.object({ id: z.string() }))
 		.handler(async ({ input, context }) => {
@@ -254,14 +250,12 @@ export const incidentsRouter = {
 		}),
 
 	create: writeProcedure
-		.meta({
-			openapi: {
-				method: "POST",
-				path: "/incidents",
-				tags: ["Incident Management"],
-				summary: "Create incident",
-				description: "Create a new incident.",
-			},
+		.route({
+			method: "POST",
+			path: "/incidents",
+			tags: ["Incident Management"],
+			summary: "Create incident",
+			description: "Create a new incident.",
 		})
 		.input(
 			z.object({
@@ -358,15 +352,13 @@ export const incidentsRouter = {
 		}),
 
 	update: writeProcedure
-		.meta({
-			openapi: {
-				method: "PATCH",
-				path: "/incidents/{id}",
-				tags: ["Incident Management"],
-				summary: "Update incident",
-				description:
-					"Update incident metadata, timeline, monitors, and publishing.",
-			},
+		.route({
+			method: "PATCH",
+			path: "/incidents/{id}",
+			tags: ["Incident Management"],
+			summary: "Update incident",
+			description:
+				"Update incident metadata, timeline, monitors, and publishing.",
 		})
 		.input(incidentUpdateInputSchema)
 		.handler(async ({ input, context }) => {
@@ -529,14 +521,12 @@ export const incidentsRouter = {
 		}),
 
 	acknowledge: writeProcedure
-		.meta({
-			openapi: {
-				method: "POST",
-				path: "/incidents/{id}/acknowledge",
-				tags: ["Incident Management"],
-				summary: "Acknowledge incident",
-				description: "Mark an incident as acknowledged.",
-			},
+		.route({
+			method: "POST",
+			path: "/incidents/{id}/acknowledge",
+			tags: ["Incident Management"],
+			summary: "Acknowledge incident",
+			description: "Mark an incident as acknowledged.",
 		})
 		.input(z.object({ id: z.string() }))
 		.handler(async ({ input, context }) => {
@@ -595,14 +585,12 @@ export const incidentsRouter = {
 		}),
 
 	resolve: writeProcedure
-		.meta({
-			openapi: {
-				method: "POST",
-				path: "/incidents/{id}/resolve",
-				tags: ["Incident Management"],
-				summary: "Resolve incident",
-				description: "Mark an incident as resolved.",
-			},
+		.route({
+			method: "POST",
+			path: "/incidents/{id}/resolve",
+			tags: ["Incident Management"],
+			summary: "Resolve incident",
+			description: "Mark an incident as resolved.",
 		})
 		.input(z.object({ id: z.string() }))
 		.handler(async ({ input, context }) => {
@@ -661,14 +649,12 @@ export const incidentsRouter = {
 		}),
 
 	addComment: writeProcedure
-		.meta({
-			openapi: {
-				method: "POST",
-				path: "/incidents/{incidentId}/comments",
-				tags: ["incidents"],
-				summary: "Add comment",
-				description: "Add a comment to an incident.",
-			},
+		.route({
+			method: "POST",
+			path: "/incidents/{incidentId}/comments",
+			tags: ["incidents"],
+			summary: "Add comment",
+			description: "Add a comment to an incident.",
 		})
 		.input(z.object({ incidentId: z.string(), message: z.string().min(1) }))
 		.handler(async ({ input, context }) => {
@@ -710,14 +696,12 @@ export const incidentsRouter = {
 		}),
 
 	delete: writeProcedure
-		.meta({
-			openapi: {
-				method: "DELETE",
-				path: "/incidents/{id}",
-				tags: ["Incident Management"],
-				summary: "Delete incident",
-				description: "Delete a specific incident by ID.",
-			},
+		.route({
+			method: "DELETE",
+			path: "/incidents/{id}",
+			tags: ["Incident Management"],
+			summary: "Delete incident",
+			description: "Delete a specific incident by ID.",
 		})
 		.input(z.object({ id: z.string() }))
 		.handler(async ({ input, context }) => {
