@@ -1,5 +1,3 @@
-> [!CAUTION]
-> This project is no longer continued, because of lack of time for actively maintaining it. Checkout similar projects like [pongo](https://www.pongo.sh/) or [openstatus](https://www.openstatus.dev/), they did better job than I do, and are actively maintained
 
 # UptimeKit Worker (Go)
 
