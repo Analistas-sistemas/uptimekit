@@ -1,8 +1,7 @@
 "use client";
 
 import { CheckCircle2, Loader2 } from "lucide-react";
-import { useActionState, useState } from "react";
-import { subscribeToStatusPage } from "@/app/actions/subscribe";
+import { type FormEvent, useState } from "react";
 import { cn } from "@/lib/utils";
 
 interface SubscribeFormProps {
@@ -11,6 +10,11 @@ interface SubscribeFormProps {
 	variant?: "default" | "flat" | "signal";
 	mode?: "card" | "compact";
 }
+
+type SubscribeState = {
+	error: string;
+	success: string;
+};
 
 const variantStyles = {
 	default: {
@@ -52,12 +56,59 @@ export function SubscribeForm({
 	mode = "card",
 }: SubscribeFormProps) {
 	const [isOpen, setIsOpen] = useState(false);
-	const [state, formAction, isPending] = useActionState(subscribeToStatusPage, {
+	const [isPending, setIsPending] = useState(false);
+	const [state, setState] = useState<SubscribeState>({
 		error: "",
 		success: "",
 	});
 
 	const styles = variantStyles[variant];
+
+	const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
+		event.preventDefault();
+
+		const formData = new FormData(event.currentTarget);
+		setIsPending(true);
+		setState({ error: "", success: "" });
+
+		try {
+			const response = await fetch("/api/subscribe", {
+				method: "POST",
+				headers: {
+					"Content-Type": "application/json",
+				},
+				body: JSON.stringify({
+					statusPageId: formData.get("statusPageId"),
+					email: formData.get("email"),
+					slackWebhookUrl: formData.get("slackWebhookUrl"),
+					discordWebhookUrl: formData.get("discordWebhookUrl"),
+				}),
+			});
+			const result = (await response.json().catch(() => ({}))) as {
+				error?: string;
+			};
+
+			if (!response.ok) {
+				setState({
+					error: result.error || "Unable to subscribe right now.",
+					success: "",
+				});
+				return;
+			}
+
+			setState({
+				error: "",
+				success: "You're subscribed to status updates.",
+			});
+		} catch {
+			setState({
+				error: "Unable to subscribe right now.",
+				success: "",
+			});
+		} finally {
+			setIsPending(false);
+		}
+	};
 
 	if (mode === "compact") {
 		return (
@@ -87,7 +138,7 @@ export function SubscribeForm({
 							</p>
 						</div>
 
-						<form action={formAction} className="px-6 py-5">
+						<form onSubmit={handleSubmit} className="px-6 py-5">
 							<input type="hidden" name="statusPageId" value={statusPageId} />
 
 							<div className="space-y-5">
@@ -200,7 +251,7 @@ export function SubscribeForm({
 
 	return (
 		<section className={cn(styles.card, className)}>
-			<form action={formAction} className="space-y-4">
+			<form onSubmit={handleSubmit} className="space-y-4">
 				<input type="hidden" name="statusPageId" value={statusPageId} />
 				<input
 					type="email"
