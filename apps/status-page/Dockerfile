@@ -48,6 +48,7 @@ COPY --from=installer --chown=nextjs:nodejs /app/node_modules ./node_modules
 COPY --from=builder --chown=nextjs:nodejs /app/turbo.json ./turbo.json
 
 ENV NODE_ENV=production
+ENV HOSTNAME=0.0.0.0
 ENV PORT=3001
 EXPOSE 3001
 CMD ["bun", "apps/status-page/server.js"]

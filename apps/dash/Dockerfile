@@ -46,6 +46,7 @@ COPY --from=builder --chown=nextjs:nodejs /app/turbo.json ./turbo.json
 
 ENV NODE_ENV=production
 ENV NODE_PATH=/app/node_modules
+ENV HOSTNAME=0.0.0.0
 ENV PORT=3000
 EXPOSE 3000
 
