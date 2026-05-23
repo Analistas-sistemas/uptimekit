@@ -1,6 +1,10 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+	getWorkerAvailabilityStatus,
+	type WorkerAvailabilityStatus,
+} from "@uptimekit/api/lib/worker-status";
 import { formatDistanceToNow } from "date-fns";
 import {
 	ChevronDown,
@@ -55,6 +59,27 @@ const workerStatusOptions = [
 	{ label: "Unknown", value: "unknown" },
 ] as const;
 
+const workerStatusMeta: Record<
+	WorkerAvailabilityStatus,
+	{ dotClassName: string; label: string; textClassName: string }
+> = {
+	online: {
+		dotClassName: "bg-emerald-500 shadow-emerald-500/20",
+		label: "Online",
+		textClassName: "text-emerald-500",
+	},
+	offline: {
+		dotClassName: "bg-red-500 shadow-red-500/20",
+		label: "Offline",
+		textClassName: "text-red-500",
+	},
+	unknown: {
+		dotClassName: "bg-gray-400 shadow-gray-400/20",
+		label: "Unknown",
+		textClassName: "text-gray-500",
+	},
+};
+
 /**
  * Render a paginated, searchable table for managing workers with status filtering, creation, and deletion workflows.
  *
@@ -74,6 +99,7 @@ export function WorkersTable() {
 		id: string;
 		name: string;
 	} | null>(null);
+	const [currentTime, setCurrentTime] = useState(() => new Date());
 	const pageSize = 10;
 	const queryClient = useQueryClient();
 
@@ -85,8 +111,16 @@ export function WorkersTable() {
 		return () => clearTimeout(timer);
 	}, [searchQuery]);
 
-	const { data, isLoading } = useQuery(
-		orpc.workers.list.queryOptions({
+	useEffect(() => {
+		const timer = window.setInterval(() => {
+			setCurrentTime(new Date());
+		}, 60 * 1000);
+
+		return () => window.clearInterval(timer);
+	}, []);
+
+	const { data, isLoading } = useQuery({
+		...orpc.workers.list.queryOptions({
 			input: {
 				q: debouncedSearch || undefined,
 				status: statusFilter,
@@ -94,7 +128,8 @@ export function WorkersTable() {
 				offset: (page - 1) * pageSize,
 			},
 		}),
-	);
+		refetchInterval: 60 * 1000,
+	});
 
 	const deleteMutation = useMutation({
 		...orpc.workers.delete.mutationOptions(),
@@ -167,7 +202,7 @@ export function WorkersTable() {
 			</div>
 
 			<div className="overflow-hidden rounded-xl border bg-card shadow-sm">
-				<div className="flex items-center gap-2 border-b bg-muted/20 px-4 py-3 font-medium text-muted-foreground text-sm">
+				<div className="flex min-h-12 items-center gap-2 border-b bg-muted/20 px-4 py-3 font-medium text-muted-foreground text-sm">
 					<ChevronDown className="h-4 w-4" />
 					Workers
 				</div>
@@ -201,115 +236,106 @@ export function WorkersTable() {
 								</TableCell>
 							</TableRow>
 						) : (
-							workers.map((worker) => (
-								<TableRow
-									key={worker.id}
-									className="group h-[72px] cursor-pointer hover:bg-muted/40"
-								>
-									<TableCell className="w-[50px] pl-6">
-										<div
-											className={cn(
-												"h-2.5 w-2.5 rounded-full shadow-sm",
-												!worker.lastHeartbeat &&
-													"bg-gray-400 shadow-gray-400/20",
-												worker.lastHeartbeat &&
-													worker.active &&
-													"bg-emerald-500 shadow-emerald-500/20",
-												worker.lastHeartbeat &&
-													!worker.active &&
-													"bg-red-500 shadow-red-500/20",
-											)}
-										/>
-									</TableCell>
-									<TableCell>
-										<div className="grid gap-1">
-											<span className="flex items-center gap-2 font-semibold leading-none transition-colors group-hover:text-primary">
-												{worker.name}
-												<span className="ml-2 rounded border px-1 font-normal text-muted-foreground text-xs">
-													{worker.version}
+							workers.map((worker) => {
+								const status = getWorkerAvailabilityStatus({
+									active: worker.active,
+									lastHeartbeat: worker.lastHeartbeat,
+									now: currentTime,
+								});
+								const statusMeta = workerStatusMeta[status];
+
+								return (
+									<TableRow
+										key={worker.id}
+										className="group h-[72px] cursor-pointer hover:bg-muted/40"
+									>
+										<TableCell className="w-[50px] pl-6">
+											<div
+												className={cn(
+													"h-2.5 w-2.5 rounded-full shadow-sm",
+													statusMeta.dotClassName,
+												)}
+											/>
+										</TableCell>
+										<TableCell>
+											<div className="grid gap-1">
+												<span className="flex items-center gap-2 font-semibold leading-none transition-colors group-hover:text-primary">
+													{worker.name}
+													<span className="ml-2 rounded border px-1 font-normal text-muted-foreground text-xs">
+														{worker.version}
+													</span>
 												</span>
-											</span>
-											<div className="flex items-center gap-1.5 font-medium text-muted-foreground text-xs">
-												<span
-													className={cn(
-														!worker.lastHeartbeat && "text-gray-500",
-														worker.lastHeartbeat &&
-															worker.active &&
-															"text-emerald-500",
-														worker.lastHeartbeat &&
-															!worker.active &&
-															"text-red-500",
-													)}
-												>
-													{!worker.lastHeartbeat
-														? "Unknown"
-														: worker.active
-															? "Online"
-															: "Offline"}
-												</span>
-												<span>·</span>
-												<span className="flex items-center gap-1.5 align-middle">
-													{(() => {
-														const regionInfo = getRegionInfo(worker.location);
-														const Flag = regionInfo.Flag;
-														return (
-															<>
-																<Flag className="h-3 w-4 rounded-sm object-cover" />
-																<span>{regionInfo.label}</span>
-															</>
-														);
-													})()}
-												</span>
-												<span>·</span>
-												<span>
-													Last seen{" "}
-													{worker.lastHeartbeat
-														? formatDistanceToNow(
-																new Date(worker.lastHeartbeat),
-																{
-																	addSuffix: true,
-																},
-															)
-														: "Never"}
-												</span>
+												<div className="flex items-center gap-1.5 font-medium text-muted-foreground text-xs">
+													<span className={statusMeta.textClassName}>
+														{statusMeta.label}
+													</span>
+													<span>·</span>
+													<span className="flex items-center gap-1.5 align-middle">
+														{(() => {
+															const regionInfo = getRegionInfo(worker.location);
+															const Flag = regionInfo.Flag;
+															return (
+																<>
+																	<Flag className="h-3 w-4 rounded-sm object-cover" />
+																	<span>{regionInfo.label}</span>
+																</>
+															);
+														})()}
+													</span>
+													<span>·</span>
+													<span>
+														Last seen{" "}
+														{worker.lastHeartbeat
+															? formatDistanceToNow(
+																	new Date(worker.lastHeartbeat),
+																	{
+																		addSuffix: true,
+																	},
+																)
+															: "Never"}
+													</span>
+												</div>
 											</div>
-										</div>
-									</TableCell>
-									<TableCell className="w-[200px] text-right font-medium text-muted-foreground text-sm" />
-									<TableCell className="w-[50px] pr-4">
-										<DropdownMenu>
-											<DropdownMenuTrigger
-												render={
-													<Button
-														variant="ghost"
-														size="icon"
-														className="h-8 w-8 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100"
-													/>
-												}
-											>
-												<MoreHorizontal className="h-4 w-4" />
-												<span className="sr-only">Open menu</span>
-											</DropdownMenuTrigger>
-											<DropdownMenuContent align="end">
-												<DropdownMenuItem
-													render={<Link href={`/admin/workers/${worker.id}`} />}
-												>
-													Edit worker
-												</DropdownMenuItem>
-												<DropdownMenuItem>Rotate Token</DropdownMenuItem>
-												<DropdownMenuItem
-													className="text-red-500"
-													onClick={() =>
-														handleDeleteClick(worker.id, worker.name)
+										</TableCell>
+										<TableCell className="w-[200px] text-right font-medium text-muted-foreground text-sm" />
+										<TableCell className="w-[50px] pr-4">
+											<DropdownMenu>
+												<DropdownMenuTrigger
+													render={
+														<Button
+															variant="ghost"
+															size="icon"
+															className="h-8 w-8 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100"
+														/>
 													}
 												>
-													Delete
-												</DropdownMenuItem>
-											</DropdownMenuContent>
-										</DropdownMenu>
-									</TableCell>
-								</TableRow>
-							))
+													<MoreHorizontal className="h-4 w-4" />
+													<span className="sr-only">Open menu</span>
+												</DropdownMenuTrigger>
+												<DropdownMenuContent align="end">
+													<DropdownMenuItem
+														render={
+															<Link href={`/admin/workers/${worker.id}`} />
+														}
+													>
+														Edit worker
+													</DropdownMenuItem>
+													<DropdownMenuItem>Rotate Token</DropdownMenuItem>
+													<DropdownMenuItem
+														className="text-red-500"
+														variant="destructive"
+														onClick={() =>
+															handleDeleteClick(worker.id, worker.name)
+														}
+													>
+														Delete
+													</DropdownMenuItem>
+												</DropdownMenuContent>
+											</DropdownMenu>
+										</TableCell>
+									</TableRow>
+								);
+							})
 						)}
 					</TableBody>
 				</Table>
@@ -388,11 +414,7 @@ export function WorkersTable() {
 					</AlertDialogHeader>
 					<AlertDialogFooter>
 						<AlertDialogCancel>Cancel</AlertDialogCancel>
-						<Button
-							type="button"
-							onClick={confirmDelete}
-							className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-						>
+						<Button type="button" variant="destructive" onClick={confirmDelete}>
 							Delete Worker
 						</Button>
 					</AlertDialogFooter>

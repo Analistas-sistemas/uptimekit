@@ -1,9 +1,13 @@
+import {
+	getWorkerHeartbeatThreshold,
+	isWorkerHeartbeatFresh,
+} from "@uptimekit/api/lib/worker-status";
 import { db } from "@uptimekit/db";
 import { organization, user } from "@uptimekit/db/schema/auth";
 import { monitor } from "@uptimekit/db/schema/monitors";
 import { worker } from "@uptimekit/db/schema/workers";
 import { formatDistanceToNow } from "date-fns";
-import { and, count, eq, isNull, or, sql } from "drizzle-orm";
+import { and, count, eq, isNull, lt, or } from "drizzle-orm";
 import { Activity, BarChart3, Shield, Users } from "lucide-react";
 import Image from "next/image";
 import WorkersMap from "@/components/admin/workers-map";
@@ -14,15 +18,13 @@ import { getFlag, getRegionInfo } from "@/lib/regions";
 // Disable prerendering - this page needs database access at runtime
 export const dynamic = "force-dynamic";
 
-const HEARTBEAT_TIMEOUT_MS = 5 * 60 * 1000;
-
 async function getStats() {
 	const [userCount] = await db.select({ count: count() }).from(user);
 	const [orgCount] = await db.select({ count: count() }).from(organization);
 	const [monitorCount] = await db.select({ count: count() }).from(monitor);
 	const [workerCount] = await db.select({ count: count() }).from(worker);
 
-	const heartbeatThreshold = new Date(Date.now() - HEARTBEAT_TIMEOUT_MS);
+	const heartbeatThreshold = getWorkerHeartbeatThreshold();
 	const [unreachableWorkerCount] = await db
 		.select({ count: count() })
 		.from(worker)
@@ -31,7 +33,7 @@ async function getStats() {
 				eq(worker.active, true),
 				or(
 					isNull(worker.lastHeartbeat),
-					sql`${worker.lastHeartbeat} < ${heartbeatThreshold.toISOString()}`,
+					lt(worker.lastHeartbeat, heartbeatThreshold),
 				),
 			),
 		);
@@ -67,9 +69,7 @@ function getWorkerStatus(active: boolean, lastHeartbeat: Date | null) {
 		};
 	}
 
-	const heartbeatTime = lastHeartbeat ? new Date(lastHeartbeat).getTime() : 0;
-	const isOnline = Date.now() - heartbeatTime <= HEARTBEAT_TIMEOUT_MS;
-	if (isOnline) {
+	if (isWorkerHeartbeatFresh(lastHeartbeat)) {
 		return {
 			dotClassName: "bg-green-500",
 			label: "Online",

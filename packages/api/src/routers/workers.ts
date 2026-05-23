@@ -6,17 +6,20 @@ import {
 	and,
 	desc,
 	eq,
+	gte,
 	type InferSelectModel,
 	ilike,
 	inArray,
 	isNotNull,
 	isNull,
+	lt,
 	or,
 	sql,
 } from "drizzle-orm";
 import { z } from "zod";
 import { protectedProcedure } from "../index";
 import { createLogger } from "../lib/logger";
+import { getWorkerHeartbeatThreshold } from "../lib/worker-status";
 import { hashApiKey, invalidateApiKeyCache } from "../pkg/worker/auth";
 
 const logger = createLogger("API");
@@ -80,13 +83,25 @@ export const workersRouter = {
 			}
 
 			if (input?.status) {
+				const heartbeatThreshold = getWorkerHeartbeatThreshold();
+
 				if (input.status === "online") {
 					filters.push(
-						and(eq(worker.active, true), isNotNull(worker.lastHeartbeat)),
+						and(
+							eq(worker.active, true),
+							isNotNull(worker.lastHeartbeat),
+							gte(worker.lastHeartbeat, heartbeatThreshold),
+						),
 					);
 				} else if (input.status === "offline") {
 					filters.push(
-						and(eq(worker.active, false), isNotNull(worker.lastHeartbeat)),
+						and(
+							isNotNull(worker.lastHeartbeat),
+							or(
+								eq(worker.active, false),
+								lt(worker.lastHeartbeat, heartbeatThreshold),
+							),
+						),
 					);
 				} else if (input.status === "unknown") {
 					filters.push(isNull(worker.lastHeartbeat));
