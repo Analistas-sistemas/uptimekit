@@ -5,12 +5,14 @@ interface MonitorGroupsProps {
 	monitorGroups: GroupedMonitors[];
 	layout?: "vertical" | "horizontal";
 	barStyle?: "normal" | "length" | "signal";
+	toFixed?: number;
 }
 
 export function MonitorGroups({
 	monitorGroups,
 	layout = "vertical",
 	barStyle = "normal",
+	toFixed = 2,
 }: MonitorGroupsProps) {
 	const isGrid = layout === "horizontal";
 
@@ -42,6 +44,7 @@ export function MonitorGroups({
 								history={monitor.history}
 								displayStyle={monitor.displayStyle}
 								description={monitor.description}
+								toFixed={toFixed}
 								barStyle={barStyle}
 								variant={isGrid ? "card" : "list"}
 								className={isGrid ? "rounded-lg border p-4" : undefined}

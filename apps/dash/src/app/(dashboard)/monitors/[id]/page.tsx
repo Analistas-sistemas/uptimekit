@@ -3,13 +3,13 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { formatDistanceToNow } from "date-fns";
 import {
-	AlertTriangle,
-	ArrowLeft,
-	CheckCircle2,
-	Clock,
-	Globe,
-	HelpCircle,
-	XCircle,
+  AlertTriangle,
+  ArrowLeft,
+  CheckCircle2,
+  Clock,
+  Globe,
+  HelpCircle,
+  XCircle,
 } from "lucide-react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
@@ -19,13 +19,13 @@ import { AvailabilityTable } from "@/components/monitors/availability-table";
 import { MonitorCards } from "@/components/monitors/monitor-cards";
 import { ResponseTimeChart } from "@/components/monitors/response-time-chart";
 import {
-	AlertDialog,
-	AlertDialogCancel,
-	AlertDialogContent,
-	AlertDialogDescription,
-	AlertDialogFooter,
-	AlertDialogHeader,
-	AlertDialogTitle,
+  AlertDialog,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -34,318 +34,264 @@ import { cn } from "@/lib/utils";
 import { client, orpc } from "@/utils/orpc";
 
 function getPauseDescription(pauseReason?: string | null) {
-	switch (pauseReason) {
-		case "org_active_monitor_limit":
-			return "Paused automatically after the organization active monitor limit was lowered.";
-		case "org_region_limit":
-			return "Paused automatically after the organization region limit was lowered.";
-		case "worker_deleted":
-			return "Paused automatically because all assigned workers were removed.";
-		default:
-			return "Paused";
-	}
+  switch (pauseReason) {
+    case "org_active_monitor_limit":
+      return "Paused automatically after the organization active monitor limit was lowered.";
+    case "org_region_limit":
+      return "Paused automatically after the organization region limit was lowered.";
+    case "worker_deleted":
+      return "Paused automatically because all assigned workers were removed.";
+    default:
+      return "Paused";
+  }
 }
 
 export default function MonitorDetailsPage() {
-	const queryClient = useQueryClient();
-	const params = useParams();
-	const id = params.id as string;
-	const [nukeDialogOpen, setNukeDialogOpen] = useState(false);
+  const queryClient = useQueryClient();
+  const params = useParams();
+  const id = params.id as string;
 
-	const { data: monitor, isLoading: loadingMonitor } = useQuery(
-		orpc.monitors.get.queryOptions({ input: { id } }),
-	);
+  const { data: monitor, isLoading: loadingMonitor } = useQuery(
+    orpc.monitors.get.queryOptions({ input: { id } }),
+  );
 
-	const { data: availability, isLoading: loadingAvailability } = useQuery(
-		orpc.monitors.getAvailability.queryOptions({ input: { monitorId: id } }),
-	);
+  const { data: availability, isLoading: loadingAvailability } = useQuery(
+    orpc.monitors.getAvailability.queryOptions({ input: { monitorId: id } }),
+  );
 
-	const { mutate: toggleMonitor, isPending: isToggling } = useMutation({
-		mutationFn: ({ id, active }: { id: string; active: boolean }) =>
-			client.monitors.toggle({ id, active }),
-		onSuccess: () => {
-			sileo.success({ title: "Monitor updated" });
-			queryClient.invalidateQueries({
-				queryKey: orpc.monitors.get.key({ input: { id } }),
-			});
-			queryClient.invalidateQueries({ queryKey: orpc.monitors.list.key() });
-		},
-		onError: () => sileo.error({ title: "Failed to update monitor" }),
-	});
+  const { mutate: toggleMonitor, isPending: isToggling } = useMutation({
+    mutationFn: ({ id, active }: { id: string; active: boolean }) =>
+      client.monitors.toggle({ id, active }),
+    onSuccess: () => {
+      sileo.success({ title: "Monitor updated" });
+      queryClient.invalidateQueries({
+        queryKey: orpc.monitors.get.key({ input: { id } }),
+      });
+      queryClient.invalidateQueries({ queryKey: orpc.monitors.list.key() });
+    },
+    onError: () => sileo.error({ title: "Failed to update monitor" }),
+  });
 
-	const { mutate: nukeMonitor, isPending: isNuking } = useMutation({
-		mutationFn: (monitorId: string) => client.monitors.nuke({ monitorId }),
-		onSuccess: () => {
-			setNukeDialogOpen(false);
-			sileo.success({ title: "Monitor history deletion scheduled" });
-			queryClient.invalidateQueries({
-				queryKey: orpc.monitors.get.key({ input: { id } }),
-			});
-			queryClient.invalidateQueries({
-				queryKey: orpc.monitors.getAvailability.key({
-					input: { monitorId: id },
-				}),
-			});
-			queryClient.invalidateQueries({
-				queryKey: orpc.monitors.getResponseTimes.key(),
-			});
-			queryClient.invalidateQueries({ queryKey: orpc.monitors.list.key() });
-			queryClient.invalidateQueries({ queryKey: orpc.incidents.list.key() });
-		},
-		onError: () => sileo.error({ title: "Failed to nuke monitor data" }),
-	});
+  if (loadingMonitor) {
+    return <MonitorSkeleton />;
+  }
 
-	if (loadingMonitor) {
-		return <MonitorSkeleton />;
-	}
+  if (!monitor) {
+    return (
+      <div className="flex flex-col items-center justify-center py-10">
+        <h2 className="font-bold text-xl">Monitor not found</h2>
+        <Button
+          className="mt-4"
+          render={<Link href="/monitors">Go back to monitors</Link>}
+        />
+      </div>
+    );
+  }
 
-	if (!monitor) {
-		return (
-			<div className="flex flex-col items-center justify-center py-10">
-				<h2 className="font-bold text-xl">Monitor not found</h2>
-				<Button
-					className="mt-4"
-					render={<Link href="/monitors">Go back to monitors</Link>}
-				/>
-			</div>
-		);
-	}
+  const getStatusIcon = (status: string) => {
+    switch (status) {
+      case "up":
+        return <CheckCircle2 className="h-5 w-5 text-emerald-500" />;
+      case "down":
+        return <XCircle className="h-5 w-5 text-red-500" />;
+      case "degraded":
+        return <AlertTriangle className="h-5 w-5 text-amber-500" />;
+      case "maintenance":
+        return <Clock className="h-5 w-5 text-blue-500" />;
+      case "pending":
+        return <HelpCircle className="h-5 w-5 text-zinc-500" />;
+      default:
+        return <HelpCircle className="h-5 w-5 text-muted-foreground" />;
+    }
+  };
 
-	const getStatusIcon = (status: string) => {
-		switch (status) {
-			case "up":
-				return <CheckCircle2 className="h-5 w-5 text-emerald-500" />;
-			case "down":
-				return <XCircle className="h-5 w-5 text-red-500" />;
-			case "degraded":
-				return <AlertTriangle className="h-5 w-5 text-amber-500" />;
-			case "maintenance":
-				return <Clock className="h-5 w-5 text-blue-500" />;
-			case "pending":
-				return <HelpCircle className="h-5 w-5 text-zinc-500" />;
-			default:
-				return <HelpCircle className="h-5 w-5 text-muted-foreground" />;
-		}
-	};
+  const getStatusText = (status: string) => {
+    switch (status) {
+      case "up":
+        return "Operational";
+      case "down":
+        return "Downtime";
+      case "degraded":
+        return "Degraded";
+      case "maintenance":
+        return "Maintenance";
+      case "pending":
+        return "Pending";
+      default:
+        return "Unknown";
+    }
+  };
 
-	const getStatusText = (status: string) => {
-		switch (status) {
-			case "up":
-				return "Operational";
-			case "down":
-				return "Downtime";
-			case "degraded":
-				return "Degraded";
-			case "maintenance":
-				return "Maintenance";
-			case "pending":
-				return "Pending";
-			default:
-				return "Unknown";
-		}
-	};
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case "up":
+        return "bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500/20";
+      case "down":
+        return "bg-red-500/10 text-red-500 hover:bg-red-500/20";
+      case "degraded":
+        return "bg-amber-500/10 text-amber-500 hover:bg-amber-500/20";
+      case "maintenance":
+        return "bg-blue-500/10 text-blue-500 hover:bg-blue-500/20";
+      default:
+        return "bg-zinc-500/10 text-zinc-500 hover:bg-zinc-500/20";
+    }
+  };
 
-	const getStatusColor = (status: string) => {
-		switch (status) {
-			case "up":
-				return "bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500/20";
-			case "down":
-				return "bg-red-500/10 text-red-500 hover:bg-red-500/20";
-			case "degraded":
-				return "bg-amber-500/10 text-amber-500 hover:bg-amber-500/20";
-			case "maintenance":
-				return "bg-blue-500/10 text-blue-500 hover:bg-blue-500/20";
-			default:
-				return "bg-zinc-500/10 text-zinc-500 hover:bg-zinc-500/20";
-		}
-	};
+  // Calculate current status duration
+  let currentStatusDuration = "-";
+  if (monitor) {
+    if (monitor.status === "up") {
+      const neverDown = availability?.all?.incidentCount === 0;
+      if (neverDown && monitor.createdAt) {
+        currentStatusDuration = formatDistanceToNow(
+          new Date(monitor.createdAt),
+        );
+      } else if (monitor.lastStatusChange) {
+        currentStatusDuration = formatDistanceToNow(
+          new Date(monitor.lastStatusChange),
+        );
+      } else if (monitor.createdAt) {
+        // Fallback to createdAt if no changes
+        currentStatusDuration = formatDistanceToNow(
+          new Date(monitor.createdAt),
+        );
+      }
+    } else if (monitor.lastStatusChange) {
+      currentStatusDuration = formatDistanceToNow(
+        new Date(monitor.lastStatusChange),
+      );
+    }
+  }
 
-	// Calculate current status duration
-	// Calculate current status duration
-	let currentStatusDuration = "-";
-	if (monitor) {
-		if (monitor.status === "up") {
-			const neverDown = availability?.all?.incidentCount === 0;
-			if (neverDown && monitor.createdAt) {
-				currentStatusDuration = formatDistanceToNow(
-					new Date(monitor.createdAt),
-				);
-			} else if (monitor.lastStatusChange) {
-				currentStatusDuration = formatDistanceToNow(
-					new Date(monitor.lastStatusChange),
-				);
-			} else if (monitor.createdAt) {
-				// Fallback to createdAt if no changes
-				currentStatusDuration = formatDistanceToNow(
-					new Date(monitor.createdAt),
-				);
-			}
-		} else if (monitor.lastStatusChange) {
-			currentStatusDuration = formatDistanceToNow(
-				new Date(monitor.lastStatusChange),
-			);
-		}
-	}
+  // Get display target based on monitor type
+  const getMonitorTarget = () => {
+    const config = monitor.config as Record<string, any>;
+    switch (monitor.type) {
+      case "tcp":
+        return `${config.hostname}:${config.port}`;
+      case "dns":
+        return `${config.recordType || "A"} ${config.hostname}`;
+      case "ping":
+        return config.hostname;
+      default:
+        return config.url;
+    }
+  };
 
-	// Get display target based on monitor type
-	const getMonitorTarget = () => {
-		const config = monitor.config as Record<string, any>;
-		switch (monitor.type) {
-			case "tcp":
-				return `${config.hostname}:${config.port}`;
-			case "dns":
-				return `${config.recordType || "A"} ${config.hostname}`;
-			case "ping":
-				return config.hostname;
-			default:
-				return config.url;
-		}
-	};
+  return (
+    <div className="flex flex-col gap-6 p-6">
+      {/* Header */}
+      <div className="flex items-center gap-4">
+        <Button
+          variant="ghost"
+          size="icon"
+          render={
+            <Link href="/monitors">
+              <ArrowLeft className="h-4 w-4" />
+            </Link>
+          }
+        />
+        <div className="flex flex-col gap-1">
+          <div className="flex items-center gap-3">
+            <h1 className="font-bold text-2xl tracking-tight">
+              {monitor.name}
+            </h1>
+            {!monitor.active && (
+              <Badge variant="outline" className="text-zinc-500">
+                {monitor.pauseReason ? "Paused by quota" : "Paused"}
+              </Badge>
+            )}
+            <Badge
+              variant="secondary"
+              className={cn(
+                getStatusColor(monitor.status as string),
+                !monitor.active && "opacity-50",
+              )}
+            >
+              {getStatusIcon(monitor.status as string)}
+              <span className="ml-1.5 capitalize">
+                {getStatusText(monitor.status as string)}
+              </span>
+            </Badge>
+          </div>
+          <div className="flex items-center gap-2 text-muted-foreground text-sm">
+            <Globe className="h-3.5 w-3.5" />
+            <span className="font-mono">{getMonitorTarget()}</span>
+            <span className="select-none">·</span>
+            <Clock className="h-3.5 w-3.5" />
+            <span className="select-none">
+              Checked every {monitor.interval}s
+            </span>
+          </div>
+          {!monitor.active && monitor.pauseReason && (
+            <p className="text-amber-600 text-sm dark:text-amber-400">
+              {getPauseDescription(monitor.pauseReason)}
+            </p>
+          )}
+        </div>
+        <div className="ml-auto flex items-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            render={<Link href={`/monitors/${id}/edit`}>Edit</Link>}
+          />
+          <Button
+            variant={monitor.active ? "destructive" : "default"}
+            size="sm"
+            onClick={() =>
+              toggleMonitor({ id: monitor.id, active: !monitor.active })
+            }
+            disabled={isToggling}
+          >
+            {monitor.active ? "Pause" : "Resume"}
+          </Button>
+        </div>
+      </div>
 
-	return (
-		<div className="flex flex-col gap-6 p-6">
-			{/* Header */}
-			<div className="flex items-center gap-4">
-				<Button
-					variant="ghost"
-					size="icon"
-					render={
-						<Link href="/monitors">
-							<ArrowLeft className="h-4 w-4" />
-						</Link>
-					}
-				/>
-				<div className="flex flex-col gap-1">
-					<div className="flex items-center gap-3">
-						<h1 className="font-bold text-2xl tracking-tight">
-							{monitor.name}
-						</h1>
-						{!monitor.active && (
-							<Badge variant="outline" className="text-zinc-500">
-								{monitor.pauseReason ? "Paused by quota" : "Paused"}
-							</Badge>
-						)}
-						<Badge
-							variant="secondary"
-							className={cn(
-								getStatusColor(monitor.status as string),
-								!monitor.active && "opacity-50",
-							)}
-						>
-							{getStatusIcon(monitor.status as string)}
-							<span className="ml-1.5 capitalize">
-								{getStatusText(monitor.status as string)}
-							</span>
-						</Badge>
-					</div>
-					<div className="flex items-center gap-2 text-muted-foreground text-sm">
-						<Globe className="h-3.5 w-3.5" />
-						<span className="font-mono">{getMonitorTarget()}</span>
-						<span className="select-none">·</span>
-						<Clock className="h-3.5 w-3.5" />
-						<span className="select-none">
-							Checked every {monitor.interval}s
-						</span>
-					</div>
-					{!monitor.active && monitor.pauseReason && (
-						<p className="text-amber-600 text-sm dark:text-amber-400">
-							{getPauseDescription(monitor.pauseReason)}
-						</p>
-					)}
-				</div>
-				<div className="ml-auto flex items-center gap-2">
-					<Button
-						variant="outline"
-						size="sm"
-						render={<Link href={`/monitors/${id}/edit`}>Edit</Link>}
-					/>
-					<Button
-						variant="destructive-outline"
-						size="sm"
-						onClick={() => setNukeDialogOpen(true)}
-						disabled={isNuking}
-					>
-						Nuke data
-					</Button>
-					<Button
-						variant={monitor.active ? "destructive" : "default"}
-						size="sm"
-						onClick={() =>
-							toggleMonitor({ id: monitor.id, active: !monitor.active })
-						}
-						disabled={isToggling}
-					>
-						{monitor.active ? "Pause" : "Resume"}
-					</Button>
-				</div>
-			</div>
+      {/* Monitor Cards */}
+      <MonitorCards
+        status={monitor.status}
+        lastCheck={monitor.lastCheck}
+        currentStatusDuration={currentStatusDuration}
+        incidentCount={availability?.today?.incidentCount || 0}
+      />
 
-			<AlertDialog open={nukeDialogOpen} onOpenChange={setNukeDialogOpen}>
-				<AlertDialogContent>
-					<AlertDialogHeader>
-						<AlertDialogTitle>Nuke monitor data?</AlertDialogTitle>
-						<AlertDialogDescription>
-							This will remove historical check data and every incident linked
-							to this monitor. The monitor itself will stay in place.
-						</AlertDialogDescription>
-					</AlertDialogHeader>
-					<AlertDialogFooter>
-						<AlertDialogCancel disabled={isNuking}>Cancel</AlertDialogCancel>
-						<Button
-							variant="destructive"
-							loading={isNuking}
-							onClick={() => nukeMonitor(monitor.id)}
-						>
-							Nuke data
-						</Button>
-					</AlertDialogFooter>
-				</AlertDialogContent>
-			</AlertDialog>
+      {/* Response Time Chart */}
+      <ResponseTimeChart
+        monitorId={id}
+        workerIds={(monitor.workerIds as string[]) || []}
+        monitorType={monitor.type}
+        workers={monitor.workers || []}
+      />
 
-			{/* Monitor Cards */}
-			<MonitorCards
-				status={monitor.status}
-				lastCheck={monitor.lastCheck}
-				currentStatusDuration={currentStatusDuration}
-				incidentCount={availability?.today?.incidentCount || 0}
-			/>
-
-			{/* Response Time Chart */}
-			<ResponseTimeChart
-				monitorId={id}
-				workerIds={(monitor.workerIds as string[]) || []}
-				monitorType={monitor.type}
-				workers={monitor.workers || []}
-			/>
-
-			{/* Availability Stats Table */}
-			<div className="space-y-4">
-				<AvailabilityTable
-					data={availability}
-					isLoading={loadingAvailability}
-				/>
-			</div>
-		</div>
-	);
+      {/* Availability Stats Table */}
+      <div className="space-y-4">
+        <AvailabilityTable
+          data={availability}
+          isLoading={loadingAvailability}
+        />
+      </div>
+    </div>
+  );
 }
 
 function MonitorSkeleton() {
-	return (
-		<div className="flex flex-col gap-6 p-6">
-			<div className="flex items-center gap-4">
-				<Skeleton className="h-10 w-10" />
-				<div className="flex flex-col gap-2">
-					<Skeleton className="h-8 w-48" />
-					<Skeleton className="h-4 w-32" />
-				</div>
-				<div className="ml-auto">
-					<Skeleton className="h-10 w-48" />
-				</div>
-			</div>
-			<div className="grid gap-6 md:grid-cols-2">
-				<Skeleton className="h-32" />
-				<Skeleton className="h-32 md:col-span-2" />
-			</div>
-		</div>
-	);
+  return (
+    <div className="flex flex-col gap-6 p-6">
+      <div className="flex items-center gap-4">
+        <Skeleton className="h-10 w-10" />
+        <div className="flex flex-col gap-2">
+          <Skeleton className="h-8 w-48" />
+          <Skeleton className="h-4 w-32" />
+        </div>
+        <div className="ml-auto">
+          <Skeleton className="h-10 w-48" />
+        </div>
+      </div>
+      <div className="grid gap-6 md:grid-cols-2">
+        <Skeleton className="h-32" />
+        <Skeleton className="h-32 md:col-span-2" />
+      </div>
+    </div>
+  );
 }

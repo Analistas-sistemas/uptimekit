@@ -15,16 +15,19 @@ interface MonitorGroupsProps {
 	monitorGroups: GroupedMonitors[];
 	layout?: "vertical" | "horizontal";
 	barStyle?: "normal" | "length" | "signal";
+	toFixed?: number;
 }
 
 function MonitorCard({
 	monitor,
 	defaultExpanded,
 	barStyle,
+	toFixed,
 }: {
 	monitor: Monitor;
 	defaultExpanded: boolean;
 	barStyle: "normal" | "length" | "signal";
+	toFixed: number;
 }) {
 	const [isExpanded, setIsExpanded] = useState(defaultExpanded);
 
@@ -70,7 +73,7 @@ function MonitorCard({
 							) : null}
 						</div>
 						<div className="shrink-0 font-medium text-[13px] text-muted-foreground">
-							{monitor.avgUptime.toFixed(2)}% uptime
+							{monitor.avgUptime.toFixed(toFixed)}% uptime
 						</div>
 					</div>
 				</div>
@@ -91,7 +94,11 @@ function MonitorCard({
 					)}
 				>
 					<div className="px-4 py-4 sm:px-5 sm:py-5">
-						<UptimeBar days={monitor.history} style={barStyle} />
+						<UptimeBar
+							days={monitor.history}
+							style={barStyle}
+							toFixed={toFixed}
+						/>
 						{monitor.displayStyle === "status" ? (
 							<div className="mt-4 text-[13px] text-muted-foreground">
 								Current state: {monitor.currentStatus.replaceAll("_", " ")}
@@ -108,6 +115,7 @@ export function MonitorGroups({
 	monitorGroups,
 	layout = "vertical",
 	barStyle = "normal",
+	toFixed = 2,
 }: MonitorGroupsProps) {
 	const isGrid = layout === "horizontal";
 
@@ -134,6 +142,7 @@ export function MonitorGroups({
 								monitor={monitor}
 								defaultExpanded={groupIndex === 0 && monitorIndex === 0}
 								barStyle={barStyle}
+								toFixed={toFixed}
 							/>
 						))}
 					</div>

@@ -32,6 +32,7 @@ export interface StatusPageDesign {
 	headerLayout?: "vertical" | "horizontal";
 	barStyle?: "normal" | "length" | "signal";
 	barDays?: 30 | 60 | 90;
+	percentDigits?: number;
 }
 
 export interface MonitorGroup {

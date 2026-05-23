@@ -7,7 +7,10 @@ services:
       - .env
     environment:
       - DATABASE_URL=postgresql://postgres:postgres@db:5432/uptimekit
-      - TIMESERIES_BACKEND=${TIMESERIES_BACKEND:-timescaledb}
+      - TIMESERIES_BACKEND=${TIMESERIES_BACKEND:-clickhouse}
+      - CLICKHOUSE_URL=http://clickhouse:8123
+      - CLICKHOUSE_USER=default
+      - CLICKHOUSE_PASSWORD=clickhouse
       - REDIS_URL=redis://redis:6379
     depends_on:
       db:
@@ -34,7 +37,10 @@ services:
       - .env
     environment:
       - DATABASE_URL=postgresql://postgres:postgres@db:5432/uptimekit
-      - TIMESERIES_BACKEND=${TIMESERIES_BACKEND:-timescaledb}
+      - TIMESERIES_BACKEND=${TIMESERIES_BACKEND:-clickhouse}
+      - CLICKHOUSE_URL=http://clickhouse:8123
+      - CLICKHOUSE_USER=default
+      - CLICKHOUSE_PASSWORD=clickhouse
       - REDIS_URL=redis://redis:6379
     depends_on:
       db:
@@ -46,7 +52,7 @@ services:
     restart: always
 
   db:
-    image: timescale/timescaledb:latest-pg18
+    image: postgres:18-alpine
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
@@ -67,6 +73,25 @@ services:
       - redis_data:/data
     restart: always
 
+  # Only needed when TIMESERIES_BACKEND=clickhouse (the default).
+  # Comment out this whole block if you switch to TimescaleDB.
+  clickhouse:
+    image: clickhouse/clickhouse-server:latest
+    volumes:
+      - clickhouse_data:/var/lib/clickhouse
+    environment:
+      CLICKHOUSE_DB: uptimekit
+      CLICKHOUSE_USER: default
+      CLICKHOUSE_PASSWORD: clickhouse
+      CLICKHOUSE_DEFAULT_ACCESS_MANAGEMENT: 1
+    user: "root"
+    ulimits:
+      nofile:
+        soft: 262144
+        hard: 262144
+    restart: always
+
 volumes:
   db_data:
+  clickhouse_data:
   redis_data:

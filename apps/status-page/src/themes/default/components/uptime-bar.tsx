@@ -92,6 +92,7 @@ interface UptimeBarProps {
 	days: UptimeDay[];
 	className?: string;
 	style?: "normal" | "length" | "signal";
+	toFixed?: number;
 }
 
 interface UptimeSegment {
@@ -202,7 +203,7 @@ function calculateSegments(day: UptimeDay): BarSegments {
 	return segments;
 }
 
-function SegmentTooltip({ day }: { day: UptimeDay }) {
+function SegmentTooltip({ day, toFixed }: { day: UptimeDay; toFixed: number }) {
 	const segs = calculateSegments(day);
 
 	return (
@@ -211,7 +212,7 @@ function SegmentTooltip({ day }: { day: UptimeDay }) {
 				<div className="flex items-center gap-2 text-xs">
 					<div className="h-2 w-2 rounded-full bg-green-500" />
 					<span className="text-muted-foreground">
-						{segs.uptime.toFixed(0)}% uptime
+						{segs.uptime.toFixed(toFixed)}% uptime
 					</span>
 				</div>
 			)}
@@ -219,7 +220,7 @@ function SegmentTooltip({ day }: { day: UptimeDay }) {
 				<div className="flex items-center gap-2 text-xs">
 					<div className="h-2 w-2 rounded-full bg-yellow-500" />
 					<span className="text-muted-foreground">
-						{segs.minor.toFixed(0)}% minor issues
+						{segs.minor.toFixed(toFixed)}% minor issues
 					</span>
 				</div>
 			)}
@@ -227,7 +228,7 @@ function SegmentTooltip({ day }: { day: UptimeDay }) {
 				<div className="flex items-center gap-2 text-xs">
 					<div className="h-2 w-2 rounded-full bg-orange-500" />
 					<span className="text-muted-foreground">
-						{segs.major.toFixed(0)}% major outage
+						{segs.major.toFixed(toFixed)}% major outage
 					</span>
 				</div>
 			)}
@@ -235,7 +236,7 @@ function SegmentTooltip({ day }: { day: UptimeDay }) {
 				<div className="flex items-center gap-2 text-xs">
 					<div className="h-2 w-2 rounded-full bg-red-500" />
 					<span className="text-muted-foreground">
-						{segs.critical.toFixed(0)}% critical outage
+						{segs.critical.toFixed(toFixed)}% critical outage
 					</span>
 				</div>
 			)}
@@ -310,6 +311,7 @@ export function UptimeBar({
 	days,
 	className,
 	style = "normal",
+	toFixed = 2,
 }: UptimeBarProps) {
 	const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
 	const segments = buildSegments(days);
@@ -350,6 +352,7 @@ export function UptimeBar({
 							}}
 						>
 							{days.map((day, index) => (
+								// biome-ignore lint/a11y/noStaticElementInteractions: hover-only tooltip target
 								<div
 									key={day.date}
 									className="relative h-full"
@@ -430,7 +433,9 @@ export function UptimeBar({
 												<div className="mt-1 text-muted-foreground text-xs">
 													{formatTooltipDate(day.date)}
 												</div>
-												{style === "length" && <SegmentTooltip day={day} />}
+												{style === "length" && (
+													<SegmentTooltip day={day} toFixed={toFixed} />
+												)}
 												{day.duration ? (
 													<div className="mt-1 text-muted-foreground text-xs">
 														Duration: {day.duration}

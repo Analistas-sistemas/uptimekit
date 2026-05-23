@@ -37,6 +37,7 @@ export default function DefaultTheme({ data }: ThemePageProps) {
 						monitorGroups={monitorGroups}
 						layout={design.headerLayout}
 						barStyle={design.barStyle}
+						toFixed={design.percentDigits}
 					/>
 					<ActiveIssuesSection activeIssues={activeIssues} />
 

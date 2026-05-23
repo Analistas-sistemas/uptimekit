@@ -27,5 +27,7 @@ export function createTimeSeriesDriver(
 			return new ClickHouseDriver();
 		case "timescale":
 			return new TimescaleDriver();
+		default:
+			return new TimescaleDriver();
 	}
 }

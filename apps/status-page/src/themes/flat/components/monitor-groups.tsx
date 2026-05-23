@@ -11,6 +11,7 @@ interface MonitorGroupsProps {
 	monitorGroups: GroupedMonitors[];
 	layout?: "vertical" | "horizontal";
 	barStyle?: "normal" | "length" | "signal";
+	toFixed?: number;
 }
 
 import { calculateAggregateStatus } from "@/lib/status-utils";
@@ -41,11 +42,13 @@ const MonitorGroupItem = memo(
 		isDefaultExpanded,
 		isGrid,
 		barStyle,
+		toFixed,
 	}: {
 		group: GroupedMonitors;
 		isDefaultExpanded: boolean;
 		isGrid: boolean;
 		barStyle: "normal" | "length" | "signal";
+		toFixed: number;
 	}) => {
 		const isUngrouped = !group.group;
 		const [isExpanded, setIsExpanded] = useState(
@@ -120,6 +123,7 @@ const MonitorGroupItem = memo(
 									displayStyle={monitor.displayStyle}
 									description={monitor.description}
 									barStyle={barStyle}
+									toFixed={toFixed}
 									variant={isGrid ? "card" : "list"}
 									className={isGrid ? "rounded-lg border p-3" : undefined}
 								/>
@@ -138,6 +142,7 @@ export function MonitorGroups({
 	monitorGroups,
 	layout = "vertical",
 	barStyle = "normal",
+	toFixed = 2,
 }: MonitorGroupsProps) {
 	const isGrid = layout === "horizontal";
 
@@ -150,6 +155,7 @@ export function MonitorGroups({
 					isDefaultExpanded={index === 0}
 					isGrid={isGrid}
 					barStyle={barStyle}
+					toFixed={toFixed}
 				/>
 			))}
 		</section>
