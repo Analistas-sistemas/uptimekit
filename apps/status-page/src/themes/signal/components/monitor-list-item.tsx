@@ -19,6 +19,7 @@ interface MonitorListItemProps {
 	description?: string | null;
 	className?: string;
 	barStyle?: "normal" | "length" | "signal";
+	toFixed?: number;
 }
 
 export function MonitorListItem({
@@ -30,6 +31,7 @@ export function MonitorListItem({
 	description,
 	className,
 	barStyle = "normal",
+	toFixed = 2,
 }: MonitorListItemProps) {
 	return (
 		<div className={cn("space-y-3", className)}>
@@ -74,13 +76,13 @@ export function MonitorListItem({
 					>
 						{displayStyle === "status"
 							? statusConfig[status].label
-							: `${uptimePercentage.toFixed(2)}% uptime`}
+							: `${uptimePercentage.toFixed(toFixed)}% uptime`}
 					</div>
 				</div>
 			</div>
 
 			{displayStyle === "history" ? (
-				<UptimeBar days={history} style={barStyle} />
+				<UptimeBar days={history} style={barStyle} toFixed={toFixed} />
 			) : (
 				<div className="text-[13px] text-muted-foreground">
 					Current state: {statusConfig[status].label}

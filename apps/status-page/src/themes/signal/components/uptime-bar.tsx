@@ -10,6 +10,7 @@ interface UptimeBarProps {
 	days: UptimeDay[];
 	className?: string;
 	style?: "normal" | "length" | "signal";
+	toFixed?: number;
 }
 
 interface UptimeSegment {
@@ -215,6 +216,7 @@ export function UptimeBar({
 	days,
 	className,
 	style = "normal",
+	toFixed = 2,
 }: UptimeBarProps) {
 	const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
 	const segments = buildSegments(days);
@@ -386,30 +388,36 @@ export function UptimeBar({
 										{hoveredSegments &&
 										hoveredSegments.uptime > 0 &&
 										hoveredSegments.uptime < 100 ? (
-											<div>{hoveredSegments.uptime.toFixed(0)}% uptime</div>
+											<div>
+												{hoveredSegments.uptime.toFixed(toFixed)}% uptime
+											</div>
 										) : null}
 										{hoveredSegments && hoveredSegments.minor > 0 ? (
 											<div>
-												{hoveredSegments.minor.toFixed(0)}% minor issues
+												{hoveredSegments.minor.toFixed(toFixed)}% minor issues
 											</div>
 										) : null}
 										{hoveredSegments && hoveredSegments.major > 0 ? (
 											<div>
-												{hoveredSegments.major.toFixed(0)}% major outage
+												{hoveredSegments.major.toFixed(toFixed)}% major outage
 											</div>
 										) : null}
 										{hoveredSegments && hoveredSegments.critical > 0 ? (
 											<div>
-												{hoveredSegments.critical.toFixed(0)}% critical outage
+												{hoveredSegments.critical.toFixed(toFixed)}% critical
+												outage
 											</div>
 										) : null}
 										{hoveredSegments && hoveredSegments.maintenance > 0 ? (
 											<div>
-												{hoveredSegments.maintenance.toFixed(0)}% maintenance
+												{hoveredSegments.maintenance.toFixed(toFixed)}%
+												maintenance
 											</div>
 										) : null}
 										{hoveredSegments && hoveredSegments.unknown > 0 ? (
-											<div>{hoveredSegments.unknown.toFixed(0)}% unknown</div>
+											<div>
+												{hoveredSegments.unknown.toFixed(toFixed)}% unknown
+											</div>
 										) : null}
 									</div>
 								</div>

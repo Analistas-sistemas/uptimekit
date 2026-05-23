@@ -18,6 +18,7 @@ interface MonitorListItemProps {
 	displayStyle?: "history" | "status";
 	className?: string;
 	description?: string | null;
+	toFixed?: number;
 	barStyle?: "normal" | "length" | "signal";
 	variant?: "list" | "card";
 }
@@ -30,6 +31,7 @@ export function MonitorListItem({
 	displayStyle = "history",
 	className,
 	description,
+	toFixed = 2,
 	barStyle = "normal",
 	variant = "list",
 }: MonitorListItemProps) {
@@ -95,11 +97,11 @@ export function MonitorListItem({
 					)}
 				</div>
 				<div className={cn("font-medium text-sm", statusConfig[status].color)}>
-					{uptimePercentage.toFixed(2)}% uptime
+					{uptimePercentage.toFixed(toFixed)}% uptime
 				</div>
 			</div>
 
-			<UptimeBar days={history} style={barStyle} />
+			<UptimeBar days={history} style={barStyle} toFixed={toFixed} />
 		</div>
 	);
 }

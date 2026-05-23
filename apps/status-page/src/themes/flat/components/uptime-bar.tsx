@@ -71,6 +71,7 @@ interface UptimeBarProps {
 	days: UptimeDay[];
 	className?: string;
 	style?: "normal" | "length" | "signal";
+	toFixed?: number;
 }
 
 interface UptimeSegment {
@@ -181,7 +182,7 @@ function calculateSegments(day: UptimeDay): BarSegments {
 	return segments;
 }
 
-function SegmentTooltip({ day }: { day: UptimeDay }) {
+function SegmentTooltip({ day, toFixed }: { day: UptimeDay; toFixed: number }) {
 	const segs = calculateSegments(day);
 
 	return (
@@ -190,7 +191,7 @@ function SegmentTooltip({ day }: { day: UptimeDay }) {
 				<div className="flex items-center gap-1.5 text-[10px]">
 					<div className="h-1.5 w-1.5 rounded-full bg-green-500" />
 					<span className="text-muted-foreground">
-						{segs.uptime.toFixed(0)}% uptime
+						{segs.uptime.toFixed(toFixed)}% uptime
 					</span>
 				</div>
 			)}
@@ -198,7 +199,7 @@ function SegmentTooltip({ day }: { day: UptimeDay }) {
 				<div className="flex items-center gap-1.5 text-[10px]">
 					<div className="h-1.5 w-1.5 rounded-full bg-yellow-500" />
 					<span className="text-muted-foreground">
-						{segs.minor.toFixed(0)}% minor issues
+						{segs.minor.toFixed(toFixed)}% minor issues
 					</span>
 				</div>
 			)}
@@ -206,7 +207,7 @@ function SegmentTooltip({ day }: { day: UptimeDay }) {
 				<div className="flex items-center gap-1.5 text-[10px]">
 					<div className="h-1.5 w-1.5 rounded-full bg-orange-500" />
 					<span className="text-muted-foreground">
-						{segs.major.toFixed(0)}% major outage
+						{segs.major.toFixed(toFixed)}% major outage
 					</span>
 				</div>
 			)}
@@ -214,7 +215,7 @@ function SegmentTooltip({ day }: { day: UptimeDay }) {
 				<div className="flex items-center gap-1.5 text-[10px]">
 					<div className="h-1.5 w-1.5 rounded-full bg-red-500" />
 					<span className="text-muted-foreground">
-						{segs.critical.toFixed(0)}% critical outage
+						{segs.critical.toFixed(toFixed)}% critical outage
 					</span>
 				</div>
 			)}
@@ -283,6 +284,7 @@ export function UptimeBar({
 	days,
 	className,
 	style = "normal",
+	toFixed = 2,
 }: UptimeBarProps) {
 	const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
 	const segments = buildSegments(days);
@@ -377,77 +379,77 @@ export function UptimeBar({
 					</div>
 				</>
 			) : (
-				<>
-					<div className="flex h-9 w-full gap-px">
-						{days.map((day, index) => (
-							<>
-								{/* biome-ignore lint/a11y/noStaticElementInteractions: hover-only tooltip target */}
-								<div
-									key={day.date}
-									className="group relative flex-1"
-									onMouseEnter={() => setHoveredIndex(index)}
-									onMouseLeave={() => setHoveredIndex(null)}
-								>
-									{style === "length" ? (
-										<div
-											className={cn(
-												"h-full w-full transition-opacity hover:opacity-80",
-												index === 0 && "rounded-l-md",
-												index === days.length - 1 && "rounded-r-md",
-											)}
-										>
-											<StackedBar segments={calculateSegments(day)} />
-										</div>
-									) : (
-										<div
-											className={cn(
-												"h-full w-full transition-opacity hover:opacity-80",
-												statusColors[day.status],
-												index === 0 && "rounded-l-md",
-												index === days.length - 1 && "rounded-r-md",
-											)}
-										/>
-									)}
+				<div className="flex h-9 w-full gap-px">
+					{days.map((day, index) => (
+						<>
+							{/* biome-ignore lint/a11y/noStaticElementInteractions: hover-only tooltip target */}
+							<div
+								key={day.date}
+								className="group relative flex-1"
+								onMouseEnter={() => setHoveredIndex(index)}
+								onMouseLeave={() => setHoveredIndex(null)}
+							>
+								{style === "length" ? (
+									<div
+										className={cn(
+											"h-full w-full transition-opacity hover:opacity-80",
+											index === 0 && "rounded-l-md",
+											index === days.length - 1 && "rounded-r-md",
+										)}
+									>
+										<StackedBar segments={calculateSegments(day)} />
+									</div>
+								) : (
+									<div
+										className={cn(
+											"h-full w-full transition-opacity hover:opacity-80",
+											statusColors[day.status],
+											index === 0 && "rounded-l-md",
+											index === days.length - 1 && "rounded-r-md",
+										)}
+									/>
+								)}
 
-									{hoveredIndex === index && (
-										<div className="absolute bottom-full left-1/2 z-20 mb-2 -translate-x-1/2 whitespace-nowrap">
-											<div className="fade-in zoom-in-95 relative animate-in rounded-lg border border-border bg-popover px-2.5 py-1.5 shadow-lg duration-200">
-												<div className="font-semibold text-popover-foreground text-xs">
-													{day.annotation || statusConfig[day.status].label}
-												</div>
-												<div className="text-[10px] text-muted-foreground">
-													{new Date(day.date).toLocaleDateString("en-US", {
-														month: "short",
-														day: "numeric",
-														timeZone: "UTC",
-														hour12: false,
-													})}{" "}
-													UTC
-												</div>
-												{style === "length" && <SegmentTooltip day={day} />}
-												{day.duration ? (
-													<div className="text-[10px] text-muted-foreground">
-														{day.duration}
-													</div>
-												) : (
-													day.status !== "unknown" &&
-													day.downtimeMs !== undefined &&
-													day.downtimeMs > 0 && (
-														<div className="text-[10px] text-muted-foreground">
-															{formatDowntime(day.downtimeMs)}
-														</div>
-													)
-												)}
-
-												<div className="absolute top-full left-1/2 -ml-2 h-0 w-0 border-8 border-transparent border-t-popover" />
+								{hoveredIndex === index && (
+									<div className="absolute bottom-full left-1/2 z-20 mb-2 -translate-x-1/2 whitespace-nowrap">
+										<div className="fade-in zoom-in-95 relative animate-in rounded-lg border border-border bg-popover px-2.5 py-1.5 shadow-lg duration-200">
+											<div className="font-semibold text-popover-foreground text-xs">
+												{day.annotation || statusConfig[day.status].label}
 											</div>
+											<div className="text-[10px] text-muted-foreground">
+												{new Date(day.date).toLocaleDateString("en-US", {
+													month: "short",
+													day: "numeric",
+													timeZone: "UTC",
+													hour12: false,
+												})}{" "}
+												UTC
+											</div>
+											{style === "length" && (
+												<SegmentTooltip day={day} toFixed={toFixed} />
+											)}
+											{day.duration ? (
+												<div className="text-[10px] text-muted-foreground">
+													{day.duration}
+												</div>
+											) : (
+												day.status !== "unknown" &&
+												day.downtimeMs !== undefined &&
+												day.downtimeMs > 0 && (
+													<div className="text-[10px] text-muted-foreground">
+														{formatDowntime(day.downtimeMs)}
+													</div>
+												)
+											)}
+
+											<div className="absolute top-full left-1/2 -ml-2 h-0 w-0 border-8 border-transparent border-t-popover" />
 										</div>
-									)}
-								</div>
-							</>
-						))}
-					</div>
-				</>
+									</div>
+								)}
+							</div>
+						</>
+					))}
+				</div>
 			)}
 
 			{style !== "signal" ? (
