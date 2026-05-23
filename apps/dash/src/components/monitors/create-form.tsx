@@ -837,6 +837,11 @@ export function CreateMonitorForm({
 	};
 
 	const handleDiscard = () => {
+		if (!monitorId) {
+			router.push("/monitors");
+			return;
+		}
+
 		form.reset(getFormValuesFromInitialData());
 	};
 
