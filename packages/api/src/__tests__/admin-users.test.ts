@@ -1,5 +1,8 @@
 import { describe, expect, it } from "bun:test";
-import { getAdminUserActionError, isInstanceAdminRole } from "./admin-users";
+import {
+	getAdminUserActionError,
+	isInstanceAdminRole,
+} from "../lib/admin-users";
 
 describe("admin user safeguards", () => {
 	it("detects comma-separated admin roles", () => {
