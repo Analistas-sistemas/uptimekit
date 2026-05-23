@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { CreateIncidentForm } from "@/components/incidents/create-form";
 
 export default function NewIncidentPage() {
@@ -9,7 +10,15 @@ export default function NewIncidentPage() {
 					Manually report a new incident to keep your users informed.
 				</p>
 			</div>
-			<CreateIncidentForm />
+			<Suspense
+				fallback={
+					<div className="flex flex-1 items-center justify-center py-12 text-muted-foreground">
+						Loading incident form...
+					</div>
+				}
+			>
+				<CreateIncidentForm />
+			</Suspense>
 		</div>
 	);
 }
