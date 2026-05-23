@@ -771,12 +771,10 @@ export const monitorsRouter = {
 				throw new ORPCError("NOT_FOUND");
 			}
 
-			const latestEvent = await timeseries.getLatestEventForMonitor(
-				found.monitor.id,
-			);
-			const latestChange = await timeseries.getLatestChangeForMonitor(
-				found.monitor.id,
-			);
+			const [latestEvent, latestChange] = await Promise.all([
+				timeseries.getLatestEventForMonitor(found.monitor.id),
+				timeseries.getLatestChangeForMonitor(found.monitor.id),
+			]);
 
 			// Fetch tags for this monitor
 			const monitorTags = await db
