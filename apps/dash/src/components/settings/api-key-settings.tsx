@@ -43,7 +43,7 @@ import {
 } from "@/components/ui/table";
 import { authClient } from "@/lib/auth-client";
 
-type ApiKeyRecord = {
+interface ApiKeyRecord {
 	id: string;
 	name: string | null;
 	start: string | null;
@@ -53,7 +53,7 @@ type ApiKeyRecord = {
 	lastRequest: Date | string | null;
 	expiresAt: Date | string | null;
 	createdAt: Date | string;
-};
+}
 
 type CreatedApiKey = ApiKeyRecord & {
 	key: string;

@@ -1,9 +1,9 @@
 import { GroupsManager } from "@/components/monitors/groups-manager";
 import { Card, CardContent } from "@/components/ui/card";
 
-type GroupSettingsProps = {
+interface GroupSettingsProps {
 	readOnly?: boolean;
-};
+}
 
 /**
  * Render a responsive settings view for creating and organizing monitor groups.

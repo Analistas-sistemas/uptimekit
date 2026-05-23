@@ -32,7 +32,7 @@ export function getApiKeyFromHeaders(headers: Headers | null | undefined) {
 	return token.trim() || null;
 }
 
-export type UptimeKitAuthSession = {
+export interface UptimeKitAuthSession {
 	session: {
 		id: string;
 		token: string;
@@ -59,7 +59,7 @@ export type UptimeKitAuthSession = {
 		banExpires?: Date | null;
 		twoFactorEnabled?: boolean | null;
 	};
-};
+}
 
 function createSlugFromEmail(email: string): string {
 	const prefix = email.split("@")[0] || "user";

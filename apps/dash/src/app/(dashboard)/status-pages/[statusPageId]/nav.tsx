@@ -5,11 +5,11 @@ import { usePathname, useRouter } from "next/navigation";
 import { Tabs, TabsList, TabsTab } from "@/components/ui/tabs";
 import { orpc } from "@/utils/orpc";
 
-type NavItem = {
+interface NavItem {
 	title: string;
 	href: string;
 	disabled?: boolean;
-};
+}
 
 const items: NavItem[] = [
 	{

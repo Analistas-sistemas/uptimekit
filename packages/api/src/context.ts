@@ -6,9 +6,9 @@ import {
 } from "@uptimekit/auth";
 import type { NextRequest } from "next/server";
 
-type ContextHeaders = {
+export interface ContextHeaders {
 	get(name: string): string | null;
-};
+}
 
 type ApiKeyContext =
 	| {
@@ -22,17 +22,17 @@ type ApiKeyContext =
 			organizationId: null;
 	  };
 
-export type Context = {
+export interface Context {
 	apiKey: ApiKeyContext | null;
 	authType: "anonymous" | "apiKey" | "session";
 	headers: ContextHeaders;
 	session: UptimeKitAuthSession | null;
-};
+}
 
-type VerifiedApiKey = {
+interface VerifiedApiKey {
 	id: string;
 	referenceId: string;
-};
+}
 
 function createApiKeySession(
 	apiKey: VerifiedApiKey,

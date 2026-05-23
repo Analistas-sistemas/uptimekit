@@ -11,10 +11,10 @@ interface SubscribeFormProps {
 	mode?: "card" | "compact";
 }
 
-type SubscribeState = {
+interface SubscribeState {
 	error: string;
 	success: string;
-};
+}
 
 const variantStyles = {
 	default: {

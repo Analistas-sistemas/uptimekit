@@ -81,16 +81,16 @@ const INCIDENT_TYPE_FILTERS = ["manual", "automatic"] as const;
 
 type BulkIncidentAction = "acknowledge" | "resolve" | "delete";
 
-type BulkIncidentActionFailure = {
+interface BulkIncidentActionFailure {
 	id: string;
 	message: string;
-};
+}
 
-type BulkIncidentActionResult = {
+interface BulkIncidentActionResult {
 	succeededIds: string[];
 	failedIds: string[];
 	failedIncidents: BulkIncidentActionFailure[];
-};
+}
 
 function formatIncidentCount(count: number) {
 	return `${count} incident${count === 1 ? "" : "s"}`;

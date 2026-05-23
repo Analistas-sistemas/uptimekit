@@ -1,11 +1,11 @@
 import nodemailer from "nodemailer";
 
-type SubscriberEmailInput = {
+interface SubscriberEmailInput {
 	to: string;
 	subject: string;
 	text: string;
 	html?: string;
-};
+}
 
 function getEmailProvider() {
 	return (process.env.EMAIL_PROVIDER || "").trim().toLowerCase();

@@ -20,10 +20,10 @@ interface WorkerRecord {
 	monitorCount: number;
 }
 
-type Coordinates = {
+interface Coordinates {
 	lat: number;
 	lng: number;
-};
+}
 
 const DEFAULT_COORDINATES: Coordinates = { lat: 20, lng: 0 };
 

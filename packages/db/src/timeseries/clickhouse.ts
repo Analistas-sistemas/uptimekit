@@ -16,13 +16,13 @@ import type {
 	WorkerStatus,
 } from "./types";
 
-type BootstrapQuery = {
+interface BootstrapQuery {
 	query: string;
 	optionalTable?: {
 		database: string;
 		table: string;
 	};
-};
+}
 
 const BOOTSTRAP_QUERIES: BootstrapQuery[] = [
 	{ query: "CREATE DATABASE IF NOT EXISTS uptimekit" },

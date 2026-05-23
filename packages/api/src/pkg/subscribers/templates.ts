@@ -1,11 +1,11 @@
-type SubscriberEmailTemplateInput = {
+interface SubscriberEmailTemplateInput {
 	eventLabel: string;
 	statusPageName: string;
 	incidentTitle: string;
 	severity: string;
 	description: string;
 	incidentUrl: string;
-};
+}
 
 function escapeHtml(value: string) {
 	return value

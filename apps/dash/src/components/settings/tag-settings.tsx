@@ -1,9 +1,9 @@
 import { TagsManager } from "@/components/monitors/tags-manager";
 import { Card, CardContent } from "@/components/ui/card";
 
-type TagSettingsProps = {
+interface TagSettingsProps {
 	readOnly?: boolean;
-};
+}
 
 /**
  * Render a responsive settings section for creating and managing tags.

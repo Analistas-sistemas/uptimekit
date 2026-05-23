@@ -82,10 +82,10 @@ function useResolvedTheme(themeProp?: "light" | "dark"): Theme {
 	return themeProp ?? detectedTheme;
 }
 
-type MapContextValue = {
+interface MapContextValue {
 	map: MapLibreGL.Map | null;
 	isLoaded: boolean;
-};
+}
 
 const MapContext = createContext<MapContextValue | null>(null);
 
@@ -98,7 +98,7 @@ function useMap() {
 }
 
 /** Map viewport state */
-type MapViewport = {
+interface MapViewport {
 	/** Center coordinates [longitude, latitude] */
 	center: [number, number];
 	/** Zoom level */
@@ -107,7 +107,7 @@ type MapViewport = {
 	bearing: number;
 	/** Pitch (tilt) in degrees */
 	pitch: number;
-};
+}
 
 type MapStyleOption = string | MapLibreGL.StyleSpecification;
 
@@ -335,10 +335,10 @@ const MapRoot = forwardRef<MapRef, MapProps>(function MapRoot(
 	);
 });
 
-type MarkerContextValue = {
+interface MarkerContextValue {
 	marker: MapLibreGL.Marker;
 	map: MapLibreGL.Map | null;
-};
+}
 
 const MarkerContext = createContext<MarkerContextValue | null>(null);
 
@@ -494,12 +494,12 @@ function MapMarker({
 	);
 }
 
-type MarkerContentProps = {
+interface MarkerContentProps {
 	/** Custom marker content. Defaults to a blue dot if not provided */
 	children?: ReactNode;
 	/** Additional CSS classes for the marker container */
 	className?: string;
-};
+}
 
 function MarkerContent({ children, className }: MarkerContentProps) {
 	const { marker } = useMarkerContext();
@@ -671,14 +671,14 @@ function MarkerTooltip({
 	);
 }
 
-type MarkerLabelProps = {
+interface MarkerLabelProps {
 	/** Label text content */
 	children: ReactNode;
 	/** Additional CSS classes for the label */
 	className?: string;
 	/** Position of the label relative to the marker (default: "top") */
 	position?: "top" | "bottom";
-};
+}
 
 function MarkerLabel({
 	children,
@@ -704,7 +704,7 @@ function MarkerLabel({
 	);
 }
 
-type MapControlsProps = {
+interface MapControlsProps {
 	/** Position of the controls on the map (default: "bottom-right") */
 	position?: "top-left" | "top-right" | "bottom-left" | "bottom-right";
 	/** Show zoom in/out buttons (default: true) */
@@ -719,7 +719,7 @@ type MapControlsProps = {
 	className?: string;
 	/** Callback with user coordinates when located */
 	onLocate?: (coords: { longitude: number; latitude: number }) => void;
-};
+}
 
 const positionClasses = {
 	"top-left": "top-2 left-2",
@@ -1024,7 +1024,7 @@ function MapPopup({
 	);
 }
 
-type MapRouteProps = {
+interface MapRouteProps {
 	/** Optional unique identifier for the route layer */
 	id?: string;
 	/** Array of [longitude, latitude] coordinate pairs defining the route */
@@ -1045,7 +1045,7 @@ type MapRouteProps = {
 	onMouseLeave?: () => void;
 	/** Whether the route is interactive - shows pointer cursor on hover (default: true) */
 	interactive?: boolean;
-};
+}
 
 function MapRoute({
 	id: propId,
@@ -1165,9 +1165,9 @@ function MapRoute({
 	return null;
 }
 
-type MapClusterLayerProps<
+interface MapClusterLayerProps<
 	P extends GeoJSON.GeoJsonProperties = GeoJSON.GeoJsonProperties,
-> = {
+> {
 	/** GeoJSON FeatureCollection data or URL to fetch GeoJSON from */
 	data: string | GeoJSON.FeatureCollection<GeoJSON.Point, P>;
 	/** Maximum zoom level to cluster points on (default: 14) */
@@ -1191,7 +1191,7 @@ type MapClusterLayerProps<
 		coordinates: [number, number],
 		pointCount: number,
 	) => void;
-};
+}
 
 function MapClusterLayer<
 	P extends GeoJSON.GeoJsonProperties = GeoJSON.GeoJsonProperties,

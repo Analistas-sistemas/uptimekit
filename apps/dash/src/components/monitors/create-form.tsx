@@ -176,19 +176,19 @@ const monitorConfigSchema = z.discriminatedUnion("type", [
 const formSchema = z.intersection(baseSchema, monitorConfigSchema);
 
 type FormValues = z.infer<typeof formSchema>;
-type ActiveWorkerOption = {
+interface ActiveWorkerOption {
 	id: string;
 	name: string;
 	location: string;
-};
+}
 
-type ConfiguredNotification = {
+interface ConfiguredNotification {
 	id: string;
 	name: string;
 	type: string;
 	active: boolean;
 	isDefault: boolean;
-};
+}
 
 const heartbeatPeriodOptions = [
 	{ label: "1 minute", value: "60" },
@@ -214,7 +214,7 @@ const recoveryPeriodOptions = [
 ] as const;
 
 // Registry for UI components and metadata
-type MonitorTypeDefinition = {
+interface MonitorTypeDefinition {
 	id: FormValues["type"];
 	label: string;
 	description: string;
@@ -222,7 +222,7 @@ type MonitorTypeDefinition = {
 	group: "Network & web" | "Infrastructure";
 	// Component to render specific fields
 	Fields: React.ComponentType<{ form: UseFormReturn<FormValues> }>;
-};
+}
 
 // Reusable field components
 const UrlField = ({ form }: { form: UseFormReturn<FormValues> }) => (

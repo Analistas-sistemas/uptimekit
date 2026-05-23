@@ -24,18 +24,18 @@ import {
 } from "@/components/ui/table";
 import { orpc } from "@/utils/orpc";
 
-type Subscriber = {
+interface Subscriber {
 	email: string;
 	slackWebhookUrl?: string | null;
 	discordWebhookUrl?: string | null;
 	statusPageId: string;
 	createdAt: Date | string | null;
-};
+}
 
-type SubscribersResponse = {
+interface SubscribersResponse {
 	items: Subscriber[];
 	total: number;
-};
+}
 
 export function SubscribersTable({ statusPageId }: { statusPageId: string }) {
 	const [search, setSearch] = useState("");
