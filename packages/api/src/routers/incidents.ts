@@ -140,6 +140,8 @@ export const incidentsRouter = {
 				q: z.string().optional(),
 				severity: z.enum(["minor", "major", "critical"]).optional(),
 				type: z.enum(["manual", "automatic"]).optional(),
+				monitorId: z.string().optional(),
+				statusPageId: z.string().optional(),
 			}),
 		)
 		.handler(async ({ input, context }) => {
@@ -166,6 +168,30 @@ export const incidentsRouter = {
 
 			if (input.type) {
 				filters.push(eq(incident.type, input.type));
+			}
+
+			if (input.monitorId) {
+				filters.push(
+					inArray(
+						incident.id,
+						db
+							.select({ incidentId: incidentMonitor.incidentId })
+							.from(incidentMonitor)
+							.where(eq(incidentMonitor.monitorId, input.monitorId)),
+					),
+				);
+			}
+
+			if (input.statusPageId) {
+				filters.push(
+					inArray(
+						incident.id,
+						db
+							.select({ incidentId: incidentStatusPage.incidentId })
+							.from(incidentStatusPage)
+							.where(eq(incidentStatusPage.statusPageId, input.statusPageId)),
+					),
+				);
 			}
 
 			const [total, items] = await Promise.all([

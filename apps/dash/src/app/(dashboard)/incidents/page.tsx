@@ -1,14 +1,9 @@
-"use client";
+import { IncidentsTable } from "@/components/incidents/table";
 
-import { useRouter } from "next/navigation";
-import { useEffect } from "react";
-
-export default function IncidentsPage() {
-	const router = useRouter();
-
-	useEffect(() => {
-		router.push("/");
-	}, [router]);
-
-	return <div className="container mx-auto py-6">How did you got there</div>;
+export default async function IncidentsPage() {
+	return (
+		<div className="flex flex-1 flex-col pb-8">
+			<IncidentsTable />
+		</div>
+	);
 }
