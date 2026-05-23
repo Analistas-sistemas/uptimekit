@@ -38,6 +38,7 @@ export default function SignalTheme({ data }: ThemePageProps) {
 						monitorGroups={monitorGroups}
 						layout={design.headerLayout}
 						barStyle={design.barStyle}
+						toFixed={design.percentDigits}
 					/>
 					<ScheduledMaintenanceSection
 						scheduledMaintenances={scheduledMaintenances}

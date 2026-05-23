@@ -70,12 +70,18 @@ function getBarDays(design: any): 30 | 60 | 90 {
 	return 90;
 }
 
+function getPercentDigits(design: any): number {
+	const digits = Number(design?.percentDigits);
+	return Number.isInteger(digits) && digits >= 2 && digits <= 6 ? digits : 2;
+}
+
 export async function prepareStatusPageData(
 	pageConfig: any,
 	routeSlug?: string,
 ): Promise<StatusPageData> {
 	const design = (pageConfig.design as any) || {};
 	const barDays = getBarDays(design);
+	const percentDigits = getPercentDigits(design);
 
 	const [activeReports, activeMaintenances, scheduledMaintenances] =
 		await Promise.all([
@@ -380,6 +386,7 @@ export async function prepareStatusPageData(
 				headerLayout: design.headerLayout || "vertical",
 				barStyle: design.barStyle || "normal",
 				barDays,
+				percentDigits,
 			},
 		},
 		overallStatus: worstStatus,

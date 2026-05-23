@@ -10,6 +10,7 @@ interface MonitorCardProps {
 	uptime: number;
 	responseTime?: number;
 	url?: string;
+	toFixed?: number;
 	className?: string;
 	uptimeHistory?: UptimeDay[];
 }
@@ -20,6 +21,7 @@ export function MonitorCard({
 	uptime,
 	responseTime,
 	url,
+	toFixed = 2,
 	className,
 	uptimeHistory,
 }: MonitorCardProps) {
@@ -62,7 +64,7 @@ export function MonitorCard({
 				</div>
 				<div className="text-right">
 					<div className="font-medium text-card-foreground text-sm">
-						{uptime.toFixed(2)}%
+						{uptime.toFixed(toFixed)}%
 					</div>
 					{responseTime && (
 						<div className="text-muted-foreground text-xs">
@@ -73,7 +75,7 @@ export function MonitorCard({
 			</div>
 
 			{hasUptimeHistory ? (
-				<UptimeBar days={uptimeData} />
+				<UptimeBar days={uptimeData} toFixed={toFixed} />
 			) : (
 				<div className="rounded-lg border border-border/80 border-dashed bg-muted/30 px-3 py-4 text-center text-muted-foreground text-sm">
 					Uptime history unavailable

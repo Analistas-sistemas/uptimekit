@@ -60,6 +60,7 @@ const settingsSchema = z.object({
   headerLayout: z.enum(["vertical", "horizontal"]),
   barStyle: z.enum(["normal", "length", "signal"]),
   barDays: z.enum(["30", "60", "90"]),
+  percentDigits: z.number().int().min(2).max(6),
   customDomain: z.string().optional().or(z.literal("")),
   isPrivate: z.boolean(),
   password: z
@@ -113,6 +114,7 @@ export function SettingsForm({ statusPageId }: SettingsFormProps) {
       headerLayout: "vertical",
       barStyle: "normal",
       barDays: "90",
+      percentDigits: 2,
       customDomain: "",
       isPrivate: false,
       password: "",
@@ -139,6 +141,7 @@ export function SettingsForm({ statusPageId }: SettingsFormProps) {
           ? design.barStyle
           : "normal",
       barDays: String(design.barDays || 90) as "30" | "60" | "90",
+      percentDigits: Number(design.percentDigits ?? 2),
       customDomain: statusPage?.domain || "",
       isPrivate: statusPage ? !statusPage.public : false,
       password: "",
@@ -179,6 +182,7 @@ export function SettingsForm({ statusPageId }: SettingsFormProps) {
         headerLayout: data.headerLayout,
         barStyle: data.barStyle,
         barDays: Number(data.barDays) as 30 | 60 | 90,
+        percentDigits: data.percentDigits,
       },
     });
   };
@@ -223,6 +227,14 @@ export function SettingsForm({ statusPageId }: SettingsFormProps) {
     { value: "90", label: "90 days" },
     { value: "60", label: "60 days" },
     { value: "30", label: "30 days" },
+  ];
+
+  const percentDigitsOptions = [
+    { value: "2", label: "100.00%" },
+    { value: "3", label: "100.000%" },
+    { value: "4", label: "100.0000%" },
+    { value: "5", label: "100.00000%" },
+    { value: "6", label: "100.000000%" },
   ];
 
   const visibilityOptions = [
@@ -535,6 +547,45 @@ export function SettingsForm({ statusPageId }: SettingsFormProps) {
                       <FormDescription className="pt-2">
                         Choose how many days of uptime history to show in the
                         status bars
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="percentDigits"
+                  render={({ field }) => (
+                    <FormItem className="flex h-full flex-col">
+                      <FormLabel className="flex h-6 items-end pb-1">
+                        Uptime percentage precision
+                      </FormLabel>
+                      <Select
+                        onValueChange={(value) => field.onChange(Number(value))}
+                        value={String(field.value ?? 2)}
+                        items={percentDigitsOptions}
+                      >
+                        <SelectTrigger>
+                          <SelectValue>
+                            {
+                              percentDigitsOptions.find(
+                                (option) =>
+                                  option.value === String(field.value ?? 2),
+                              )?.label
+                            }
+                          </SelectValue>
+                        </SelectTrigger>
+                        <SelectPopup>
+                          {percentDigitsOptions.map(({ label, value }) => (
+                            <SelectItem key={value} value={value}>
+                              {label}
+                            </SelectItem>
+                          ))}
+                        </SelectPopup>
+                      </Select>
+                      <FormDescription className="pt-2">
+                        Choose how many decimal places to show for uptime
+                        percentages
                       </FormDescription>
                       <FormMessage />
                     </FormItem>

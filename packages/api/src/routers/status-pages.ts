@@ -200,6 +200,7 @@ export const statusPagesRouter = {
 						barDays: z
 							.union([z.literal(30), z.literal(60), z.literal(90)])
 							.optional(),
+						percentDigits: z.number().optional().default(2),
 						faviconUrl: z.string().optional(),
 					})
 					.optional(),

@@ -19,6 +19,7 @@ import {
 	ShieldAlert,
 } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
 	parseAsBoolean,
 	parseAsInteger,
@@ -119,6 +120,7 @@ function getPauseLabel(pauseReason?: string | null) {
  * @returns The React element for the monitors management UI.
  */
 export function MonitorsTable() {
+	const router = useRouter();
 	const [searchOpen, setSearchOpen] = useState(false);
 	const [groupsOpen, setGroupsOpen] = useState(false);
 	const [tagsOpen, setTagsOpen] = useState(false);
@@ -733,9 +735,10 @@ export function MonitorsTable() {
 												<TableRow
 													key={monitor.id}
 													className={cn(
-														"group h-[72px] hover:bg-muted/40",
+														"group h-[72px] cursor-pointer hover:bg-muted/40",
 														!monitor.active && "opacity-50 grayscale",
 													)}
+													onClick={() => router.push(`/monitors/${monitor.id}`)}
 												>
 													<TableCell className="w-[50px] pl-6">
 														<div
@@ -755,62 +758,56 @@ export function MonitorsTable() {
 														/>
 													</TableCell>
 													<TableCell>
-														<Link
-															href={`/monitors/${monitor.id}`}
-															className="block h-full w-full"
-														>
-															<div className="grid gap-1">
-																<span className="flex items-center gap-2 font-semibold leading-none transition-colors group-hover:text-primary">
-																	{monitor.name}
-																	{!monitor.active && (
-																		<span className="rounded-full bg-muted px-2 py-0.5 font-medium text-[10px] text-muted-foreground">
-																			{getPauseLabel(monitor.pauseReason)}
-																		</span>
+														<div className="grid gap-1">
+															<span className="flex items-center gap-2 font-semibold leading-none transition-colors group-hover:text-primary">
+																{monitor.name}
+																{!monitor.active && (
+																	<span className="rounded-full bg-muted px-2 py-0.5 font-medium text-[10px] text-muted-foreground">
+																		{getPauseLabel(monitor.pauseReason)}
+																	</span>
+																)}
+																{monitor.tags && monitor.tags.length > 0 && (
+																	<div className="flex items-center gap-1">
+																		{monitor.tags.map((tag) => (
+																			<span
+																				key={tag.id}
+																				className="inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 font-medium text-[10px]"
+																				style={{
+																					backgroundColor: `${tag.color}20`,
+																					color: tag.color,
+																				}}
+																			>
+																				{tag.name}
+																			</span>
+																		))}
+																	</div>
+																)}
+															</span>
+															<div className="flex items-center gap-1.5 font-medium text-muted-foreground text-xs">
+																<span
+																	className={cn(
+																		monitor.status === "up" &&
+																			"text-emerald-500",
+																		monitor.status === "down" && "text-red-500",
+																		monitor.status === "degraded" &&
+																			"text-amber-500",
+																		monitor.status === "maintenance" &&
+																			"text-blue-500",
+																		monitor.status === "pending" &&
+																			"text-zinc-500",
 																	)}
-																	{monitor.tags && monitor.tags.length > 0 && (
-																		<div className="flex items-center gap-1">
-																			{monitor.tags.map((tag) => (
-																				<span
-																					key={tag.id}
-																					className="inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 font-medium text-[10px]"
-																					style={{
-																						backgroundColor: `${tag.color}20`,
-																						color: tag.color,
-																					}}
-																				>
-																					{tag.name}
-																				</span>
-																			))}
-																		</div>
-																	)}
+																>
+																	{monitor.statusText}
 																</span>
-																<div className="flex items-center gap-1.5 font-medium text-muted-foreground text-xs">
-																	<span
-																		className={cn(
-																			monitor.status === "up" &&
-																				"text-emerald-500",
-																			monitor.status === "down" &&
-																				"text-red-500",
-																			monitor.status === "degraded" &&
-																				"text-amber-500",
-																			monitor.status === "maintenance" &&
-																				"text-blue-500",
-																			monitor.status === "pending" &&
-																				"text-zinc-500",
-																		)}
-																	>
-																		{monitor.statusText}
-																	</span>
-																	<span>·</span>
-																	<span>{monitor.duration}</span>
-																	<span>·</span>
-																	<span className="underline decoration-muted-foreground/50 decoration-dashed underline-offset-2 transition-colors hover:text-foreground">
-																		Used on {monitor.usedOn} status page
-																		{monitor.usedOn !== 1 ? "s" : ""}
-																	</span>
-																</div>
+																<span>·</span>
+																<span>{monitor.duration}</span>
+																<span>·</span>
+																<span className="underline decoration-muted-foreground/50 decoration-dashed underline-offset-2 transition-colors hover:text-foreground">
+																	Used on {monitor.usedOn} status page
+																	{monitor.usedOn !== 1 ? "s" : ""}
+																</span>
 															</div>
-														</Link>
+														</div>
 													</TableCell>
 													<TableCell className="w-[200px]">
 														{monitor.hasIncident && (
@@ -972,13 +969,14 @@ function MonitorActions({ monitor }: { monitor: Monitor }) {
 							variant="ghost"
 							size="icon"
 							className="h-8 w-8 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100"
+							onClick={(e) => e.stopPropagation()}
 						/>
 					}
 				>
 					<MoreHorizontal className="h-4 w-4" />
 					<span className="sr-only">Open menu</span>
 				</DropdownMenuTrigger>
-				<DropdownMenuContent align="end">
+				<DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
 					<DropdownMenuItem render={<Link href={`/monitors/${monitor.id}`} />}>
 						View details
 					</DropdownMenuItem>
@@ -995,7 +993,7 @@ function MonitorActions({ monitor }: { monitor: Monitor }) {
 								: "Resume monitoring"}
 					</DropdownMenuItem>
 					<DropdownMenuItem
-						className="text-red-500"
+						variant="destructive"
 						onClick={(e) => {
 							e.stopPropagation();
 							setNukeDialogOpen(true);
@@ -1004,7 +1002,7 @@ function MonitorActions({ monitor }: { monitor: Monitor }) {
 						Nuke data
 					</DropdownMenuItem>
 					<DropdownMenuItem
-						className="text-red-500"
+						variant="destructive"
 						onClick={(e) => {
 							e.stopPropagation();
 							setDeleteDialogOpen(true);
@@ -1016,7 +1014,7 @@ function MonitorActions({ monitor }: { monitor: Monitor }) {
 			</DropdownMenu>
 
 			<AlertDialog open={nukeDialogOpen} onOpenChange={setNukeDialogOpen}>
-				<AlertDialogContent>
+				<AlertDialogContent onClick={(e) => e.stopPropagation()}>
 					<AlertDialogHeader>
 						<AlertDialogTitle>Nuke monitor data?</AlertDialogTitle>
 						<AlertDialogDescription>
@@ -1042,7 +1040,7 @@ function MonitorActions({ monitor }: { monitor: Monitor }) {
 			</AlertDialog>
 
 			<AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-				<AlertDialogContent>
+				<AlertDialogContent onClick={(e) => e.stopPropagation()}>
 					<AlertDialogHeader>
 						<AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
 						<AlertDialogDescription>
