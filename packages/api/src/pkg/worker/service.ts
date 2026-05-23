@@ -1,4 +1,4 @@
-import { clickhouse, db } from "@uptimekit/db";
+import { db, timeseries } from "@uptimekit/db";
 import {
 	incident,
 	incidentActivity,
@@ -14,7 +14,6 @@ import { statusPageMonitor } from "@uptimekit/db/schema/status-pages";
 import { worker } from "@uptimekit/db/schema/workers";
 import { and, eq, inArray, isNull } from "drizzle-orm";
 import { eventBus } from "../../lib/events";
-import type { LatestEventResult } from "../../types/clickhouse";
 
 // Types
 export interface HTTPTimings {
@@ -253,14 +252,7 @@ export async function processMonitorEvents(
 
 	// Batch inserts
 	if (changesToInsert.length > 0) {
-		await clickhouse.insert({
-			table: "uptimekit.monitor_changes",
-			values: changesToInsert.map((c) => ({
-				...c,
-				timestamp: c.timestamp.getTime(),
-			})),
-			format: "JSONEachRow",
-		});
+		await timeseries.insertMonitorChanges(changesToInsert);
 	}
 
 	if (incidentsToInsert.length > 0) {
@@ -289,16 +281,15 @@ export async function processMonitorEvents(
 		});
 	}
 
-	// Insert events to ClickHouse
+	// Insert events to time-series store
 	if (events.length > 0) {
-		await clickhouse.insert({
-			table: "uptimekit.monitor_events",
-			values: events.map((e) => ({
+		await timeseries.insertMonitorEvents(
+			events.map((e) => ({
 				id: crypto.randomUUID(),
 				monitorId: e.monitorId,
 				status: e.status,
 				latency: e.latency,
-				timestamp: new Date(e.timestamp).getTime(),
+				timestamp: new Date(e.timestamp),
 				statusCode: e.statusCode,
 				error: e.error,
 				location: e.location || workerId,
@@ -308,8 +299,7 @@ export async function processMonitorEvents(
 				ttfb: e.timings?.ttfb,
 				transfer: e.timings?.transfer,
 			})),
-			format: "JSONEachRow",
-		});
+		);
 	}
 
 	return { success: true, count: events.length };
@@ -420,46 +410,18 @@ async function processMonitorEventGroup(
 		]),
 	);
 
-	const latestWorkerStatusQuery = await clickhouse.query({
-		query: `
-			SELECT location, status, timestamp
-			FROM (
-				SELECT
-					location,
-					status,
-					timestamp,
-					ROW_NUMBER() OVER (PARTITION BY location ORDER BY timestamp DESC) AS rn
-				FROM uptimekit.monitor_events
-				WHERE monitorId = {monitorId:String}
-			)
-			WHERE rn = 1
-		`,
-		query_params: { monitorId },
-		format: "JSON",
-	});
-	const latestWorkerStatusJson = await latestWorkerStatusQuery.json<any>();
-	const latestWorkerStatuses = latestWorkerStatusJson.data as Array<{
-		location: string;
-		status: MonitorEvent["status"];
-		timestamp: string;
-	}>;
+	const latestWorkerStatuses =
+		await timeseries.getLatestStatusPerLocation(monitorId);
 	const workerStatusById = new Map<string, WorkerStatusSnapshot>();
 	for (const workerStatus of latestWorkerStatuses) {
 		workerStatusById.set(workerStatus.location, {
-			status: workerStatus.status,
-			timestamp: new Date(workerStatus.timestamp),
+			status: workerStatus.status as MonitorEvent["status"],
+			timestamp: workerStatus.timestamp,
 		});
 	}
 
-	// Get latest status from ClickHouse
-	const lastEventQuery = await clickhouse.query({
-		query:
-			"SELECT status, timestamp FROM uptimekit.monitor_events WHERE monitorId = {monitorId:String} ORDER BY timestamp DESC LIMIT 1",
-		query_params: { monitorId },
-		format: "JSON",
-	});
-	const lastEventJson = await lastEventQuery.json<any>();
-	const lastEvent = (lastEventJson.data as LatestEventResult[])[0];
+	// Get latest status
+	const lastEvent = await timeseries.getLatestEventForMonitor(monitorId);
 
 	let currentStatus = lastEvent?.status;
 

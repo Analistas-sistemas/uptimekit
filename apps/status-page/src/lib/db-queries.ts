@@ -1,5 +1,4 @@
 import {
-	clickhouse,
 	db,
 	incident,
 	incidentActivity,
@@ -10,6 +9,7 @@ import {
 	maintenanceUpdate,
 	statusPage,
 	statusPageMonitor,
+	timeseries,
 } from "@uptimekit/db";
 // ... imports
 import {
@@ -314,36 +314,13 @@ export const getMonitorUptime = async (monitorId: string, days = 90) => {
 			const startDate = new Date();
 			startDate.setDate(startDate.getDate() - days);
 
-			// ClickHouse query for hourly stats
-			const query = `
-				SELECT 
-					formatDateTime(timestamp, '%Y-%m-%d %H') as date_hour,
-					count(*) as total_checks,
-					countIf(lower(status) = 'up') as up_checks,
-					avg(latency) as avg_latency
-				FROM uptimekit.monitor_events
-				WHERE monitorId = {monitorId:String}
-				AND timestamp >= {startDate:DateTime64(3)}
-				GROUP BY date_hour
-				ORDER BY date_hour DESC
-			`;
-
-			const resultSet = await clickhouse.query({
-				query,
-				query_params: {
-					monitorId,
-					startDate: startDate.getTime(),
-				},
-				format: "JSON",
-			});
-
-			const result = await resultSet.json<any>();
-			return result.data as {
-				date_hour: string;
-				total_checks: number;
-				up_checks: number;
-				avg_latency: number;
-			}[];
+			const stats = await timeseries.getHourlyUptimeStats(monitorId, startDate);
+			return stats.map((s) => ({
+				date_hour: s.dateHour,
+				total_checks: s.totalChecks,
+				up_checks: s.upChecks,
+				avg_latency: s.avgLatency,
+			}));
 		},
 	);
 };
@@ -675,29 +652,11 @@ export const getMonitorStatus = async (monitorId: string) => {
 		`monitor-status:${monitorId}`,
 		60, // 1 minute (was 30s)
 		async () => {
-			const query = `
-				SELECT status, timestamp 
-				FROM uptimekit.monitor_events 
-				WHERE monitorId = {monitorId:String} 
-				ORDER BY timestamp DESC 
-				LIMIT 1
-			`;
-
-			const resultSet = await clickhouse.query({
-				query,
-				query_params: { monitorId },
-				format: "JSON",
-			});
-
-			const result = await resultSet.json<any>();
-			const latestEvent = result.data[0];
-
+			const latestEvent = await timeseries.getLatestEventForMonitor(monitorId);
 			if (!latestEvent) return undefined;
-
-			// Map back to expected format if needed by caller (though 'status' is main thing)
 			return {
 				status: latestEvent.status.toLowerCase(),
-				timestamp: new Date(latestEvent.timestamp),
+				timestamp: latestEvent.timestamp,
 			};
 		},
 	);

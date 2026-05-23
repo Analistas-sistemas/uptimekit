@@ -1,0 +1,584 @@
+import { describe, expect, it } from "vitest";
+import type { TimeSeriesDriver } from "./driver";
+
+function uid(label: string) {
+	return `${label}-${crypto.randomUUID()}`;
+}
+
+async function waitFor<T>(
+	check: () => Promise<T>,
+	predicate: (value: T) => boolean,
+	timeoutMs = 10_000,
+	intervalMs = 200,
+) {
+	const start = Date.now();
+	let last: T | undefined;
+	while (Date.now() - start < timeoutMs) {
+		last = await check();
+		if (predicate(last)) return last;
+		await new Promise((resolve) => setTimeout(resolve, intervalMs));
+	}
+	throw new Error(
+		`Condition not met within ${timeoutMs}ms; last value: ${JSON.stringify(last)}`,
+	);
+}
+
+export function defineDriverTests(
+	name: string,
+	getDriver: () => TimeSeriesDriver,
+) {
+	describe(name, () => {
+		describe("ensureSchema", () => {
+			it("is idempotent on repeated calls", async () => {
+				await getDriver().ensureSchema();
+				await getDriver().ensureSchema();
+			});
+		});
+
+		describe("monitor events", () => {
+			it("inserts a batch and reads back the most recent event", async () => {
+				const driver = getDriver();
+				const monitorId = uid("latest-event");
+				const now = new Date();
+				const earlier = new Date(now.getTime() - 60_000);
+
+				await driver.insertMonitorEvents([
+					{
+						id: crypto.randomUUID(),
+						monitorId,
+						status: "up",
+						latency: 120,
+						timestamp: earlier,
+					},
+					{
+						id: crypto.randomUUID(),
+						monitorId,
+						status: "down",
+						latency: 0,
+						timestamp: now,
+					},
+				]);
+
+				const latest = await driver.getLatestEventForMonitor(monitorId);
+
+				expect(latest).toBeDefined();
+				expect(latest?.status).toBe("down");
+				expect(
+					Math.abs((latest?.timestamp.getTime() ?? 0) - now.getTime()),
+				).toBeLessThan(1000);
+			});
+
+			it("returns undefined when the monitor has no events", async () => {
+				const latest = await getDriver().getLatestEventForMonitor(
+					uid("no-events"),
+				);
+
+				expect(latest).toBeUndefined();
+			});
+
+			it("does nothing when called with an empty list", async () => {
+				await getDriver().insertMonitorEvents([]);
+			});
+
+			it("returns the latest event per monitor in a batch query", async () => {
+				const driver = getDriver();
+				const monitorA = uid("batch-a");
+				const monitorB = uid("batch-b");
+				const now = new Date();
+
+				await driver.insertMonitorEvents([
+					{
+						id: crypto.randomUUID(),
+						monitorId: monitorA,
+						status: "up",
+						latency: 50,
+						timestamp: new Date(now.getTime() - 120_000),
+					},
+					{
+						id: crypto.randomUUID(),
+						monitorId: monitorA,
+						status: "degraded",
+						latency: 800,
+						timestamp: now,
+					},
+					{
+						id: crypto.randomUUID(),
+						monitorId: monitorB,
+						status: "down",
+						latency: 0,
+						timestamp: new Date(now.getTime() - 30_000),
+					},
+				]);
+
+				const latest = await driver.getLatestEventsForMonitors([
+					monitorA,
+					monitorB,
+				]);
+
+				const byMonitor = new Map(latest.map((row) => [row.monitorId, row]));
+				expect(byMonitor.get(monitorA)?.status).toBe("degraded");
+				expect(byMonitor.get(monitorB)?.status).toBe("down");
+			});
+
+			it("returns an empty array for batch queries with no monitor ids", async () => {
+				const rows = await getDriver().getLatestEventsForMonitors([]);
+
+				expect(rows).toEqual([]);
+			});
+		});
+
+		describe("monitor changes", () => {
+			it("inserts and reads back the most recent change", async () => {
+				const driver = getDriver();
+				const monitorId = uid("latest-change");
+				const now = new Date();
+
+				await driver.insertMonitorChanges([
+					{
+						id: crypto.randomUUID(),
+						monitorId,
+						status: "down",
+						timestamp: new Date(now.getTime() - 60_000),
+						location: "us-east",
+					},
+					{
+						id: crypto.randomUUID(),
+						monitorId,
+						status: "up",
+						timestamp: now,
+						location: "us-east",
+					},
+				]);
+
+				const latest = await driver.getLatestChangeForMonitor(monitorId);
+
+				expect(latest).toBeDefined();
+				expect(
+					Math.abs((latest?.timestamp.getTime() ?? 0) - now.getTime()),
+				).toBeLessThan(1000);
+			});
+
+			it("returns the latest change per monitor in a batch query", async () => {
+				const driver = getDriver();
+				const monitorA = uid("change-batch-a");
+				const monitorB = uid("change-batch-b");
+				const now = new Date();
+
+				await driver.insertMonitorChanges([
+					{
+						id: crypto.randomUUID(),
+						monitorId: monitorA,
+						status: "down",
+						timestamp: new Date(now.getTime() - 90_000),
+					},
+					{
+						id: crypto.randomUUID(),
+						monitorId: monitorA,
+						status: "up",
+						timestamp: now,
+					},
+					{
+						id: crypto.randomUUID(),
+						monitorId: monitorB,
+						status: "down",
+						timestamp: new Date(now.getTime() - 30_000),
+					},
+				]);
+
+				const latest = await driver.getLatestChangesForMonitors([
+					monitorA,
+					monitorB,
+				]);
+
+				const byMonitor = new Map(latest.map((row) => [row.monitorId, row]));
+				expect(byMonitor.get(monitorA)).toBeDefined();
+				expect(byMonitor.get(monitorB)).toBeDefined();
+				expect(
+					Math.abs(
+						(byMonitor.get(monitorA)?.timestamp.getTime() ?? 0) - now.getTime(),
+					),
+				).toBeLessThan(1000);
+			});
+
+			it("paginates the change timeline using the cursor", async () => {
+				const driver = getDriver();
+				const monitorId = uid("timeline");
+				const base = Date.now();
+
+				const inserts = Array.from({ length: 5 }, (_, index) => ({
+					id: crypto.randomUUID(),
+					monitorId,
+					status: index % 2 === 0 ? "up" : "down",
+					timestamp: new Date(base - index * 60_000),
+				}));
+
+				await driver.insertMonitorChanges(inserts);
+
+				const firstPage = await driver.getChangeTimeline({
+					monitorId,
+					limit: 3,
+				});
+
+				expect(firstPage).toHaveLength(3);
+				const firstHead = firstPage[0];
+				const firstTail = firstPage[2];
+				if (!firstHead || !firstTail)
+					throw new Error("missing first page rows");
+				expect(firstHead.timestamp.getTime()).toBeGreaterThanOrEqual(
+					firstTail.timestamp.getTime(),
+				);
+
+				const secondPage = await driver.getChangeTimeline({
+					monitorId,
+					limit: 3,
+					cursorBefore: firstTail.timestamp,
+				});
+
+				expect(secondPage.length).toBeGreaterThan(0);
+				const secondHead = secondPage[0];
+				if (!secondHead) throw new Error("missing second page rows");
+				expect(secondHead.timestamp.getTime()).toBeLessThan(
+					firstTail.timestamp.getTime(),
+				);
+			});
+		});
+
+		describe("aggregations", () => {
+			it("computes the average latency over a time window", async () => {
+				const driver = getDriver();
+				const monitorId = uid("avg-latency");
+				const now = new Date();
+
+				await driver.insertMonitorEvents([
+					{
+						id: crypto.randomUUID(),
+						monitorId,
+						status: "up",
+						latency: 100,
+						timestamp: new Date(now.getTime() - 30_000),
+					},
+					{
+						id: crypto.randomUUID(),
+						monitorId,
+						status: "up",
+						latency: 200,
+						timestamp: new Date(now.getTime() - 15_000),
+					},
+					{
+						id: crypto.randomUUID(),
+						monitorId,
+						status: "up",
+						latency: 300,
+						timestamp: now,
+					},
+				]);
+
+				const avg = await driver.getAverageLatency(
+					monitorId,
+					new Date(now.getTime() - 60_000),
+				);
+
+				expect(Math.round(avg)).toBe(200);
+			});
+
+			it("excludes events outside the time window from the average", async () => {
+				const driver = getDriver();
+				const monitorId = uid("avg-window");
+				const now = new Date();
+
+				await driver.insertMonitorEvents([
+					{
+						id: crypto.randomUUID(),
+						monitorId,
+						status: "up",
+						latency: 1000,
+						timestamp: new Date(now.getTime() - 24 * 60 * 60_000),
+					},
+					{
+						id: crypto.randomUUID(),
+						monitorId,
+						status: "up",
+						latency: 50,
+						timestamp: now,
+					},
+				]);
+
+				const avg = await driver.getAverageLatency(
+					monitorId,
+					new Date(now.getTime() - 60_000),
+				);
+
+				expect(Math.round(avg)).toBe(50);
+			});
+
+			it("buckets hourly uptime stats", async () => {
+				const driver = getDriver();
+				const monitorId = uid("hourly");
+				const anchor = new Date();
+				anchor.setUTCMinutes(30, 0, 0);
+
+				await driver.insertMonitorEvents([
+					{
+						id: crypto.randomUUID(),
+						monitorId,
+						status: "up",
+						latency: 100,
+						timestamp: new Date(anchor.getTime() - 10 * 60_000),
+					},
+					{
+						id: crypto.randomUUID(),
+						monitorId,
+						status: "down",
+						latency: 0,
+						timestamp: new Date(anchor.getTime() - 5 * 60_000),
+					},
+					{
+						id: crypto.randomUUID(),
+						monitorId,
+						status: "up",
+						latency: 200,
+						timestamp: anchor,
+					},
+				]);
+
+				const stats = await driver.getHourlyUptimeStats(
+					monitorId,
+					new Date(anchor.getTime() - 60 * 60_000),
+				);
+
+				const bucket = stats[0];
+				expect(bucket).toBeDefined();
+				if (!bucket) return;
+				expect(bucket.totalChecks).toBe(3);
+				expect(bucket.upChecks).toBe(2);
+				expect(Math.round(bucket.avgLatency)).toBe(100);
+			});
+		});
+
+		describe("response times", () => {
+			it("returns events ordered ascending and filtered by since", async () => {
+				const driver = getDriver();
+				const monitorId = uid("response-times");
+				const now = new Date();
+
+				await driver.insertMonitorEvents([
+					{
+						id: crypto.randomUUID(),
+						monitorId,
+						status: "up",
+						latency: 100,
+						timestamp: new Date(now.getTime() - 90_000),
+						location: "eu-west",
+					},
+					{
+						id: crypto.randomUUID(),
+						monitorId,
+						status: "up",
+						latency: 150,
+						timestamp: new Date(now.getTime() - 45_000),
+						location: "us-east",
+					},
+					{
+						id: crypto.randomUUID(),
+						monitorId,
+						status: "up",
+						latency: 200,
+						timestamp: now,
+						location: "eu-west",
+					},
+				]);
+
+				const all = await driver.getResponseTimes({
+					monitorId,
+					since: new Date(now.getTime() - 60_000),
+				});
+
+				expect(all).toHaveLength(2);
+				const [a, b] = all;
+				if (!a || !b) throw new Error("missing response time rows");
+				expect(a.timestamp.getTime()).toBeLessThan(b.timestamp.getTime());
+			});
+
+			it("filters by location", async () => {
+				const driver = getDriver();
+				const monitorId = uid("response-locations");
+				const now = new Date();
+
+				await driver.insertMonitorEvents([
+					{
+						id: crypto.randomUUID(),
+						monitorId,
+						status: "up",
+						latency: 100,
+						timestamp: now,
+						location: "eu-west",
+					},
+					{
+						id: crypto.randomUUID(),
+						monitorId,
+						status: "up",
+						latency: 200,
+						timestamp: now,
+						location: "us-east",
+					},
+				]);
+
+				const filtered = await driver.getResponseTimes({
+					monitorId,
+					since: new Date(now.getTime() - 60_000),
+					locations: ["eu-west"],
+				});
+
+				expect(filtered).toHaveLength(1);
+				expect(filtered[0]?.location).toBe("eu-west");
+			});
+		});
+
+		describe("worker status snapshots", () => {
+			it("returns the most recent event per location", async () => {
+				const driver = getDriver();
+				const monitorId = uid("worker-status");
+				const now = new Date();
+
+				await driver.insertMonitorEvents([
+					{
+						id: crypto.randomUUID(),
+						monitorId,
+						status: "up",
+						latency: 100,
+						timestamp: new Date(now.getTime() - 60_000),
+						location: "worker-a",
+					},
+					{
+						id: crypto.randomUUID(),
+						monitorId,
+						status: "down",
+						latency: 0,
+						timestamp: now,
+						location: "worker-a",
+					},
+					{
+						id: crypto.randomUUID(),
+						monitorId,
+						status: "up",
+						latency: 50,
+						timestamp: now,
+						location: "worker-b",
+					},
+				]);
+
+				const statuses = await driver.getLatestStatusPerLocation(monitorId);
+
+				const byLocation = new Map(statuses.map((row) => [row.location, row]));
+				expect(byLocation.get("worker-a")?.status).toBe("down");
+				expect(byLocation.get("worker-b")?.status).toBe("up");
+			});
+		});
+
+		describe("recent latencies", () => {
+			it("returns the most recent N latencies per monitor", async () => {
+				const driver = getDriver();
+				const monitorId = uid("sparkline");
+				const base = Date.now();
+
+				const inserts = Array.from({ length: 25 }, (_, index) => ({
+					id: crypto.randomUUID(),
+					monitorId,
+					status: "up",
+					latency: index,
+					timestamp: new Date(base - index * 1000),
+				}));
+
+				await driver.insertMonitorEvents(inserts);
+
+				const recent = await driver.getRecentLatenciesByMonitor(
+					[monitorId],
+					10,
+				);
+
+				expect(recent).toHaveLength(10);
+				expect(recent.every((point) => point.monitorId === monitorId)).toBe(
+					true,
+				);
+			});
+		});
+
+		describe("deletions", () => {
+			it("clears every event and change for a monitor", async () => {
+				const driver = getDriver();
+				const monitorId = uid("delete-monitor");
+				const now = new Date();
+
+				await driver.insertMonitorEvents([
+					{
+						id: crypto.randomUUID(),
+						monitorId,
+						status: "up",
+						latency: 100,
+						timestamp: now,
+					},
+				]);
+				await driver.insertMonitorChanges([
+					{
+						id: crypto.randomUUID(),
+						monitorId,
+						status: "up",
+						timestamp: now,
+					},
+				]);
+
+				expect(await driver.getLatestEventForMonitor(monitorId)).toBeDefined();
+
+				await driver.deleteAllForMonitor(monitorId);
+
+				await waitFor(
+					() => driver.getLatestEventForMonitor(monitorId),
+					(row) => row === undefined,
+				);
+				await waitFor(
+					() => driver.getLatestChangeForMonitor(monitorId),
+					(row) => row === undefined,
+				);
+			});
+
+			it("deletes only rows older than the cutoff", async () => {
+				const driver = getDriver();
+				const monitorId = uid("delete-old");
+				const now = new Date();
+				const old = new Date(now.getTime() - 7 * 24 * 60 * 60_000);
+
+				await driver.insertMonitorEvents([
+					{
+						id: crypto.randomUUID(),
+						monitorId,
+						status: "up",
+						latency: 100,
+						timestamp: old,
+					},
+					{
+						id: crypto.randomUUID(),
+						monitorId,
+						status: "up",
+						latency: 200,
+						timestamp: now,
+					},
+				]);
+
+				const cutoff = new Date(now.getTime() - 24 * 60 * 60_000);
+				await driver.deleteOlderThan(cutoff);
+
+				const remaining = await waitFor(
+					() =>
+						driver.getResponseTimes({
+							monitorId,
+							since: new Date(0),
+						}),
+					(rows) => rows.length === 1,
+				);
+
+				expect(remaining).toHaveLength(1);
+				expect(remaining[0]?.latency).toBe(200);
+			});
+		});
+	});
+}
