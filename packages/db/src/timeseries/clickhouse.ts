@@ -160,16 +160,26 @@ export class ClickHouseDriver implements TimeSeriesDriver {
 			this.schemaInit = (async () => {
 				for (const { query, optionalTable } of BOOTSTRAP_QUERIES) {
 					if (optionalTable) {
-						const exists = await this.tableExists(
-							optionalTable.database,
-							optionalTable.table,
-						);
-						if (!exists) {
-							console.warn(
-								`[clickhouse] Skipping optional bootstrap query because the table does not exist: ${query}`,
+						try {
+							const exists = await this.tableExists(
+								optionalTable.database,
+								optionalTable.table,
 							);
-							continue;
+							if (!exists) {
+								console.warn(
+									`[clickhouse] Skipping optional bootstrap query because the table does not exist: ${query}`,
+								);
+								continue;
+							}
+							await this.getClient().command({ query });
+						} catch (error) {
+							const message =
+								error instanceof Error ? error.message : String(error);
+							console.warn(
+								`[clickhouse] Skipping optional bootstrap query (${message}): ${query}`,
+							);
 						}
+						continue;
 					}
 					await this.getClient().command({ query });
 				}
