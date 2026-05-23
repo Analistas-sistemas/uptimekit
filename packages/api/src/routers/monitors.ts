@@ -30,6 +30,50 @@ import { z } from "zod";
 import { protectedProcedure, writeProcedure } from "../index";
 import { enforceMonitorQuotaOrThrow } from "../lib/organization-limits";
 
+const RESPONSE_TIME_RANGE_VALUES = [
+	"24h",
+	"7d",
+	"30d",
+	"3mo",
+	"6mo",
+	"1y",
+	"all",
+] as const;
+const responseTimeRangeSchema = z.enum(RESPONSE_TIME_RANGE_VALUES);
+type ResponseTimeRange = (typeof RESPONSE_TIME_RANGE_VALUES)[number];
+
+function getResponseTimeRangeStart(
+	range: ResponseTimeRange,
+	allTimeStartDate?: Date,
+) {
+	const startDate = new Date();
+
+	switch (range) {
+		case "24h":
+			startDate.setHours(startDate.getHours() - 24);
+			return startDate;
+		case "7d":
+			startDate.setDate(startDate.getDate() - 7);
+			return startDate;
+		case "30d":
+			startDate.setDate(startDate.getDate() - 30);
+			return startDate;
+		case "3mo":
+			startDate.setMonth(startDate.getMonth() - 3);
+			return startDate;
+		case "6mo":
+			startDate.setMonth(startDate.getMonth() - 6);
+			return startDate;
+		case "1y":
+			startDate.setFullYear(startDate.getFullYear() - 1);
+			return startDate;
+		case "all":
+			return allTimeStartDate ? new Date(allTimeStartDate) : new Date(0);
+	}
+
+	return startDate;
+}
+
 async function getWorkersForMonitorAssignments(input: {
 	workerIds?: string[] | null;
 	locations?: string[] | null;
@@ -833,7 +877,7 @@ export const monitorsRouter = {
 		.input(
 			z.object({
 				monitorId: z.string(),
-				range: z.enum(["24h", "7d", "30d"]),
+				range: responseTimeRangeSchema,
 			}),
 		)
 		.handler(async ({ input, context }) => {
@@ -849,11 +893,10 @@ export const monitorsRouter = {
 				throw new ORPCError("NOT_FOUND");
 			}
 
-			const now = new Date();
-			const startDate = new Date();
-			if (input.range === "24h") startDate.setHours(now.getHours() - 24);
-			if (input.range === "7d") startDate.setDate(now.getDate() - 7);
-			if (input.range === "30d") startDate.setDate(now.getDate() - 30);
+			const startDate = getResponseTimeRangeStart(
+				input.range,
+				existing.createdAt,
+			);
 
 			const avgPing = await timeseries.getAverageLatency(
 				input.monitorId,
@@ -946,7 +989,7 @@ export const monitorsRouter = {
 		.input(
 			z.object({
 				monitorId: z.string(),
-				range: z.enum(["24h", "7d", "30d"]),
+				range: responseTimeRangeSchema,
 				workerIds: z.array(z.string()).optional().default([]),
 			}),
 		)
@@ -965,11 +1008,7 @@ export const monitorsRouter = {
 				throw new ORPCError("NOT_FOUND", { message: "Monitor not found" });
 			}
 
-			const now = new Date();
-			const startDate = new Date();
-			if (input.range === "24h") startDate.setHours(now.getHours() - 24);
-			if (input.range === "7d") startDate.setDate(now.getDate() - 7);
-			if (input.range === "30d") startDate.setDate(now.getDate() - 30);
+			const startDate = getResponseTimeRangeStart(input.range, mon.createdAt);
 
 			const filterLocations =
 				input.workerIds.length > 0 && !input.workerIds.includes("all")

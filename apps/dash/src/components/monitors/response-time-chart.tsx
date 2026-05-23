@@ -79,7 +79,7 @@ const TIMING_KEYS = [
 ] as const;
 type TimingKey = (typeof TIMING_KEYS)[number];
 type QuantileKey = "p50" | "p90" | "p99";
-type RangeKey = "24h" | "7d" | "30d";
+type RangeKey = "24h" | "7d" | "30d" | "3mo" | "6mo" | "1y" | "all";
 type RegionView = "table" | "chart";
 type ChartStateUpdate = Partial<{
 	latencyRange: RangeKey;
@@ -119,6 +119,10 @@ const RANGE_OPTIONS = [
 	{ label: "Last day", value: "24h" },
 	{ label: "Last week", value: "7d" },
 	{ label: "Last month", value: "30d" },
+	{ label: "Last 3 months", value: "3mo" },
+	{ label: "Last 6 months", value: "6mo" },
+	{ label: "Last year", value: "1y" },
+	{ label: "All time", value: "all" },
 ] as const;
 
 const RESOLUTION_OPTIONS = [
@@ -198,11 +202,11 @@ const getBucketStart = (timestamp: string, resolutionMinutes: number) => {
 
 const formatChartTimestamp = (timestamp: string, range: RangeKey) => {
 	const date = new Date(timestamp);
-	if (range === "24h") {
+	if (range === "24h" || range === "7d") {
 		return format(date, "MMM d 'at' h:mm a");
 	}
-	if (range === "7d") {
-		return format(date, "MMM d 'at' h:mm a");
+	if (range === "1y" || range === "all") {
+		return format(date, "MMM d, yyyy");
 	}
 	return format(date, "MMM d");
 };
@@ -719,7 +723,31 @@ export function ResponseTimeChart({
 								))}
 							</SelectContent>
 						</Select>
-						<span>quantile within a</span>
+						<span>quantile over the</span>
+						<Select
+							value={latencyRange}
+							onValueChange={(value) =>
+								updateChartState({ latencyRange: value as RangeKey })
+							}
+						>
+							<SelectTrigger className="h-8 w-[150px] bg-background/60 text-foreground">
+								<SelectValue>
+									{
+										RANGE_OPTIONS.find(
+											(option) => option.value === latencyRange,
+										)?.label
+									}
+								</SelectValue>
+							</SelectTrigger>
+							<SelectContent>
+								{RANGE_OPTIONS.map(({ label, value }) => (
+									<SelectItem key={value} value={value}>
+										{label}
+									</SelectItem>
+								))}
+							</SelectContent>
+						</Select>
+						<span>within a</span>
 						<Select
 							value={latencyResolutionMinutes}
 							onValueChange={(value) => {
