@@ -11,7 +11,14 @@ import {
 	Globe,
 	MoreHorizontal,
 } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import {
+	parseAsArrayOf,
+	parseAsInteger,
+	parseAsString,
+	parseAsStringEnum,
+	useQueryStates,
+} from "nuqs";
+import { useCallback, useEffect, useMemo, useRef } from "react";
 import {
 	Area,
 	AreaChart,
@@ -77,20 +84,28 @@ const TIMING_KEYS = [
 	"ttfb",
 	"transfer",
 ] as const;
+const QUANTILE_VALUES = ["p50", "p90", "p99"] as const;
+const RANGE_VALUES = ["24h", "7d", "30d", "3mo", "6mo", "1y", "all"] as const;
+const LATENCY_RESOLUTION_VALUES = ["5", "15", "30", "60"] as const;
+const REGION_VIEW_VALUES = ["table", "chart"] as const;
+const ROWS_PER_PAGE_VALUES = ["10", "20", "50"] as const;
 type TimingKey = (typeof TIMING_KEYS)[number];
-type QuantileKey = "p50" | "p90" | "p99";
-type RangeKey = "24h" | "7d" | "30d" | "3mo" | "6mo" | "1y" | "all";
-type RegionView = "table" | "chart";
+type QuantileKey = (typeof QUANTILE_VALUES)[number];
+type RangeKey = (typeof RANGE_VALUES)[number];
+type LatencyResolutionKey = (typeof LATENCY_RESOLUTION_VALUES)[number];
+type RegionView = (typeof REGION_VIEW_VALUES)[number];
+type RowsPerPageKey = (typeof ROWS_PER_PAGE_VALUES)[number];
 type ChartStateUpdate = Partial<{
 	latencyRange: RangeKey;
 	latencyQuantile: QuantileKey;
-	latencyResolutionMinutes: "5" | "15" | "30" | "60";
+	latencyResolutionMinutes: LatencyResolutionKey;
 	regionRange: RangeKey;
 	regionQuantile: QuantileKey;
 	regionView: RegionView;
-	rowsPerPage: "10" | "20" | "50";
+	rowsPerPage: RowsPerPageKey;
 	page: number;
 	sortBy: QuantileKey;
+	selectedWorkerIds: string[];
 }>;
 
 const TIMING_COLORS: Record<TimingKey, string> = {
@@ -141,6 +156,36 @@ const ROWS_PER_PAGE_OPTIONS = [
 const generateRegionColor = (index: number, total: number) => {
 	const hue = (index * 360) / Math.max(total, 1);
 	return `hsl(${hue}, 75%, 58%)`;
+};
+
+const normalizeWorkerSelectionForUrl = (
+	selectedWorkerIds: string[],
+	workerIds: string[],
+) => {
+	const selectedWorkerIdSet = new Set(selectedWorkerIds);
+	const normalizedWorkerIds = workerIds.filter((workerId) =>
+		selectedWorkerIdSet.has(workerId),
+	);
+
+	return normalizedWorkerIds.length === workerIds.length
+		? []
+		: normalizedWorkerIds;
+};
+
+const resolveSelectedWorkerIds = (
+	selectedWorkerIds: string[],
+	workerIds: string[],
+) => {
+	if (workerIds.length === 0) {
+		return [];
+	}
+
+	const normalizedWorkerIds = normalizeWorkerSelectionForUrl(
+		selectedWorkerIds,
+		workerIds,
+	);
+
+	return normalizedWorkerIds.length > 0 ? normalizedWorkerIds : workerIds;
 };
 
 interface RawDataPoint {
@@ -281,73 +326,91 @@ export function ResponseTimeChart({
 	monitorType = "http",
 	workers = [],
 }: ResponseTimeChartProps) {
-	const [latencyRange, setLatencyRange] = useState<RangeKey>("24h");
-	const [latencyQuantile, setLatencyQuantile] = useState<QuantileKey>("p50");
-	const [latencyResolutionMinutes, setLatencyResolutionMinutes] = useState<
-		"5" | "15" | "30" | "60"
-	>("30");
-	const [regionRange, setRegionRange] = useState<RangeKey>("24h");
-	const [regionQuantile, setRegionQuantile] = useState<QuantileKey>("p50");
-	const [regionView, setRegionView] = useState<RegionView>("table");
-	const [rowsPerPage, setRowsPerPage] = useState<"10" | "20" | "50">("20");
-	const [page, setPage] = useState(1);
-	const [sortBy, setSortBy] = useState<QuantileKey>("p50");
-	const [selectedWorkerIds, setSelectedWorkerIds] = useState<string[]>(() =>
-		workerIds.length > 0 ? [...workerIds] : [],
+	const [chartState, setChartState] = useQueryStates(
+		{
+			latencyRange: parseAsStringEnum([...RANGE_VALUES]).withDefault("24h"),
+			latencyQuantile: parseAsStringEnum([...QUANTILE_VALUES]).withDefault(
+				"p50",
+			),
+			latencyResolutionMinutes: parseAsStringEnum([
+				...LATENCY_RESOLUTION_VALUES,
+			]).withDefault("30"),
+			regionRange: parseAsStringEnum([...RANGE_VALUES]).withDefault("24h"),
+			regionQuantile: parseAsStringEnum([...QUANTILE_VALUES]).withDefault(
+				"p50",
+			),
+			regionView: parseAsStringEnum([...REGION_VIEW_VALUES]).withDefault(
+				"table",
+			),
+			rowsPerPage: parseAsStringEnum([...ROWS_PER_PAGE_VALUES]).withDefault(
+				"20",
+			),
+			page: parseAsInteger.withDefault(1),
+			sortBy: parseAsStringEnum([...QUANTILE_VALUES]).withDefault("p50"),
+			selectedWorkerIds: parseAsArrayOf(parseAsString).withDefault([]),
+		},
+		{
+			urlKeys: {
+				latencyResolutionMinutes: "latencyResolution",
+				rowsPerPage: "regionRows",
+				page: "regionPage",
+				sortBy: "regionSort",
+				selectedWorkerIds: "workers",
+			},
+		},
 	);
-	const updateChartState = (nextState: ChartStateUpdate) => {
-		if (nextState.latencyRange !== undefined) {
-			setLatencyRange(nextState.latencyRange);
-		}
-		if (nextState.latencyQuantile !== undefined) {
-			setLatencyQuantile(nextState.latencyQuantile);
-		}
-		if (nextState.latencyResolutionMinutes !== undefined) {
-			setLatencyResolutionMinutes(nextState.latencyResolutionMinutes);
-		}
-		if (nextState.regionRange !== undefined) {
-			setRegionRange(nextState.regionRange);
-		}
-		if (nextState.regionQuantile !== undefined) {
-			setRegionQuantile(nextState.regionQuantile);
-		}
-		if (nextState.regionView !== undefined) {
-			setRegionView(nextState.regionView);
-		}
-		if (nextState.rowsPerPage !== undefined) {
-			setRowsPerPage(nextState.rowsPerPage);
-		}
-		if (nextState.page !== undefined) {
-			setPage(nextState.page);
-		}
-		if (nextState.sortBy !== undefined) {
-			setSortBy(nextState.sortBy);
-		}
-	};
+	const {
+		latencyRange,
+		latencyQuantile,
+		latencyResolutionMinutes,
+		regionRange,
+		regionQuantile,
+		regionView,
+		rowsPerPage,
+		sortBy,
+		selectedWorkerIds,
+	} = chartState;
+	const page = Math.max(chartState.page, 1);
+	const updateChartState = useCallback(
+		(nextState: ChartStateUpdate) => {
+			void setChartState(nextState);
+		},
+		[setChartState],
+	);
 
 	useEffect(() => {
 		if (workerIds.length === 0) {
-			setSelectedWorkerIds([]);
+			if (selectedWorkerIds.length > 0) {
+				updateChartState({ selectedWorkerIds: [] });
+			}
 			return;
 		}
 
-		setSelectedWorkerIds((prev) => {
-			const next = prev.filter((workerId) => workerIds.includes(workerId));
-			return next.length > 0 ? next : [...workerIds];
-		});
-	}, [workerIds]);
+		const normalizedWorkerIds = normalizeWorkerSelectionForUrl(
+			selectedWorkerIds,
+			workerIds,
+		);
+
+		if (normalizedWorkerIds.length !== selectedWorkerIds.length) {
+			updateChartState({ selectedWorkerIds: normalizedWorkerIds });
+		}
+	}, [selectedWorkerIds, updateChartState, workerIds]);
 
 	const hasDetailedTimings = HTTP_MONITOR_TYPES.includes(monitorType);
+	const activeWorkerIds = useMemo(
+		() => resolveSelectedWorkerIds(selectedWorkerIds, workerIds),
+		[selectedWorkerIds, workerIds],
+	);
 
 	const { data: latencyRawData = [], isLoading: isLatencyLoading } = useQuery({
 		...orpc.monitors.getResponseTimes.queryOptions({
 			input: {
 				monitorId,
 				range: latencyRange,
-				workerIds: selectedWorkerIds,
+				workerIds: activeWorkerIds,
 			},
 		}),
-		enabled: selectedWorkerIds.length > 0,
+		enabled: activeWorkerIds.length > 0,
 	});
 
 	const { data: regionRawData = [], isLoading: isRegionLoading } = useQuery({
@@ -355,16 +418,12 @@ export function ResponseTimeChart({
 			input: {
 				monitorId,
 				range: regionRange,
-				workerIds: selectedWorkerIds,
+				workerIds: activeWorkerIds,
 			},
 		}),
-		enabled: selectedWorkerIds.length > 0,
+		enabled: activeWorkerIds.length > 0,
 	});
 
-	const activeWorkerIds = useMemo(
-		() => selectedWorkerIds.filter((workerId) => workerIds.includes(workerId)),
-		[selectedWorkerIds, workerIds],
-	);
 	const workersById = useMemo(
 		() => new Map(workers.map((worker) => [worker.id, worker])),
 		[workers],
@@ -542,10 +601,18 @@ export function ResponseTimeChart({
 		page * Number(rowsPerPage),
 	);
 	const regionPageResetKey = `${rowsPerPage}:${regionMetrics.length}:${sortBy}:${regionRange}:${regionQuantile}`;
+	const previousRegionPageResetKey = useRef(regionPageResetKey);
 
 	useEffect(() => {
-		setPage((currentPage) => (currentPage === 1 ? currentPage : 1));
-	}, [regionPageResetKey]);
+		if (previousRegionPageResetKey.current === regionPageResetKey) {
+			return;
+		}
+
+		previousRegionPageResetKey.current = regionPageResetKey;
+		if (page !== 1) {
+			updateChartState({ page: 1 });
+		}
+	}, [page, regionPageResetKey, updateChartState]);
 
 	const topChartTooltip = ({ active, payload, label }: any) => {
 		if (!active || !payload?.length) {
@@ -643,7 +710,9 @@ export function ResponseTimeChart({
 										<button
 											type="button"
 											className="text-primary text-xs"
-											onClick={() => setSelectedWorkerIds([...workerIds])}
+											onClick={() =>
+												updateChartState({ selectedWorkerIds: [] })
+											}
 										>
 											All
 										</button>
@@ -652,7 +721,7 @@ export function ResponseTimeChart({
 										{workerIds.map((workerId) => {
 											const { primaryLabel, regionInfo, secondaryLabel } =
 												getLocationDisplay(workerId);
-											const checked = selectedWorkerIds.includes(workerId);
+											const checked = activeWorkerIds.includes(workerId);
 											return (
 												// biome-ignore lint/a11y/noLabelWithoutControl: shhhh its okay
 												<label
@@ -662,17 +731,23 @@ export function ResponseTimeChart({
 													<Checkbox
 														checked={checked}
 														onCheckedChange={(nextChecked) => {
-															setSelectedWorkerIds((prev) => {
-																if (nextChecked) {
-																	return prev.includes(workerId)
-																		? prev
-																		: [...prev, workerId];
-																}
+															const nextWorkerIds =
+																nextChecked === true
+																	? [...activeWorkerIds, workerId]
+																	: activeWorkerIds.filter(
+																			(value) => value !== workerId,
+																		);
 
-																const next = prev.filter(
-																	(value) => value !== workerId,
-																);
-																return next.length > 0 ? next : prev;
+															if (nextWorkerIds.length === 0) {
+																return;
+															}
+
+															updateChartState({
+																selectedWorkerIds:
+																	normalizeWorkerSelectionForUrl(
+																		nextWorkerIds,
+																		workerIds,
+																	),
 															});
 														}}
 													/>
