@@ -652,7 +652,7 @@ export function MonitorsTable() {
 			</div>
 
 			<div className="overflow-hidden rounded-xl border bg-card shadow-sm">
-				<div className="flex items-center gap-2 border-b bg-muted/20 px-4 py-3 font-medium text-muted-foreground text-sm">
+				<div className="flex min-h-12 items-center gap-2 border-b bg-muted/20 px-4 py-3 font-medium text-muted-foreground text-sm">
 					<ChevronDown className="h-4 w-4" />
 					Monitors
 				</div>
