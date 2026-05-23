@@ -50,9 +50,9 @@ const formSchema = z.object({
 		.or(z.literal("")),
 });
 
-type OrganizationSettingsClientProps = {
+interface OrganizationSettingsClientProps {
 	organizationId: string;
-};
+}
 
 function LoadingState({ label = "Loading organization settings..." }) {
 	return (

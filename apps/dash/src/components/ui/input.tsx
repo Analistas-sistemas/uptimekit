@@ -4,11 +4,11 @@ import { Input as InputPrimitive } from "@base-ui/react/input";
 import type * as React from "react";
 import { cn } from "@/lib/utils";
 
-type InputOwnProps = {
+interface InputOwnProps {
 	className?: string;
 	size?: "sm" | "default" | "lg" | number;
 	unstyled?: boolean;
-};
+}
 
 type NativeInputProps = Omit<
 	React.ComponentPropsWithRef<"input">,

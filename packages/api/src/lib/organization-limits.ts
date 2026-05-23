@@ -21,13 +21,13 @@ export type QuotaPauseReason =
 type TransactionLike = Parameters<Parameters<typeof db.transaction>[0]>[0];
 type QueryableDatabase = typeof db | TransactionLike;
 
-export type OrganizationQuotaState = {
+export interface OrganizationQuotaState {
 	organizationId: string;
 	activeMonitorLimit: number | null;
 	regionsPerMonitorLimit: number | null;
 	activeMonitorCount: number;
 	totalMonitorCount: number;
-};
+}
 
 export async function getOrganizationQuotaState(
 	organizationId: string,

@@ -89,7 +89,7 @@ const NOTIFICATION_STATUS_FILTERS = ["active", "inactive"] as const;
 const NOTIFICATION_DIRECTION_FILTERS = ["export", "import"] as const;
 const NOTIFICATION_DEFAULT_FILTERS = ["default", "custom"] as const;
 
-type ConfiguredNotification = {
+interface ConfiguredNotification {
 	id: string;
 	name: string;
 	type: string;
@@ -97,7 +97,7 @@ type ConfiguredNotification = {
 	active: boolean;
 	isDefault: boolean;
 	assignedMonitorCount: number;
-};
+}
 
 const frontendRegistry = {
 	webhook: {

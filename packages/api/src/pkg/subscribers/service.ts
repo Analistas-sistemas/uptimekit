@@ -15,21 +15,21 @@ const logger = createLogger("SUBSCRIBERS");
 
 type SubscriberEventName = "incident.acknowledged" | "incident.resolved";
 
-type SubscriberEventPayload = {
+interface SubscriberEventPayload {
 	incidentId: string;
 	organizationId: string;
 	title: string;
 	description?: string | null;
 	severity: "minor" | "major" | "critical";
-};
+}
 
-type SubscriberStatusPage = {
+interface SubscriberStatusPage {
 	id: string;
 	name: string;
 	slug: string;
 	domain: string | null;
 	design: unknown;
-};
+}
 
 const eventLabels: Record<SubscriberEventName, string> = {
 	"incident.acknowledged": "Incident acknowledged",

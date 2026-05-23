@@ -10,9 +10,9 @@ import {
 import { InviteMemberDialog } from "./invite-member-dialog";
 import { MembersTable } from "./members-table";
 
-type TeamSettingsProps = {
+interface TeamSettingsProps {
 	canManageMembers: boolean;
-};
+}
 
 export function TeamSettings({ canManageMembers }: TeamSettingsProps) {
 	return (

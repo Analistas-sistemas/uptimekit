@@ -1,6 +1,6 @@
 import { EventEmitter } from "node:events";
 
-type AppEvents = {
+interface AppEvents {
 	"incident.created": {
 		incidentId: string;
 		organizationId: string;
@@ -50,7 +50,7 @@ type AppEvents = {
 		error?: string;
 		threshold: number;
 	};
-};
+}
 
 class TypedEventEmitter extends EventEmitter {
 	emit<K extends keyof AppEvents>(event: K, payload: AppEvents[K]): boolean {

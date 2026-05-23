@@ -77,14 +77,14 @@ interface OrganizationRow {
 	regionsPerMonitorLimit: number | null;
 }
 
-type OrganizationFormState = {
+interface OrganizationFormState {
 	activeMonitorLimit: string;
 	logo: string;
 	name: string;
 	ownerEmail: string;
 	regionsPerMonitorLimit: string;
 	slug: string;
-};
+}
 
 const emptyCreateForm: OrganizationFormState = {
 	activeMonitorLimit: "",

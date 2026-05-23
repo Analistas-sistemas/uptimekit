@@ -54,9 +54,9 @@ const memberRoleOptions = [
 	{ label: "Member", value: "member" },
 ] as const;
 
-type MembersTableProps = {
+interface MembersTableProps {
 	canManageMembers: boolean;
-};
+}
 
 export function MembersTable({ canManageMembers }: MembersTableProps) {
 	const {

@@ -1,12 +1,12 @@
 export type AdminUserAction = "ban" | "delete" | "demote";
 
-type AdminUserActionCheck = {
+interface AdminUserActionCheck {
 	action: AdminUserAction;
 	adminCount: number;
 	currentUserId: string;
 	targetRole: string | null | undefined;
 	targetUserId: string;
-};
+}
 
 export function isInstanceAdminRole(role: string | null | undefined) {
 	return (

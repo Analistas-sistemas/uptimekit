@@ -42,7 +42,7 @@ import { DataPagination } from "../ui/data-pagination";
 import { DropdownMenuLabel, MenuGroup } from "../ui/menu";
 import { CreateStatusPageForm } from "./create-form";
 
-type StatusPageListItem = {
+interface StatusPageListItem {
 	id: string;
 	name: string;
 	slug: string;
@@ -51,7 +51,7 @@ type StatusPageListItem = {
 	subscribers: number;
 	public: boolean;
 	description: string | null;
-};
+}
 
 export function StatusPagesTable() {
 	const router = useRouter();

@@ -31,7 +31,7 @@ type AuthClientResponse<TData> = Promise<
 	  }
 >;
 
-type ApiKeyClientMethods = {
+interface ApiKeyClientMethods {
 	apiKey: {
 		create: (
 			data: Record<string, unknown>,
@@ -50,7 +50,7 @@ type ApiKeyClientMethods = {
 			options?: unknown,
 		) => AuthClientResponse<unknown>;
 	};
-};
+}
 
 const baseAuthClient = createAuthClient({
 	plugins: [...authClientPlugins],

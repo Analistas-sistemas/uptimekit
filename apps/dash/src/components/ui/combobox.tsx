@@ -29,10 +29,10 @@ type ComboboxRootProps<
 	searchParamKey?: string;
 };
 
-type FilterableElementProps = {
+interface FilterableElementProps {
 	children?: React.ReactNode;
 	value?: unknown;
-};
+}
 
 function getSearchParamKey(value: string | undefined): string {
 	const rawKey = value || "q";
