@@ -21,7 +21,7 @@ services:
       test:
         [
           "CMD-SHELL",
-          "IP=$$(hostname -i | awk '{print $$1}'); wget -qO- \"http://$$IP:3000/api/health\" >/dev/null 2>&1",
+          'IP=$$(hostname -i | awk ''{print $$1}''); wget -qO- "http://$$IP:3000/api/health" >/dev/null 2>&1',
         ]
       interval: 5s
       timeout: 5s
@@ -51,10 +51,6 @@ services:
         condition: service_healthy
     restart: always
 
-  # Default: vanilla Postgres for config data.
-  # To switch the time-series store to TimescaleDB, set TIMESERIES_BACKEND=timescale
-  # in your .env, replace this image with `timescale/timescaledb:latest-pg18`,
-  # and stop the `clickhouse` service.
   db:
     image: postgres:18-alpine
     environment:
