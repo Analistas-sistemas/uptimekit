@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { CreateMonitorForm } from "@/components/monitors/create-form";
 
 export default function CreateMonitorPage() {
@@ -11,7 +12,15 @@ export default function CreateMonitorPage() {
 				</p>
 			</div>
 
-			<CreateMonitorForm />
+			<Suspense
+				fallback={
+					<div className="flex flex-1 items-center justify-center py-12 text-muted-foreground">
+						Loading monitor form...
+					</div>
+				}
+			>
+				<CreateMonitorForm />
+			</Suspense>
 		</div>
 	);
 }

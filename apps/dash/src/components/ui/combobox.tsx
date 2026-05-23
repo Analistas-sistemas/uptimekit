@@ -2,6 +2,7 @@
 
 import { Combobox as ComboboxPrimitive } from "@base-ui/react/combobox";
 import { ChevronsUpDownIcon, XIcon } from "lucide-react";
+import { parseAsString, useQueryState } from "nuqs";
 import * as React from "react";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -10,21 +11,206 @@ import { cn } from "@/lib/utils";
 export const ComboboxContext: React.Context<{
 	chipsRef: React.RefObject<Element | null> | null;
 	multiple: boolean;
+	searchQuery: string;
 }> = React.createContext<{
 	chipsRef: React.RefObject<Element | null> | null;
 	multiple: boolean;
+	searchQuery: string;
 }>({
 	chipsRef: null,
 	multiple: false,
+	searchQuery: "",
 });
 
+type ComboboxRootProps<
+	Value,
+	Multiple extends boolean | undefined = false,
+> = ComboboxPrimitive.Root.Props<Value, Multiple> & {
+	searchParamKey?: string;
+};
+
+type FilterableElementProps = {
+	children?: React.ReactNode;
+	value?: unknown;
+};
+
+function getSearchParamKey(value: string | undefined): string {
+	const rawKey = value || "q";
+	const sanitizedKey = rawKey.replace(/[^a-zA-Z0-9_-]/g, "-");
+
+	return sanitizedKey || "q";
+}
+
+function getComboboxItemLabel(item: unknown): string {
+	if (item == null) {
+		return "";
+	}
+
+	if (typeof item === "string" || typeof item === "number") {
+		return String(item);
+	}
+
+	if (typeof item === "object") {
+		const record = item as Record<string, unknown>;
+		const label = record.label ?? record.name ?? record.title ?? record.value;
+
+		if (label != null) {
+			return String(label);
+		}
+	}
+
+	return String(item);
+}
+
+function getNodeText(node: React.ReactNode): string {
+	if (node == null || typeof node === "boolean") {
+		return "";
+	}
+
+	if (typeof node === "string" || typeof node === "number") {
+		return String(node);
+	}
+
+	if (Array.isArray(node)) {
+		return node.map(getNodeText).join(" ");
+	}
+
+	if (React.isValidElement<FilterableElementProps>(node)) {
+		return getNodeText(node.props.children);
+	}
+
+	return "";
+}
+
+function matchesComboboxQuery(
+	value: unknown,
+	children: React.ReactNode,
+	query: string,
+): boolean {
+	const normalizedQuery = query.trim().toLowerCase();
+
+	if (!normalizedQuery) {
+		return true;
+	}
+
+	const searchableText = `${getComboboxItemLabel(value)} ${getNodeText(
+		children,
+	)}`.toLowerCase();
+
+	return searchableText.includes(normalizedQuery);
+}
+
+function hasComboboxItemChild(children: React.ReactNode): boolean {
+	return React.Children.toArray(children).some((child) => {
+		if (!React.isValidElement<FilterableElementProps>(child)) {
+			return false;
+		}
+
+		if (child.type === ComboboxItem) {
+			return true;
+		}
+
+		return hasComboboxItemChild(child.props.children);
+	});
+}
+
+function filterComboboxChildren(
+	children: React.ReactNode,
+	query: string,
+): React.ReactNode {
+	if (!query.trim()) {
+		return children;
+	}
+
+	return React.Children.map(children, (child) => {
+		if (!React.isValidElement<FilterableElementProps>(child)) {
+			return child;
+		}
+
+		if (child.type === ComboboxItem) {
+			return matchesComboboxQuery(
+				child.props.value,
+				child.props.children,
+				query,
+			)
+				? child
+				: null;
+		}
+
+		const filteredChildren = filterComboboxChildren(
+			child.props.children,
+			query,
+		);
+
+		if (
+			child.type === ComboboxGroup &&
+			!hasComboboxItemChild(filteredChildren)
+		) {
+			return null;
+		}
+
+		return React.cloneElement(child, undefined, filteredChildren);
+	});
+}
+
 export function Combobox<Value, Multiple extends boolean | undefined = false>(
-	props: ComboboxPrimitive.Root.Props<Value, Multiple>,
+	props: ComboboxRootProps<Value, Multiple>,
 ): React.ReactElement {
+	const {
+		defaultInputValue,
+		itemToStringLabel,
+		onInputValueChange,
+		onOpenChange,
+		searchParamKey,
+		...rootProps
+	} = props;
 	const chipsRef = React.useRef<Element | null>(null);
+	const [searchQuery, setSearchQuery] = useQueryState(
+		getSearchParamKey(searchParamKey),
+		parseAsString.withDefault("").withOptions({
+			history: "replace",
+			shallow: true,
+		}),
+	);
+	const resolvedDefaultInputValue =
+		props.inputValue === undefined
+			? (defaultInputValue ?? (searchQuery || undefined))
+			: defaultInputValue;
+
 	return (
-		<ComboboxContext.Provider value={{ chipsRef, multiple: !!props.multiple }}>
-			<ComboboxPrimitive.Root {...props} />
+		<ComboboxContext.Provider
+			value={{ chipsRef, multiple: !!props.multiple, searchQuery }}
+		>
+			<ComboboxPrimitive.Root
+				{...rootProps}
+				defaultInputValue={resolvedDefaultInputValue}
+				itemToStringLabel={
+					itemToStringLabel ?? ((item) => getComboboxItemLabel(item))
+				}
+				onInputValueChange={(value, eventDetails) => {
+					onInputValueChange?.(value, eventDetails);
+
+					if (eventDetails.isCanceled) {
+						return;
+					}
+
+					if (eventDetails.reason === "input-change") {
+						void setSearchQuery(value || null);
+						return;
+					}
+
+					if (eventDetails.reason !== "none") {
+						void setSearchQuery(null);
+					}
+				}}
+				onOpenChange={(open, eventDetails) => {
+					onOpenChange?.(open, eventDetails);
+
+					if (!eventDetails.isCanceled && !open) {
+						void setSearchQuery(null);
+					}
+				}}
+			/>
 		</ComboboxContext.Provider>
 	);
 }
@@ -268,7 +454,7 @@ export function ComboboxGroupLabel({
 	return (
 		<ComboboxPrimitive.GroupLabel
 			className={cn(
-				"px-2 py-1.5 font-medium text-muted-foreground text-xs",
+				"sticky top-0 mt-1 bg-popover px-2 py-1.5 font-medium text-muted-foreground text-xs",
 				className,
 			)}
 			data-slot="combobox-group-label"
@@ -314,8 +500,11 @@ export function ComboboxValue({
 
 export function ComboboxList({
 	className,
+	children,
 	...props
 }: ComboboxPrimitive.List.Props): React.ReactElement {
+	const { searchQuery } = React.useContext(ComboboxContext);
+
 	return (
 		<ScrollArea scrollbarGutter scrollFade>
 			<ComboboxPrimitive.List
@@ -325,7 +514,11 @@ export function ComboboxList({
 				)}
 				data-slot="combobox-list"
 				{...props}
-			/>
+			>
+				{typeof children === "function"
+					? children
+					: filterComboboxChildren(children, searchQuery)}
+			</ComboboxPrimitive.List>
 		</ScrollArea>
 	);
 }

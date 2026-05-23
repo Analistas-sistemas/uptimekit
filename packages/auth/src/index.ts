@@ -131,7 +131,6 @@ const authConfig: BetterAuthOptions = {
 		enabled: true,
 	},
 	plugins: [
-		nextCookies(),
 		admin(),
 		organization({
 			ac: organizationAccessControl,
@@ -161,6 +160,7 @@ const authConfig: BetterAuthOptions = {
 			},
 			references: "organization",
 		}) as unknown as BetterAuthPlugin,
+		nextCookies(),
 	],
 	socialProviders: {
 		discord: {
