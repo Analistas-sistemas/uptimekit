@@ -8,6 +8,7 @@ import { readMigrationFiles } from "drizzle-orm/migrator";
 import { drizzle } from "drizzle-orm/postgres-js";
 import { migrate } from "drizzle-orm/postgres-js/migrator";
 import postgres from "postgres";
+import { resolveTimeSeriesBackend, TimescaleDriver } from "./timeseries";
 
 loadEnv();
 
@@ -97,6 +98,7 @@ const hasExistingApplicationTables = async (
 			FROM information_schema.tables
 			WHERE table_schema = 'public'
 				AND table_type = 'BASE TABLE'
+				AND table_name NOT IN ('monitor_events', 'monitor_changes')
 		) AS exists
 	`;
 
@@ -324,6 +326,25 @@ const runClickHouseMigrations = async () => {
 	}
 };
 
+const runTimescaleMigrations = async () => {
+	console.log("⏳ Running TimescaleDB migrations...");
+
+	const driver = new TimescaleDriver();
+	const start = Date.now();
+
+	try {
+		await driver.ensureSchema();
+		const end = Date.now();
+		console.log(`✅ TimescaleDB migrations completed in ${end - start}ms`);
+	} catch (error) {
+		console.error("❌ TimescaleDB migration failed");
+		console.error(error);
+		process.exit(1);
+	} finally {
+		await driver.close();
+	}
+};
+
 const seedDefaultConfiguration = async () => {
 	console.log("⏳ Seeding default configuration...");
 
@@ -360,12 +381,22 @@ const seedDefaultConfiguration = async () => {
 	}
 };
 
+const runTimeseriesMigrations = async () => {
+	const backend = resolveTimeSeriesBackend();
+	console.log(`🗂  Time-series backend: ${backend}`);
+	if (backend === "clickhouse") {
+		await runClickHouseMigrations();
+	} else {
+		await runTimescaleMigrations();
+	}
+};
+
 const runMigrate = async () => {
 	console.log("⏳ Starting migration script...");
 
 	await runPostgresMigrations();
 	await seedDefaultConfiguration();
-	await runClickHouseMigrations();
+	await runTimeseriesMigrations();
 
 	console.log("🎉 All migrations completed successfully!");
 };
