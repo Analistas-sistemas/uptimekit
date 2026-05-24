@@ -137,7 +137,7 @@ export function ConfigurationSettingsForm() {
 						</p>
 					</div>
 					<div className="flex items-center justify-start pt-2">
-						<Button type="submit" disabled={saveMutation.isPending || !isDirty}>
+						<Button type="submit" disabled={saveMutation.isPending}>
 							{saveMutation.isPending && (
 								<Loader2 className="mr-2 h-4 w-4 animate-spin" />
 							)}
