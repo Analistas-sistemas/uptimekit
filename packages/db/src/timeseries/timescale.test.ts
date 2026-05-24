@@ -13,7 +13,7 @@ let container: StartedTestContainer | undefined;
 let driver: TimescaleDriver | undefined;
 
 beforeAll(async () => {
-	container = await new GenericContainer("timescale/timescaledb:latest-pg18")
+	container = await new GenericContainer("timescale/timescaledb:2.27.1-pg18")
 		.withExposedPorts(5432)
 		.withEnvironment({
 			POSTGRES_USER: "test",

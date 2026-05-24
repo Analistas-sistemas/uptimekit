@@ -46,7 +46,7 @@ services:
     restart: always
 
   db:
-    image: timescale/timescaledb:latest-pg18
+    image: timescale/timescaledb:2.27.1-pg18
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres

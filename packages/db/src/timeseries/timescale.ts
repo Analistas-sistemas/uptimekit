@@ -72,7 +72,7 @@ export class TimescaleDriver implements TimeSeriesDriver {
 						await sql.unsafe("CREATE EXTENSION IF NOT EXISTS timescaledb");
 					} catch (error) {
 						throw new Error(
-							`Failed to create timescaledb extension. Ensure your PostgreSQL image has the TimescaleDB extension installed (e.g. use 'timescale/timescaledb:latest-pg18'). Original error: ${
+							`Failed to create timescaledb extension. Ensure your PostgreSQL image has the TimescaleDB extension installed (e.g. use 'timescale/timescaledb:2.27.1-pg18'). Original error: ${
 								error instanceof Error ? error.message : String(error)
 							}`,
 						);
