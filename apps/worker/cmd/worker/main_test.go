@@ -1,0 +1,141 @@
+package main
+
+import (
+	"testing"
+	"time"
+
+	"github.com/uptimekit/worker/internal/monitor"
+)
+
+type fakeMonitor struct {
+	results []monitor.Result
+	calls   int
+}
+
+func (m *fakeMonitor) Check(cfg monitor.Config) monitor.Result {
+	m.calls++
+
+	if m.calls <= len(m.results) {
+		result := m.results[m.calls-1]
+		result.MonitorID = cfg.ID
+		return result
+	}
+
+	return monitor.Result{
+		MonitorID: cfg.ID,
+		Status:    monitor.StatusDown,
+	}
+}
+
+func TestCheckWithRetriesStopsAfterSuccess(t *testing.T) {
+	checker := &fakeMonitor{
+		results: []monitor.Result{
+			{Status: monitor.StatusDown},
+			{Status: monitor.StatusUp},
+			{Status: monitor.StatusDown},
+		},
+	}
+	sleeps := make([]time.Duration, 0)
+
+	result := checkWithRetries(
+		checker,
+		monitor.Config{ID: "monitor-1", Retries: 2, RetryInterval: 20},
+		func(delay time.Duration) {
+			sleeps = append(sleeps, delay)
+		},
+	)
+
+	if result.Status != monitor.StatusUp {
+		t.Fatalf("status = %q, want %q", result.Status, monitor.StatusUp)
+	}
+	if checker.calls != 2 {
+		t.Fatalf("calls = %d, want 2", checker.calls)
+	}
+	if len(sleeps) != 1 || sleeps[0] != 20*time.Second {
+		t.Fatalf("sleeps = %v, want [20s]", sleeps)
+	}
+}
+
+func TestCheckWithRetriesExhaustsRetryBudget(t *testing.T) {
+	checker := &fakeMonitor{
+		results: []monitor.Result{
+			{Status: monitor.StatusDown},
+			{Status: monitor.StatusDown},
+			{Status: monitor.StatusDown},
+		},
+	}
+	sleeps := make([]time.Duration, 0)
+
+	result := checkWithRetries(
+		checker,
+		monitor.Config{ID: "monitor-1", Retries: 2, RetryInterval: 5},
+		func(delay time.Duration) {
+			sleeps = append(sleeps, delay)
+		},
+	)
+
+	if result.Status != monitor.StatusDown {
+		t.Fatalf("status = %q, want %q", result.Status, monitor.StatusDown)
+	}
+	if checker.calls != 3 {
+		t.Fatalf("calls = %d, want 3", checker.calls)
+	}
+	if len(sleeps) != 2 {
+		t.Fatalf("sleeps = %v, want 2 retry sleeps", sleeps)
+	}
+}
+
+func TestMonitorSchedulerClaimsOnlyDueMonitors(t *testing.T) {
+	start := time.Date(2026, 5, 26, 10, 0, 0, 0, time.UTC)
+	scheduler := newMonitorScheduler()
+	scheduler.sync([]monitor.Config{
+		{ID: "fast", Interval: 30},
+		{ID: "slow", Interval: 120},
+	}, start)
+
+	initial := scheduler.claimDue(start)
+	if len(initial) != 2 {
+		t.Fatalf("initial due count = %d, want 2", len(initial))
+	}
+	scheduler.complete("fast")
+	scheduler.complete("slow")
+
+	afterThirtySeconds := scheduler.claimDue(start.Add(30 * time.Second))
+	if len(afterThirtySeconds) != 1 || afterThirtySeconds[0].ID != "fast" {
+		t.Fatalf("due after 30s = %#v, want only fast", afterThirtySeconds)
+	}
+}
+
+func TestMonitorSchedulerSkipsOverlappingStrictCadenceSlot(t *testing.T) {
+	start := time.Date(2026, 5, 26, 10, 0, 0, 0, time.UTC)
+	scheduler := newMonitorScheduler()
+	scheduler.sync([]monitor.Config{{ID: "monitor-1", Interval: 60}}, start)
+
+	initial := scheduler.claimDue(start)
+	if len(initial) != 1 {
+		t.Fatalf("initial due count = %d, want 1", len(initial))
+	}
+
+	overlap := scheduler.claimDue(start.Add(60 * time.Second))
+	if len(overlap) != 0 {
+		t.Fatalf("overlap due count = %d, want 0", len(overlap))
+	}
+
+	nextDue := scheduler.states["monitor-1"].nextDue
+	wantNextDue := start.Add(120 * time.Second)
+	if !nextDue.Equal(wantNextDue) {
+		t.Fatalf("nextDue = %s, want %s", nextDue, wantNextDue)
+	}
+
+	scheduler.complete("monitor-1")
+
+	beforeNextSlot := scheduler.claimDue(start.Add(61 * time.Second))
+	if len(beforeNextSlot) != 0 {
+		t.Fatalf("before next slot due count = %d, want 0", len(beforeNextSlot))
+	}
+
+	nextSlot := scheduler.claimDue(wantNextDue)
+	if len(nextSlot) != 1 {
+		t.Fatalf("next slot due count = %d, want 1", len(nextSlot))
+	}
+}

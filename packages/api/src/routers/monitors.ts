@@ -28,6 +28,7 @@ import {
 } from "drizzle-orm";
 import { z } from "zod";
 import { protectedProcedure, writeProcedure } from "../index";
+import { monitorTimingSchema } from "../lib/monitor-timing";
 import { enforceMonitorQuotaOrThrow } from "../lib/organization-limits";
 
 const RESPONSE_TIME_RANGE_VALUES = [
@@ -464,7 +465,7 @@ export const monitorsRouter = {
 			z.object({
 				name: z.string().min(1),
 				type: z.enum(["http", "http-json", "tcp", "ping", "dns", "keyword"]),
-				interval: z.number().min(30).default(60),
+				...monitorTimingSchema,
 				groupId: z.string().nullish(),
 				tags: z.array(z.string()).optional(),
 				config: z.record(z.any(), z.any()),
@@ -505,6 +506,10 @@ export const monitorsRouter = {
 						name: input.name,
 						organizationId,
 						type: input.type,
+						interval: input.interval,
+						timeout: input.timeout,
+						retries: input.retries,
+						retryInterval: input.retryInterval,
 						config: input.config,
 						locations: selectedWorkers.map(
 							(selectedWorker) => selectedWorker.location,
@@ -682,7 +687,7 @@ export const monitorsRouter = {
 				id: z.string(),
 				name: z.string().min(1),
 				type: z.enum(["http", "http-json", "tcp", "ping", "dns", "keyword"]),
-				interval: z.number().min(30).default(60),
+				...monitorTimingSchema,
 				groupId: z.string().nullish(),
 				tags: z.array(z.string()).optional(),
 				config: z.record(z.any(), z.any()),
@@ -736,6 +741,9 @@ export const monitorsRouter = {
 						name: input.name,
 						type: input.type,
 						interval: input.interval,
+						timeout: input.timeout,
+						retries: input.retries,
+						retryInterval: input.retryInterval,
 						groupId: input.groupId,
 						config: input.config,
 						locations: selectedWorkers.map(

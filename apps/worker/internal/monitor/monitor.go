@@ -19,6 +19,8 @@ type Config struct {
 	RecordType          string      `json:"recordType,omitempty"`      // For DNS monitor
 	Timeout             int         `json:"timeout"`                   // seconds
 	Interval            int         `json:"interval"`                  // seconds
+	Retries             int         `json:"retries"`                   // retry attempts after initial failure
+	RetryInterval       int         `json:"retryInterval"`             // seconds
 	Method              string      `json:"method,omitempty"`          // HTTP method
 	Headers             interface{} `json:"headers,omitempty"`         // HTTP headers (can be map or empty array)
 	Body                string      `json:"body,omitempty"`            // Request body

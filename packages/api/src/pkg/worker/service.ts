@@ -197,6 +197,8 @@ export async function getMonitorsForWorker(workerId: string) {
 				recordType: config.recordType || "",
 				interval: m.interval,
 				timeout: m.timeout,
+				retries: m.retries,
+				retryInterval: m.retryInterval,
 				method: config.method || "GET",
 				headers: config.headers || {},
 				body: config.body,

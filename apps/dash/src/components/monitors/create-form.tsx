@@ -79,7 +79,10 @@ import { TagsManager } from "./tags-manager";
 
 const baseSchema = z.object({
 	name: z.string().min(1, "Name is required"),
-	interval: z.coerce.number().min(30),
+	interval: z.coerce.number().int().min(30),
+	timeout: z.coerce.number().int().min(1).max(300),
+	retries: z.coerce.number().int().min(0).max(10),
+	retryInterval: z.coerce.number().int().min(1).max(300),
 	groupId: z.string().nullish(),
 	tags: z.array(z.string()).default([]),
 	notificationIds: z.array(z.string()).default([]),
@@ -190,12 +193,18 @@ interface ConfiguredNotification {
 	isDefault: boolean;
 }
 
-const heartbeatPeriodOptions = [
-	{ label: "1 minute", value: "60" },
-	{ label: "2 minutes", value: "120" },
-	{ label: "5 minutes", value: "300" },
-	{ label: "10 minutes", value: "600" },
-] as const;
+const formatSeconds = (seconds: number) => {
+	if (!Number.isFinite(seconds)) {
+		return "";
+	}
+
+	if (seconds >= 60 && seconds % 60 === 0) {
+		const minutes = seconds / 60;
+		return `${minutes} ${minutes === 1 ? "minute" : "minutes"}`;
+	}
+
+	return `${seconds} ${seconds === 1 ? "second" : "seconds"}`;
+};
 
 const confirmationPeriodOptions = [
 	{ label: "Immediate", value: "0" },
@@ -489,6 +498,53 @@ const _groupedTypes: { group: string; items: MonitorTypeDefinition[] }[] = [
 	},
 ];
 
+const TimingNumberField = ({
+	form,
+	name,
+	label,
+	description,
+	min,
+	max,
+}: {
+	form: UseFormReturn<FormValues>;
+	name: "interval" | "timeout" | "retries" | "retryInterval";
+	label: (value: number) => string;
+	description?: (value: number) => string;
+	min: number;
+	max?: number;
+}) => (
+	<FormField
+		control={form.control}
+		name={name}
+		render={({ field }) => {
+			const value = Number(field.value);
+
+			return (
+				<FormItem>
+					<FormLabel>{label(value)}</FormLabel>
+					<FormControl>
+						<Input
+							type="number"
+							min={min}
+							max={max}
+							step={1}
+							value={Number.isFinite(value) ? value : ""}
+							onChange={(event) => field.onChange(Number(event.target.value))}
+							onBlur={field.onBlur}
+							name={field.name}
+							ref={field.ref}
+						/>
+					</FormControl>
+					{description && (
+						<FormDescription>{description(value)}</FormDescription>
+					)}
+					<FormMessage />
+				</FormItem>
+			);
+		}}
+	/>
+);
+
 // Add new Advanced Fields Components
 const HttpAdvancedFields = ({ form }: { form: UseFormReturn<FormValues> }) => {
 	const { fields, append, remove } = useFieldArray({
@@ -713,7 +769,10 @@ export function CreateMonitorForm({
 		return {
 			name: defaults.name || "",
 			type: defaults.type || "http",
-			interval: defaults.interval || 60,
+			interval: defaults.interval ?? 60,
+			timeout: defaults.timeout ?? 48,
+			retries: defaults.retries ?? 2,
+			retryInterval: defaults.retryInterval ?? 20,
 			groupId: defaults.groupId ?? null,
 			tags:
 				defaults.tags?.map((t: any) => (typeof t === "string" ? t : t.id)) ||
@@ -774,6 +833,9 @@ export function CreateMonitorForm({
 				type,
 				name,
 				interval,
+				timeout,
+				retries,
+				retryInterval,
 				groupId,
 				tags,
 				workerIds,
@@ -788,6 +850,9 @@ export function CreateMonitorForm({
 				type,
 				name,
 				interval,
+				timeout,
+				retries,
+				retryInterval,
 				groupId,
 				tags,
 				workerIds,
@@ -1156,40 +1221,14 @@ export function CreateMonitorForm({
 									/>
 								</div>
 
-								<FormField
-									control={form.control}
+								<TimingNumberField
+									form={form}
 									name="interval"
-									render={({ field }) => {
-										const selectedInterval = heartbeatPeriodOptions.find(
-											(option) => option.value === field.value.toString(),
-										);
-
-										return (
-											<FormItem>
-												<FormLabel>Heartbeat period</FormLabel>
-												<Select
-													onValueChange={(val) => field.onChange(Number(val))}
-													value={field.value.toString()}
-												>
-													<FormControl>
-														<SelectTrigger className="w-full">
-															<SelectValue placeholder="Select interval">
-																{selectedInterval?.label}
-															</SelectValue>
-														</SelectTrigger>
-													</FormControl>
-													<SelectContent>
-														{heartbeatPeriodOptions.map(({ label, value }) => (
-															<SelectItem key={value} value={value}>
-																{label}
-															</SelectItem>
-														))}
-													</SelectContent>
-												</Select>
-												<FormMessage />
-											</FormItem>
-										);
-									}}
+									min={30}
+									label={(value) =>
+										`Heartbeat Interval (Check every ${formatSeconds(value)})`
+									}
+									description={(value) => formatSeconds(value)}
 								/>
 
 								{/* Workers Field */}
@@ -1493,6 +1532,37 @@ export function CreateMonitorForm({
 						<CollapsibleContent className="col-span-1 md:col-span-2">
 							<Card>
 								<CardContent className="space-y-6 p-6">
+									<div className="grid gap-6 md:grid-cols-2">
+										<TimingNumberField
+											form={form}
+											name="retries"
+											min={0}
+											max={10}
+											label={() => "Retries"}
+											description={() =>
+												"Maximum retries before the service is marked as down and a notification is sent"
+											}
+										/>
+										<TimingNumberField
+											form={form}
+											name="retryInterval"
+											min={1}
+											max={300}
+											label={(value) =>
+												`Heartbeat Retry Interval (Retry every ${formatSeconds(value)})`
+											}
+										/>
+										<TimingNumberField
+											form={form}
+											name="timeout"
+											min={1}
+											max={300}
+											label={(value) =>
+												`Request Timeout (Timeout after ${formatSeconds(value)})`
+											}
+										/>
+									</div>
+
 									<div className="grid gap-6 md:grid-cols-2">
 										<FormField
 											control={form.control}
