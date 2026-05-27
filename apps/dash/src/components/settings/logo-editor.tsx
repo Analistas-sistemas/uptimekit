@@ -1,9 +1,9 @@
 "use client";
 
-import { ImageIcon, Pencil, Trash } from "lucide-react";
 import { useState } from "react";
 import { sileo } from "sileo";
 import { z } from "zod";
+import { ImageIcon, Pencil, Trash } from "@/components/icons";
 
 import { Button } from "@/components/ui/button";
 import {

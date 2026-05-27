@@ -4,12 +4,12 @@ import { mergeProps } from "@base-ui/react/merge-props";
 import { Select as SelectPrimitive } from "@base-ui/react/select";
 import { useRender } from "@base-ui/react/use-render";
 import { cva, type VariantProps } from "class-variance-authority";
+import type * as React from "react";
 import {
 	ChevronDownIcon,
 	ChevronsUpDownIcon,
 	ChevronUpIcon,
-} from "lucide-react";
-import type * as React from "react";
+} from "@/components/icons";
 import { cn } from "@/lib/utils";
 
 export const Select: typeof SelectPrimitive.Root = SelectPrimitive.Root;

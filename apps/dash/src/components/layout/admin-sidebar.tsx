@@ -1,5 +1,8 @@
 "use client";
 
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import type * as React from "react";
 import {
 	BarChart3,
 	ChevronLeft,
@@ -7,10 +10,7 @@ import {
 	Settings,
 	Shield,
 	Users,
-} from "lucide-react";
-import Link from "next/link";
-import { usePathname } from "next/navigation";
-import type * as React from "react";
+} from "@/components/icons";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
 	Sidebar,

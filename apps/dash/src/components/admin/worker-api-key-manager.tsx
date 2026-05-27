@@ -1,10 +1,10 @@
 "use client";
 
 import { useMutation } from "@tanstack/react-query";
-import { Check, Copy, Loader2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { sileo } from "sileo";
+import { Check, Copy, Loader2 } from "@/components/icons";
 import { Button } from "@/components/ui/button";
 import {
 	Dialog,

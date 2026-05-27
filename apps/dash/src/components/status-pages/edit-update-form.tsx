@@ -2,11 +2,11 @@
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { X } from "lucide-react";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { sileo } from "sileo";
 import * as z from "zod";
+import { X } from "@/components/icons";
 
 import { GroupedMonitorCombobox } from "@/components/monitors/grouped-monitor-combobox";
 import {

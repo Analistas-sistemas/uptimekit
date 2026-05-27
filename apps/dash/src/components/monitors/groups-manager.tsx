@@ -1,9 +1,15 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Folder, MoreHorizontal, Pencil, Plus, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { sileo } from "sileo";
+import {
+	Folder,
+	MoreHorizontal,
+	Pencil,
+	Plus,
+	Trash2,
+} from "@/components/icons";
 import {
 	AlertDialog,
 	AlertDialogCancel,

@@ -2,6 +2,8 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { formatDistanceToNow } from "date-fns";
+import { useEffect, useState } from "react";
+import { sileo } from "sileo";
 import {
 	Ban,
 	ChevronDown,
@@ -16,9 +18,7 @@ import {
 	ShieldCheck,
 	Trash2,
 	UserX,
-} from "lucide-react";
-import { useEffect, useState } from "react";
-import { sileo } from "sileo";
+} from "@/components/icons";
 import {
 	AlertDialog,
 	AlertDialogCancel,

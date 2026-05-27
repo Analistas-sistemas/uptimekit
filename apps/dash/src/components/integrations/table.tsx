@@ -9,6 +9,15 @@ import { telegramIntegrationMeta } from "@uptimekit/api/pkg/integrations/definit
 import { webhookIntegrationMeta } from "@uptimekit/api/pkg/integrations/definitions/webhook-meta";
 import type { IntegrationDefinition } from "@uptimekit/api/pkg/integrations/registry";
 import {
+	parseAsInteger,
+	parseAsString,
+	parseAsStringEnum,
+	useQueryStates,
+} from "nuqs";
+import { useEffect, useState } from "react";
+import { sileo } from "sileo";
+import { z } from "zod";
+import {
 	ArrowRight,
 	Check,
 	ChevronDown,
@@ -23,16 +32,7 @@ import {
 	Settings2,
 	Trash2,
 	Webhook,
-} from "lucide-react";
-import {
-	parseAsInteger,
-	parseAsString,
-	parseAsStringEnum,
-	useQueryStates,
-} from "nuqs";
-import { useEffect, useState } from "react";
-import { sileo } from "sileo";
-import { z } from "zod";
+} from "@/components/icons";
 import { ConfigDialog } from "@/components/integrations/config-dialog";
 import {
 	AlertDialog,

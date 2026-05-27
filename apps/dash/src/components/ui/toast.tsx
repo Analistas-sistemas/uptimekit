@@ -1,14 +1,14 @@
 "use client";
 
 import { Toast } from "@base-ui/react/toast";
+import type React from "react";
 import {
 	CircleAlertIcon,
 	CircleCheckIcon,
 	InfoIcon,
 	LoaderCircleIcon,
 	TriangleAlertIcon,
-} from "lucide-react";
-import type React from "react";
+} from "@/components/icons";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 

@@ -1,8 +1,8 @@
 "use client";
 
-import { Lock } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { Lock } from "@/components/icons";
 
 interface PasswordFormProps {
 	statusPageId: string;

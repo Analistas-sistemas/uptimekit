@@ -1,6 +1,10 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import Link from "next/link";
+import { useParams, useRouter } from "next/navigation";
+import { useState } from "react";
+import { sileo } from "sileo";
 import {
 	AlertOctagon,
 	AlertTriangle,
@@ -9,11 +13,7 @@ import {
 	MessageSquare,
 	MoreHorizontal,
 	Plus,
-} from "lucide-react";
-import Link from "next/link";
-import { useParams, useRouter } from "next/navigation";
-import { useState } from "react";
-import { sileo } from "sileo";
+} from "@/components/icons";
 
 import { CreateStatusUpdateForm } from "@/components/status-pages/create-update-form";
 import {

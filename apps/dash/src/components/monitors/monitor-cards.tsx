@@ -1,5 +1,5 @@
 import { formatDistanceToNow } from "date-fns";
-import { Activity, AlertTriangle, Clock } from "lucide-react";
+import { Activity, AlertTriangle, Clock } from "@/components/icons";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 interface MonitorCardsProps {

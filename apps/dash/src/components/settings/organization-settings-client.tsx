@@ -2,13 +2,13 @@
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useQueryClient } from "@tanstack/react-query";
-import { Loader2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { parseAsStringEnum, useQueryState } from "nuqs";
 import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import { sileo } from "sileo";
 import { z } from "zod";
+import { Loader2 } from "@/components/icons";
 import { ApiKeySettings } from "@/components/settings/api-key-settings";
 import { GroupSettings } from "@/components/settings/group-settings";
 import { LogoEditor } from "@/components/settings/logo-editor";

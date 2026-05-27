@@ -1,7 +1,7 @@
 "use client";
 
-import { ChevronDown, Info } from "lucide-react";
 import { useState } from "react";
+import { ChevronDown, Info } from "@/components/icons";
 import {
 	Tooltip,
 	TooltipContent,

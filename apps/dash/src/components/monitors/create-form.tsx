@@ -2,6 +2,11 @@
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
+import { type UseFormReturn, useFieldArray, useForm } from "react-hook-form";
+import { sileo } from "sileo";
+import * as z from "zod";
 import {
 	Activity,
 	Bell,
@@ -12,12 +17,7 @@ import {
 	Plus,
 	Search,
 	Server,
-} from "lucide-react";
-import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
-import { type UseFormReturn, useFieldArray, useForm } from "react-hook-form";
-import { sileo } from "sileo";
-import * as z from "zod";
+} from "@/components/icons";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -1293,8 +1293,8 @@ export function CreateMonitorForm({
 																								/>
 																							</FormControl>
 																							<div className="flex items-center gap-2 space-y-1 leading-none">
-																								<div className="relative h-3.5 w-5 overflow-hidden rounded-[2px] shadow-sm">
-																									<Flag className="h-full w-full object-cover" />
+																								<div className="relative size-6 overflow-hidden shadow-sm">
+																									<Flag className="h-full w-full" />
 																								</div>
 																								<div className="min-w-0">
 																									<FormLabel className="cursor-pointer font-normal">
@@ -1617,7 +1617,7 @@ export function CreateMonitorForm({
 						</CollapsibleContent>
 					</Collapsible>
 
-					<div className="sticky bottom-0 z-10 flex justify-end gap-4 border-t bg-background/80 p-4 backdrop-blur-sm">
+					<div className="bottom-0 z-10 flex flex justify-end gap-4 p-4">
 						<Button
 							type="button"
 							variant="outline"

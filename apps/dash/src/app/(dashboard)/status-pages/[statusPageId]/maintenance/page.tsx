@@ -1,11 +1,11 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ChevronDown, Clock, MoreHorizontal, Plus } from "lucide-react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useState } from "react";
 import { sileo } from "sileo";
+import { ChevronDown, Clock, MoreHorizontal, Plus } from "@/components/icons";
 import { CreateMaintenanceForm } from "@/components/status-pages/create-maintenance-form";
 import {
 	AlertDialog,
