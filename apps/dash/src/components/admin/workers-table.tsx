@@ -276,7 +276,7 @@ export function WorkersTable() {
 															const Flag = regionInfo.Flag;
 															return (
 																<>
-																	<Flag className="h-3 w-4 rounded-sm object-cover" />
+																	<Flag className="size-3.5 shrink-0 rounded-sm" />
 																	<span>{regionInfo.label}</span>
 																</>
 															);

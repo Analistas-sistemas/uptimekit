@@ -250,7 +250,7 @@ export function CreateWorkerDialog() {
 													{group.regions.map((region) => (
 														<ComboboxItem key={region.value} value={region}>
 															<div className="flex items-center gap-2">
-																<region.Flag className="h-4 w-5 rounded-sm object-cover" />
+																<region.Flag className="size-4 shrink-0 rounded-sm" />
 																<span>{region.label}</span>
 															</div>
 														</ComboboxItem>

@@ -175,7 +175,7 @@ export default function WorkersMap() {
 							<MarkerTooltip>
 								<div className="min-w-40 rounded-md bg-zinc-950/95 p-3 text-center text-zinc-50 shadow-xl">
 									<div className="flex items-center justify-center gap-2">
-										<Flag className="h-4 w-4 overflow-hidden rounded-[2px]" />
+										<Flag className="size-4 overflow-hidden rounded-[2px]" />
 										<div className="font-medium">{marker.label}</div>
 									</div>
 									<div className="text-[10px] text-zinc-400 uppercase">
