@@ -1,4 +1,3 @@
-import { Globe } from "lucide-react";
 import {
 	IconAndorra as AD,
 	IconUnitedArabEmirates as AE,
@@ -231,6 +230,7 @@ import {
 	IconZimbabwe as ZW,
 } from "nucleo-flags";
 import type { ComponentType } from "react";
+import { Globe } from "@/components/icons";
 
 type FlagComponent = ComponentType<IconProps>;
 

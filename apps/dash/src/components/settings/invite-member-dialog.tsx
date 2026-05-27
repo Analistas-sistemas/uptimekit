@@ -1,11 +1,11 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Check, Copy, Loader2, Plus } from "lucide-react";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { sileo } from "sileo";
 import { z } from "zod";
+import { Check, Copy, Loader2, Plus } from "@/components/icons";
 import { Button } from "@/components/ui/button";
 import {
 	Dialog,

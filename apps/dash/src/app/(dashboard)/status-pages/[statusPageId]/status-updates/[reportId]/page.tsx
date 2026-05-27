@@ -1,15 +1,15 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
+import { useParams, useRouter } from "next/navigation";
+import { useState } from "react";
 import {
 	AlertOctagon,
 	AlertTriangle,
 	ArrowLeft,
 	CheckCircle,
 	Pencil,
-} from "lucide-react";
-import { useParams, useRouter } from "next/navigation";
-import { useState } from "react";
+} from "@/components/icons";
 import { AddUpdateForm } from "@/components/status-pages/add-update-form";
 import { EditUpdateForm } from "@/components/status-pages/edit-update-form";
 import { Badge } from "@/components/ui/badge";

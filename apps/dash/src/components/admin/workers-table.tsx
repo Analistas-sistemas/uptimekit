@@ -6,17 +6,17 @@ import {
 	type WorkerAvailabilityStatus,
 } from "@uptimekit/api/lib/worker-status";
 import { formatDistanceToNow } from "date-fns";
+import Link from "next/link";
+import { useEffect, useState } from "react";
+import { sileo } from "sileo";
+import { CreateWorkerDialog } from "@/components/admin/create-worker-dialog";
 import {
 	ChevronDown,
 	ChevronLeftIcon,
 	ChevronRightIcon,
 	MoreHorizontal,
 	Search,
-} from "lucide-react";
-import Link from "next/link";
-import { useEffect, useState } from "react";
-import { sileo } from "sileo";
-import { CreateWorkerDialog } from "@/components/admin/create-worker-dialog";
+} from "@/components/icons";
 import {
 	AlertDialog,
 	AlertDialogCancel,

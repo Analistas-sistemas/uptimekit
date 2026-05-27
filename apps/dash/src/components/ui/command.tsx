@@ -1,9 +1,9 @@
 "use client";
 
 import { Dialog as CommandDialogPrimitive } from "@base-ui/react/dialog";
-import { ChevronDown, SearchIcon } from "lucide-react";
 import type * as React from "react";
 import { useState } from "react";
+import { ChevronDown, SearchIcon } from "@/components/icons";
 import {
 	Autocomplete,
 	AutocompleteCollection,

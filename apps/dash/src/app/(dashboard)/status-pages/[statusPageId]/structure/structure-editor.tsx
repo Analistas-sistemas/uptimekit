@@ -23,6 +23,8 @@ import {
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useEffect, useState } from "react";
+import { sileo } from "sileo";
 import {
 	GripHorizontal,
 	GripVertical,
@@ -32,9 +34,7 @@ import {
 	Search,
 	Settings2,
 	Trash2,
-} from "lucide-react";
-import { useEffect, useState } from "react";
-import { sileo } from "sileo";
+} from "@/components/icons";
 import { groupMonitorOptions } from "@/components/monitors/grouped-monitor-combobox";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";

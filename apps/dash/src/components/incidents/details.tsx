@@ -3,6 +3,12 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { format, formatDistance, formatDistanceToNow } from "date-fns";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
+import { useForm } from "react-hook-form";
+import { sileo } from "sileo";
+import { z } from "zod";
 import {
 	CheckCircle2,
 	CornerDownRight,
@@ -10,13 +16,7 @@ import {
 	Pencil,
 	ShieldAlert,
 	Trash2,
-} from "lucide-react";
-import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
-import { useForm } from "react-hook-form";
-import { sileo } from "sileo";
-import { z } from "zod";
+} from "@/components/icons";
 import { GroupedMonitorCombobox } from "@/components/monitors/grouped-monitor-combobox";
 import {
 	AlertDialog,

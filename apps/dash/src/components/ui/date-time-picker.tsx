@@ -1,8 +1,8 @@
 "use client";
 
 import { format } from "date-fns";
-import { Calendar as CalendarIcon, Clock } from "lucide-react";
 import * as React from "react";
+import { Calendar as CalendarIcon, Clock } from "@/components/icons";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import { Input } from "@/components/ui/input";

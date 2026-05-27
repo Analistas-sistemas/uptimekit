@@ -1,6 +1,8 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
 import {
 	ArrowRight,
 	BarChart,
@@ -14,9 +16,7 @@ import {
 	MoreHorizontal,
 	Plus,
 	Search,
-} from "lucide-react";
-import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+} from "@/components/icons";
 import {
 	AlertDialog,
 	AlertDialogCancel,

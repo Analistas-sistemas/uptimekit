@@ -1,4 +1,4 @@
-import { ExternalLink } from "lucide-react";
+import { ExternalLink } from "@/components/icons";
 import { cn } from "@/lib/utils";
 import type { StatusType, UptimeDay } from "../../types";
 import { StatusDot } from "./status-indicator";

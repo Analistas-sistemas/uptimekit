@@ -1,10 +1,10 @@
 "use client";
 
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { Copy, Eye, EyeOff, Loader2, Plus } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { sileo } from "sileo";
+import { Copy, Eye, EyeOff, Loader2, Plus } from "@/components/icons";
 import { Button } from "@/components/ui/button";
 import {
 	Combobox,

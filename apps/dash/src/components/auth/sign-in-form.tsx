@@ -1,12 +1,12 @@
 "use client";
 
 import { useForm } from "@tanstack/react-form";
-import { AtSignIcon, LockKeyholeIcon } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { sileo } from "sileo";
 import z from "zod";
 import { AuthDivider } from "@/components/auth/auth-divider";
+import { AtSignIcon, LockKeyholeIcon } from "@/components/icons";
 import { Logo } from "@/components/logo";
 import { Button } from "@/components/ui/button";
 import {

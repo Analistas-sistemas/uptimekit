@@ -2,6 +2,11 @@
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
+import { type UseFormReturn, useFieldArray, useForm } from "react-hook-form";
+import { sileo } from "sileo";
+import * as z from "zod";
 import {
 	Activity,
 	Bell,
@@ -12,12 +17,7 @@ import {
 	Plus,
 	Search,
 	Server,
-} from "lucide-react";
-import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
-import { type UseFormReturn, useFieldArray, useForm } from "react-hook-form";
-import { sileo } from "sileo";
-import * as z from "zod";
+} from "@/components/icons";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";

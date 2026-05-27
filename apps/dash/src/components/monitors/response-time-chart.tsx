@@ -3,15 +3,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { format } from "date-fns";
 import {
-	ChevronLeft,
-	ChevronRight,
-	ChevronsLeft,
-	ChevronsRight,
-	ChevronsUpDown,
-	Globe,
-	MoreHorizontal,
-} from "lucide-react";
-import {
 	parseAsArrayOf,
 	parseAsInteger,
 	parseAsString,
@@ -30,6 +21,15 @@ import {
 	XAxis,
 	YAxis,
 } from "recharts";
+import {
+	ChevronLeft,
+	ChevronRight,
+	ChevronsLeft,
+	ChevronsRight,
+	ChevronsUpDown,
+	Globe,
+	MoreHorizontal,
+} from "@/components/icons";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";

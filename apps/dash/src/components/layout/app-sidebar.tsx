@@ -1,5 +1,8 @@
 "use client";
 
+import Link from "next/link";
+import { usePathname, useRouter } from "next/navigation";
+import * as React from "react";
 import {
 	Activity,
 	AlertTriangle,
@@ -10,10 +13,7 @@ import {
 	Plus,
 	Settings,
 	ShieldAlert,
-} from "lucide-react";
-import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
-import * as React from "react";
+} from "@/components/icons";
 import { CreateOrganizationDialog } from "@/components/layout/create-organization-dialog";
 import {
 	DropdownMenu,
@@ -306,8 +306,8 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
 // The existing UserMenu returns a DropdownMenu directly. We want to style the trigger to look like a SidebarMenuButton.
 // Let's create a wrapper or modify UserMenu. For now, I'll create a local wrapper that uses the same logic.
 
-import { ChevronsUpDown, LogOut, User } from "lucide-react";
 import Image from "next/image";
+import { ChevronsUpDown, LogOut, User } from "@/components/icons";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Skeleton } from "@/components/ui/skeleton";
 
