@@ -806,11 +806,11 @@ export function IncidentsTable() {
 							<span className="mr-1 whitespace-nowrap font-medium text-foreground text-sm">
 								{formatIncidentCount(selectedCount)} selected
 							</span>
-							<span className="hidden text-muted-foreground text-xs sm:inline">
+							{/*<span className="hidden text-muted-foreground text-xs sm:inline">
 								{selectedActionableCount > 0
 									? `${formatIncidentCount(selectedActionableCount)} can be updated`
 									: "Only delete is available for this selection"}
-							</span>
+							</span>*/}
 							<Button
 								variant="outline"
 								size="xs"
