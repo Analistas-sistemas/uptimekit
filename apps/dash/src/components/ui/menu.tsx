@@ -1,8 +1,8 @@
 "use client";
 
 import { Menu as MenuPrimitive } from "@base-ui/react/menu";
-import { ChevronRightIcon } from "lucide-react";
 import type * as React from "react";
+import { ChevronRightIcon } from "@/components/icons";
 import { cn } from "@/lib/utils";
 
 export const MenuCreateHandle: typeof MenuPrimitive.createHandle =

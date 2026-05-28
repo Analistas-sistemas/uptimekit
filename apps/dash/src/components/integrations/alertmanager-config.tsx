@@ -1,7 +1,14 @@
 "use client";
 
-import { Check, ChevronDown, Copy, Eye, EyeOff, RefreshCw } from "lucide-react";
 import { useState } from "react";
+import {
+	Check,
+	ChevronDown,
+	Copy,
+	Eye,
+	EyeOff,
+	RefreshCw,
+} from "@/components/icons";
 import { Button } from "@/components/ui/button";
 import {
 	Collapsible,

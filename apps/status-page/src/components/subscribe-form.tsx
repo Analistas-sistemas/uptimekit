@@ -1,7 +1,7 @@
 "use client";
 
-import { CheckCircle2, Loader2 } from "lucide-react";
 import { type FormEvent, useState } from "react";
+import { CheckCircle2, Loader2 } from "@/components/icons";
 import { cn } from "@/lib/utils";
 
 interface SubscribeFormProps {

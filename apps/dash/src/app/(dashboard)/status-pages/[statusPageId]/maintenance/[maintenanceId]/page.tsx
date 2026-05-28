@@ -2,6 +2,11 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { format } from "date-fns";
+import Link from "next/link";
+import { useParams, useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
+import { useForm } from "react-hook-form";
+import { sileo } from "sileo";
 import {
 	ArrowLeft,
 	Calendar,
@@ -11,12 +16,7 @@ import {
 	Megaphone,
 	Pencil,
 	Wrench,
-} from "lucide-react";
-import Link from "next/link";
-import { useParams, useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
-import { useForm } from "react-hook-form";
-import { sileo } from "sileo";
+} from "@/components/icons";
 
 import { AddMaintenanceUpdateForm } from "@/components/status-pages/add-maintenance-update-form";
 import {

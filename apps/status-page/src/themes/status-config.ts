@@ -5,7 +5,7 @@ import {
 	HelpCircle,
 	Wrench,
 	XCircle,
-} from "lucide-react";
+} from "@/components/icons";
 import type { StatusType } from "./types";
 
 export const statusConfig: Record<

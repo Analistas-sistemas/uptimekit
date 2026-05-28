@@ -6,17 +6,17 @@ import {
 	type WorkerAvailabilityStatus,
 } from "@uptimekit/api/lib/worker-status";
 import { formatDistanceToNow } from "date-fns";
+import Link from "next/link";
+import { useEffect, useState } from "react";
+import { sileo } from "sileo";
+import { CreateWorkerDialog } from "@/components/admin/create-worker-dialog";
 import {
 	ChevronDown,
 	ChevronLeftIcon,
 	ChevronRightIcon,
 	MoreHorizontal,
 	Search,
-} from "lucide-react";
-import Link from "next/link";
-import { useEffect, useState } from "react";
-import { sileo } from "sileo";
-import { CreateWorkerDialog } from "@/components/admin/create-worker-dialog";
+} from "@/components/icons";
 import {
 	AlertDialog,
 	AlertDialogCancel,
@@ -276,7 +276,7 @@ export function WorkersTable() {
 															const Flag = regionInfo.Flag;
 															return (
 																<>
-																	<Flag className="h-3 w-4 rounded-sm object-cover" />
+																	<Flag className="size-3.5 shrink-0 rounded-sm" />
 																	<span>{regionInfo.label}</span>
 																</>
 															);

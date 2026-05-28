@@ -3,15 +3,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { format } from "date-fns";
 import {
-	ChevronLeft,
-	ChevronRight,
-	ChevronsLeft,
-	ChevronsRight,
-	ChevronsUpDown,
-	Globe,
-	MoreHorizontal,
-} from "lucide-react";
-import {
 	parseAsArrayOf,
 	parseAsInteger,
 	parseAsString,
@@ -30,6 +21,15 @@ import {
 	XAxis,
 	YAxis,
 } from "recharts";
+import {
+	ChevronLeft,
+	ChevronRight,
+	ChevronsLeft,
+	ChevronsRight,
+	ChevronsUpDown,
+	Globe,
+	MoreHorizontal,
+} from "@/components/icons";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -751,7 +751,7 @@ export function ResponseTimeChart({
 															});
 														}}
 													/>
-													<regionInfo.Flag className="h-3.5 w-5 rounded-[2px]" />
+													<regionInfo.Flag className="size-4 shrink-0 rounded-[2px]" />
 													<div className="min-w-0">
 														<div className="truncate text-sm">
 															{primaryLabel}
@@ -1081,7 +1081,7 @@ export function ResponseTimeChart({
 											>
 												<TableCell className="px-4">
 													<div className="flex items-center gap-3">
-														<regionInfo.Flag className="h-3.5 w-5 rounded-[2px]" />
+														<regionInfo.Flag className="size-4 shrink-0 rounded-[2px]" />
 														<div className="min-w-0">
 															<div className="truncate font-medium text-sm">
 																{primaryLabel}

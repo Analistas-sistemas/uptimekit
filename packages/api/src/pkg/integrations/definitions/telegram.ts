@@ -23,7 +23,7 @@ export const telegramIntegration: IntegrationDefinition<
 					"<b>Status:</b> Your Telegram integration is working correctly!",
 					"",
 					"<b>Message:</b>",
-					`<pre>${payload.message}</pre>`,
+					`<pre>${payload.description || "No details provided"}</pre>`,
 					"",
 					`<b>Timestamp:</b> ${new Date().toLocaleString()}`,
 				].join("\n");

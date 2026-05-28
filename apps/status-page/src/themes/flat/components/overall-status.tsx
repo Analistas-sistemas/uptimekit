@@ -1,4 +1,10 @@
-import { AlertCircle, AlertTriangle, Check, Wrench, X } from "lucide-react";
+import {
+	AlertCircle,
+	AlertTriangle,
+	Check,
+	Wrench,
+	X,
+} from "@/components/icons";
 import type { StatusType } from "../../types";
 
 interface OverallStatusProps {

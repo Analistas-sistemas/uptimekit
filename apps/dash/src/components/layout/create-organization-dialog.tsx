@@ -1,12 +1,11 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Loader2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
-
 import { sileo } from "sileo";
 import * as z from "zod";
+import { Loader2 } from "@/components/icons";
 
 import { Button } from "@/components/ui/button";
 import {

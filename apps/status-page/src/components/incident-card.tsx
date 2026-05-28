@@ -1,5 +1,5 @@
-import { ChevronDown, ChevronUp } from "lucide-react";
 import Link from "next/link";
+import { ChevronDown, ChevronUp } from "@/components/icons";
 import { cn } from "@/lib/utils";
 import { StatusDot } from "@/themes/default/components/status-indicator";
 import type { Incident, StatusType } from "@/themes/types";

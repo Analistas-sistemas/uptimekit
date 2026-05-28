@@ -1,5 +1,5 @@
-import { ChevronLeft } from "lucide-react";
 import Link from "next/link";
+import { ChevronLeft } from "@/components/icons";
 
 interface BackLinkProps {
 	href: string;

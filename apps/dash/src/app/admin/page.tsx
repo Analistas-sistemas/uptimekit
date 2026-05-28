@@ -8,12 +8,11 @@ import { monitor } from "@uptimekit/db/schema/monitors";
 import { worker } from "@uptimekit/db/schema/workers";
 import { formatDistanceToNow } from "date-fns";
 import { and, count, eq, isNull, lt, or } from "drizzle-orm";
-import { Activity, BarChart3, Shield, Users } from "lucide-react";
-import Image from "next/image";
 import WorkersMap from "@/components/admin/workers-map";
+import { Activity, BarChart3, Shield, Users } from "@/components/icons";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { getFlag, getRegionInfo } from "@/lib/regions";
+import { getRegionInfo } from "@/lib/regions";
 
 // Disable prerendering - this page needs database access at runtime
 export const dynamic = "force-dynamic";
@@ -204,6 +203,7 @@ export default async function AdminPage() {
 							<div>
 								{workerRows.map((worker) => {
 									const regionInfo = getRegionInfo(worker.location);
+									const Flag = regionInfo.Flag;
 
 									return (
 										<div
@@ -217,13 +217,9 @@ export default async function AdminPage() {
 													</div>
 													<div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-muted-foreground text-xs">
 														<span className="inline-flex min-w-0 items-center gap-1.5">
-															<Image
-																src={getFlag(worker.location)}
-																alt={`${regionInfo.label} flag`}
-																width={24}
-																height={16}
-																unoptimized
-																className="h-4 w-6 shrink-0 rounded-sm object-cover shadow-sm"
+															<Flag
+																aria-label={`${regionInfo.label} flag`}
+																className="size-5 shrink-0 rounded-sm shadow-sm"
 															/>
 															<span className="truncate">
 																{regionInfo.label}

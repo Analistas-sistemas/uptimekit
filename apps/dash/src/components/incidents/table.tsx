@@ -2,6 +2,16 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { formatDistanceToNow } from "date-fns";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import {
+	parseAsInteger,
+	parseAsString,
+	parseAsStringEnum,
+	useQueryStates,
+} from "nuqs";
+import { useEffect, useState } from "react";
+import { sileo } from "sileo";
 import {
 	ArrowRight,
 	Check,
@@ -18,17 +28,7 @@ import {
 	ShieldAlert,
 	Trash2,
 	X,
-} from "lucide-react";
-import Link from "next/link";
-import { useRouter } from "next/navigation";
-import {
-	parseAsInteger,
-	parseAsString,
-	parseAsStringEnum,
-	useQueryStates,
-} from "nuqs";
-import { useEffect, useState } from "react";
-import { sileo } from "sileo";
+} from "@/components/icons";
 import {
 	AlertDialog,
 	AlertDialogCancel,
@@ -806,11 +806,11 @@ export function IncidentsTable() {
 							<span className="mr-1 whitespace-nowrap font-medium text-foreground text-sm">
 								{formatIncidentCount(selectedCount)} selected
 							</span>
-							<span className="hidden text-muted-foreground text-xs sm:inline">
+							{/*<span className="hidden text-muted-foreground text-xs sm:inline">
 								{selectedActionableCount > 0
 									? `${formatIncidentCount(selectedActionableCount)} can be updated`
 									: "Only delete is available for this selection"}
-							</span>
+							</span>*/}
 							<Button
 								variant="outline"
 								size="xs"

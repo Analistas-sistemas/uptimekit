@@ -1,5 +1,5 @@
 import type { IntegrationDefinition } from "@uptimekit/api/pkg/integrations/registry";
-import { Plus, Settings2 } from "lucide-react";
+import { Plus, Settings2 } from "@/components/icons";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { cn } from "@/lib/utils";

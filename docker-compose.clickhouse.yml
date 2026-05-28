@@ -12,10 +12,13 @@ services:
       - CLICKHOUSE_USER=default
       - CLICKHOUSE_PASSWORD=clickhouse
       - REDIS_URL=redis://redis:6379
+      - APPRISE_URL=http://apprise:8000
     depends_on:
       db:
         condition: service_healthy
       redis:
+        condition: service_started
+      apprise:
         condition: service_started
     healthcheck:
       test:
@@ -71,6 +74,12 @@ services:
     image: redis:8.0-alpine
     volumes:
       - redis_data:/data
+    restart: always
+
+  apprise:
+    image: caronc/apprise:latest
+    environment:
+      - APPRISE_WORKER_COUNT=1
     restart: always
 
   # Only needed when TIMESERIES_BACKEND=clickhouse (the default).

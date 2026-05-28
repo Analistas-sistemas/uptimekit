@@ -1,10 +1,10 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Loader2 } from "lucide-react";
 import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { sileo } from "sileo";
+import { Loader2 } from "@/components/icons";
 import { Button } from "@/components/ui/button";
 import {
 	Card,

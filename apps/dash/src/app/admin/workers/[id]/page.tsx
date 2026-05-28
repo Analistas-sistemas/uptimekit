@@ -2,10 +2,10 @@ import { db } from "@uptimekit/db";
 import { worker, workerApiKey } from "@uptimekit/db/schema/workers";
 import { format } from "date-fns";
 import { eq } from "drizzle-orm";
-import { ChevronLeft } from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { WorkerApiKeyManager } from "@/components/admin/worker-api-key-manager";
+import { ChevronLeft } from "@/components/icons";
 import { Button } from "@/components/ui/button";
 import {
 	Card,

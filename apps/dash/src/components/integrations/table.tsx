@@ -3,10 +3,20 @@
 
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { alertManagerIntegrationMeta } from "@uptimekit/api/pkg/integrations/definitions/alertmanager-meta";
+import { appriseIntegrationMeta } from "@uptimekit/api/pkg/integrations/definitions/apprise-meta";
 import { discordIntegrationMeta } from "@uptimekit/api/pkg/integrations/definitions/discord-meta";
 import { telegramIntegrationMeta } from "@uptimekit/api/pkg/integrations/definitions/telegram-meta";
 import { webhookIntegrationMeta } from "@uptimekit/api/pkg/integrations/definitions/webhook-meta";
 import type { IntegrationDefinition } from "@uptimekit/api/pkg/integrations/registry";
+import {
+	parseAsInteger,
+	parseAsString,
+	parseAsStringEnum,
+	useQueryStates,
+} from "nuqs";
+import { useEffect, useState } from "react";
+import { sileo } from "sileo";
+import { z } from "zod";
 import {
 	ArrowRight,
 	Check,
@@ -22,16 +32,7 @@ import {
 	Settings2,
 	Trash2,
 	Webhook,
-} from "lucide-react";
-import {
-	parseAsInteger,
-	parseAsString,
-	parseAsStringEnum,
-	useQueryStates,
-} from "nuqs";
-import { useEffect, useState } from "react";
-import { sileo } from "sileo";
-import { z } from "zod";
+} from "@/components/icons";
 import { ConfigDialog } from "@/components/integrations/config-dialog";
 import {
 	AlertDialog,
@@ -114,6 +115,10 @@ const frontendRegistry = {
 	} as IntegrationDefinition,
 	alertmanager: {
 		...alertManagerIntegrationMeta,
+		handler: async () => {},
+	} as IntegrationDefinition,
+	apprise: {
+		...appriseIntegrationMeta,
 		handler: async () => {},
 	} as IntegrationDefinition,
 };

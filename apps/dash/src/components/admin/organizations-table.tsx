@@ -3,6 +3,14 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { formatDistanceToNow } from "date-fns";
 import {
+	type Dispatch,
+	type SetStateAction,
+	useEffect,
+	useMemo,
+	useState,
+} from "react";
+import { sileo } from "sileo";
+import {
 	Activity,
 	Building2,
 	ChevronDown,
@@ -15,15 +23,7 @@ import {
 	Search,
 	Trash2,
 	Users,
-} from "lucide-react";
-import {
-	type Dispatch,
-	type SetStateAction,
-	useEffect,
-	useMemo,
-	useState,
-} from "react";
-import { sileo } from "sileo";
+} from "@/components/icons";
 import {
 	AlertDialog,
 	AlertDialogCancel,
