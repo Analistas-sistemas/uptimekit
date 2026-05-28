@@ -31,7 +31,7 @@
 		"build": "turbo build",
 		"clear:cache": "find . -type d -name .next -prune -exec rm -rf {} +",
 		"check-types": "turbo check-types",
-		"test": "cd apps/worker && go test ./...",
+		"test": "vitest run",
 		"dev": "turbo dev",
 		"dev:dash": "turbo -F @uptimekit/dash dev",
 		"dev:status-page": "turbo -F @uptimekit/status-page dev",

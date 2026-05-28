@@ -1,4 +1,4 @@
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "vitest";
 import { normalizeStatusPageDomain } from "./status-page-domain";
 
 function expectDomainError(value: string, message: string) {
