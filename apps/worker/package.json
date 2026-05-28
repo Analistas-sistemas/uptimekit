@@ -5,6 +5,7 @@
 	"description": "UptimeKit monitoring worker (Go)",
 	"scripts": {
 		"build": "echo 'Go worker - built via Dockerfile'",
-		"dev": "echo 'Run worker via: go run ./cmd/worker'"
+		"dev": "echo 'Run worker via: go run ./cmd/worker'",
+		"test": "go test ./..."
 	}
 }
