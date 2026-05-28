@@ -44,7 +44,9 @@ export const monitor = pgTable(
 		active: boolean("active").default(true).notNull(),
 		pauseReason: text("pause_reason"),
 		interval: integer("interval").default(60).notNull(), // in seconds
-		timeout: integer("timeout").default(30).notNull(), // in seconds
+		timeout: integer("timeout").default(48).notNull(), // in seconds
+		retries: integer("retries").default(2).notNull(),
+		retryInterval: integer("retry_interval").default(20).notNull(), // in seconds
 		incidentPendingDuration: integer("incident_pending_duration")
 			.default(0)
 			.notNull(), // in seconds (confirmation period)
