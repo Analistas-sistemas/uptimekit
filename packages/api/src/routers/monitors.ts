@@ -28,7 +28,10 @@ import {
 } from "drizzle-orm";
 import { z } from "zod";
 import { protectedProcedure, writeProcedure } from "../index";
-import { monitorTimingSchema } from "../lib/monitor-timing";
+import {
+	monitorTimingSchema,
+	withMonitorTimingRelations,
+} from "../lib/monitor-timing";
 import { enforceMonitorQuotaOrThrow } from "../lib/organization-limits";
 
 const RESPONSE_TIME_RANGE_VALUES = [
@@ -462,19 +465,21 @@ export const monitorsRouter = {
 			description: "Create a new monitor with specified configuration.",
 		})
 		.input(
-			z.object({
-				name: z.string().min(1),
-				type: z.enum(["http", "http-json", "tcp", "ping", "dns", "keyword"]),
-				...monitorTimingSchema,
-				groupId: z.string().nullish(),
-				tags: z.array(z.string()).optional(),
-				config: z.record(z.any(), z.any()),
-				workerIds: z.array(z.string()).min(1),
-				notificationIds: z.array(z.string()).optional(),
-				incidentPendingDuration: z.number().min(0).default(0),
-				incidentRecoveryDuration: z.number().min(0).default(0),
-				publishIncidentToStatusPage: z.boolean().default(false),
-			}),
+			withMonitorTimingRelations(
+				z.object({
+					name: z.string().min(1),
+					type: z.enum(["http", "http-json", "tcp", "ping", "dns", "keyword"]),
+					...monitorTimingSchema,
+					groupId: z.string().nullish(),
+					tags: z.array(z.string()).optional(),
+					config: z.record(z.any(), z.any()),
+					workerIds: z.array(z.string()).min(1),
+					notificationIds: z.array(z.string()).optional(),
+					incidentPendingDuration: z.number().min(0).default(0),
+					incidentRecoveryDuration: z.number().min(0).default(0),
+					publishIncidentToStatusPage: z.boolean().default(false),
+				}),
+			),
 		)
 		.handler(async ({ input, context }) => {
 			const organizationId = context.session.session.activeOrganizationId!;
@@ -683,21 +688,23 @@ export const monitorsRouter = {
 			description: "Update the configuration of an existing monitor.",
 		})
 		.input(
-			z.object({
-				id: z.string(),
-				name: z.string().min(1),
-				type: z.enum(["http", "http-json", "tcp", "ping", "dns", "keyword"]),
-				...monitorTimingSchema,
-				groupId: z.string().nullish(),
-				tags: z.array(z.string()).optional(),
-				config: z.record(z.any(), z.any()),
-				workerIds: z.array(z.string()).min(1),
-				notificationIds: z.array(z.string()).optional(),
-				incidentPendingDuration: z.number().min(0).default(0),
-				incidentRecoveryDuration: z.number().min(0).default(0),
-				publishIncidentToStatusPage: z.boolean().default(false),
-				active: z.boolean().default(true),
-			}),
+			withMonitorTimingRelations(
+				z.object({
+					id: z.string(),
+					name: z.string().min(1),
+					type: z.enum(["http", "http-json", "tcp", "ping", "dns", "keyword"]),
+					...monitorTimingSchema,
+					groupId: z.string().nullish(),
+					tags: z.array(z.string()).optional(),
+					config: z.record(z.any(), z.any()),
+					workerIds: z.array(z.string()).min(1),
+					notificationIds: z.array(z.string()).optional(),
+					incidentPendingDuration: z.number().min(0).default(0),
+					incidentRecoveryDuration: z.number().min(0).default(0),
+					publishIncidentToStatusPage: z.boolean().default(false),
+					active: z.boolean().default(true),
+				}),
+			),
 		)
 		.handler(async ({ input, context }) => {
 			const existing = await db.query.monitor.findFirst({

@@ -2,6 +2,11 @@
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+	monitorTimingDefaults,
+	monitorTimingSchema,
+	withMonitorTimingRelations,
+} from "@uptimekit/api/lib/monitor-timing";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { type UseFormReturn, useFieldArray, useForm } from "react-hook-form";
@@ -77,20 +82,21 @@ import { TagsManager } from "./tags-manager";
 
 // --- Configuration Registry ---
 
-const baseSchema = z.object({
-	name: z.string().min(1, "Name is required"),
-	interval: z.coerce.number().int().min(30),
-	timeout: z.coerce.number().int().min(1).max(300),
-	retries: z.coerce.number().int().min(0).max(10),
-	retryInterval: z.coerce.number().int().min(1).max(300),
-	groupId: z.string().nullish(),
-	tags: z.array(z.string()).default([]),
-	notificationIds: z.array(z.string()).default([]),
-	incidentPendingDuration: z.coerce.number().default(0),
-	incidentRecoveryDuration: z.coerce.number().default(0),
-	publishIncidentToStatusPage: z.boolean().default(false),
-	workerIds: z.array(z.string()).min(1, "At least one worker must be selected"),
-});
+const baseSchema = withMonitorTimingRelations(
+	z.object({
+		name: z.string().min(1, "Name is required"),
+		...monitorTimingSchema,
+		groupId: z.string().nullish(),
+		tags: z.array(z.string()).default([]),
+		notificationIds: z.array(z.string()).default([]),
+		incidentPendingDuration: z.coerce.number().default(0),
+		incidentRecoveryDuration: z.coerce.number().default(0),
+		publishIncidentToStatusPage: z.boolean().default(false),
+		workerIds: z
+			.array(z.string())
+			.min(1, "At least one worker must be selected"),
+	}),
+);
 
 const httpSchema = z.object({
 	type: z.literal("http"),
@@ -769,10 +775,11 @@ export function CreateMonitorForm({
 		return {
 			name: defaults.name || "",
 			type: defaults.type || "http",
-			interval: defaults.interval ?? 60,
-			timeout: defaults.timeout ?? 48,
-			retries: defaults.retries ?? 2,
-			retryInterval: defaults.retryInterval ?? 20,
+			interval: defaults.interval ?? monitorTimingDefaults.interval,
+			timeout: defaults.timeout ?? monitorTimingDefaults.timeout,
+			retries: defaults.retries ?? monitorTimingDefaults.retries,
+			retryInterval:
+				defaults.retryInterval ?? monitorTimingDefaults.retryInterval,
 			groupId: defaults.groupId ?? null,
 			tags:
 				defaults.tags?.map((t: any) => (typeof t === "string" ? t : t.id)) ||
@@ -932,6 +939,7 @@ export function CreateMonitorForm({
 	};
 
 	const type = form.watch("type");
+	const heartbeatInterval = form.watch("interval");
 	const selectedType =
 		monitorTypes.find((t) => t.id === type) || monitorTypes[0];
 
@@ -1224,7 +1232,7 @@ export function CreateMonitorForm({
 								<TimingNumberField
 									form={form}
 									name="interval"
-									min={30}
+									min={10}
 									label={(value) =>
 										`Heartbeat Interval (Check every ${formatSeconds(value)})`
 									}
@@ -1547,9 +1555,16 @@ export function CreateMonitorForm({
 											form={form}
 											name="retryInterval"
 											min={1}
-											max={300}
+											max={
+												Number.isFinite(heartbeatInterval)
+													? heartbeatInterval
+													: 300
+											}
 											label={(value) =>
 												`Heartbeat Retry Interval (Retry every ${formatSeconds(value)})`
+											}
+											description={() =>
+												"Must be less than or equal to the heartbeat interval"
 											}
 										/>
 										<TimingNumberField
