@@ -50,13 +50,28 @@ describe("monitor timing validation", () => {
 		expect(result.success).toBe(false);
 	});
 
-	it("rejects a retry interval greater than the heartbeat interval", () => {
+	it("rejects an explicit retry interval greater than the heartbeat interval", () => {
 		const result = monitorTimingObjectSchema.safeParse({
 			interval: 10,
 			retryInterval: 11,
 		});
 
 		expect(result.success).toBe(false);
+	});
+
+	it("caps the default retry interval at a low heartbeat interval", () => {
+		expect(monitorTimingObjectSchema.parse({ interval: 10 })).toEqual({
+			interval: 10,
+			timeout: 48,
+			retries: 2,
+			retryInterval: 10,
+		});
+	});
+
+	it("keeps the 20s default retry interval for normal heartbeat intervals", () => {
+		expect(
+			monitorTimingObjectSchema.parse({ interval: 60 }).retryInterval,
+		).toBe(20);
 	});
 
 	it("accepts a retry interval equal to the heartbeat interval", () => {

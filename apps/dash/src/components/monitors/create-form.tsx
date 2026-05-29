@@ -943,6 +943,19 @@ export function CreateMonitorForm({
 	const selectedType =
 		monitorTypes.find((t) => t.id === type) || monitorTypes[0];
 
+	useEffect(() => {
+		const retryInterval = form.getValues("retryInterval");
+		if (
+			Number.isFinite(heartbeatInterval) &&
+			Number.isFinite(retryInterval) &&
+			retryInterval > heartbeatInterval
+		) {
+			form.setValue("retryInterval", heartbeatInterval, {
+				shouldValidate: true,
+			});
+		}
+	}, [heartbeatInterval, form]);
+
 	const workerIds = form.watch("workerIds") || [];
 	const hasAnySelection = workerIds.length > 0;
 	const regionLimit = organizationQuota?.regionsPerMonitorLimit ?? null;
