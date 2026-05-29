@@ -77,6 +77,13 @@ import { getRegionInfo } from "@/lib/regions";
 import { cn } from "@/lib/utils";
 import { client, orpc } from "@/utils/orpc";
 import { GroupCreationDialog } from "./group-creation-dialog";
+import {
+	buildGroupPaths,
+	NO_GROUP_LABEL,
+	NONE_SELECT_VALUE,
+	resolveGroupPathLabel,
+} from "./group-tree";
+import { GroupsManager } from "./groups-manager";
 import { TagCreationDialog } from "./tag-creation-dialog";
 import { TagsManager } from "./tags-manager";
 
@@ -765,6 +772,7 @@ export function CreateMonitorForm({
 
 	const [isAdvancedOpen, setIsAdvancedOpen] = useState(false);
 	const [groupsOpen, setGroupsOpen] = useState(false);
+	const [manageGroupsOpen, setManageGroupsOpen] = useState(false);
 	const [tagsOpen, setTagsOpen] = useState(false);
 	const [manageTagsOpen, setManageTagsOpen] = useState(false);
 	const [defaultNotificationsApplied, setDefaultNotificationsApplied] =
@@ -1120,34 +1128,62 @@ export function CreateMonitorForm({
 										control={form.control}
 										name="groupId"
 										render={({ field }) => {
-											const groupOptions =
-												groups?.map((g) => ({ label: g.name, value: g.id })) ||
-												[];
-											const selectedGroup = groupOptions.find(
-												(g) => g.value === field.value,
-											);
+											const groupOptions = buildGroupPaths(groups);
 											return (
 												<FormItem>
 													<FormLabel>Group</FormLabel>
 													<Select
-														onValueChange={(val) => field.onChange(val || null)}
-														value={field.value || ""}
+														onValueChange={(val) =>
+															field.onChange(
+																val === NONE_SELECT_VALUE ? null : val,
+															)
+														}
+														value={field.value || NONE_SELECT_VALUE}
 													>
 														<FormControl>
 															<SelectTrigger className="w-full">
-																<SelectValue placeholder="Select group">
-																	{selectedGroup?.label}
+																<SelectValue placeholder={NO_GROUP_LABEL}>
+																	{(value) =>
+																		resolveGroupPathLabel(
+																			value as string,
+																			groupOptions,
+																			NO_GROUP_LABEL,
+																		)
+																	}
 																</SelectValue>
 															</SelectTrigger>
 														</FormControl>
 														<SelectContent>
-															{groupOptions.map(({ label, value }) => (
-																<SelectItem key={value} value={value}>
-																	{label}
+															<SelectItem value={NONE_SELECT_VALUE}>
+																{NO_GROUP_LABEL}
+															</SelectItem>
+															{groupOptions.map(({ group, path, depth }) => (
+																<SelectItem key={group.id} value={group.id}>
+																	<span style={{ paddingLeft: depth * 12 }}>
+																		{path}
+																	</span>
 																</SelectItem>
 															))}
 														</SelectContent>
 													</Select>
+													<div className="flex items-center gap-2">
+														<Button
+															type="button"
+															variant="outline"
+															size="sm"
+															onClick={() => setGroupsOpen(true)}
+														>
+															New group
+														</Button>
+														<Button
+															type="button"
+															variant="ghost"
+															size="sm"
+															onClick={() => setManageGroupsOpen(true)}
+														>
+															Edit groups
+														</Button>
+													</div>
 													<FormMessage />
 												</FormItem>
 											);
@@ -1736,7 +1772,23 @@ export function CreateMonitorForm({
 					</div>
 				</form>
 			</Form>
-			<GroupCreationDialog open={groupsOpen} onOpenChange={setGroupsOpen} />
+			<GroupCreationDialog
+				open={groupsOpen}
+				onOpenChange={setGroupsOpen}
+				onCreated={(group) => form.setValue("groupId", group.id)}
+			/>
+			<Dialog open={manageGroupsOpen} onOpenChange={setManageGroupsOpen}>
+				<DialogContent className="sm:max-w-2xl">
+					<DialogHeader>
+						<DialogTitle>Manage Groups</DialogTitle>
+						<DialogDescription>
+							Create, nest, rename, and delete monitor groups without leaving
+							this form.
+						</DialogDescription>
+					</DialogHeader>
+					<GroupsManager />
+				</DialogContent>
+			</Dialog>
 			<TagCreationDialog open={tagsOpen} onOpenChange={setTagsOpen} />
 			<Dialog open={manageTagsOpen} onOpenChange={setManageTagsOpen}>
 				<DialogContent className="sm:max-w-2xl">
