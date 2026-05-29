@@ -501,6 +501,98 @@ export function defineDriverTests(
 					true,
 				);
 			});
+
+			it("averages latency across workers per round", async () => {
+				const driver = getDriver();
+				const monitorId = uid("sparkline-multi-worker");
+				const base = Date.now();
+
+				const rounds = 3;
+				const inserts = Array.from({ length: rounds }, (_, round) => [
+					{
+						id: crypto.randomUUID(),
+						monitorId,
+						status: "up",
+						latency: 100,
+						timestamp: new Date(base - round * 1000),
+						location: "worker-a",
+					},
+					{
+						id: crypto.randomUUID(),
+						monitorId,
+						status: "up",
+						latency: 300,
+						timestamp: new Date(base - round * 1000 - 100),
+						location: "worker-b",
+					},
+				]).flat();
+
+				await driver.insertMonitorEvents(inserts);
+
+				const recent = await driver.getRecentLatenciesByMonitor(
+					[monitorId],
+					10,
+				);
+
+				expect(recent).toHaveLength(rounds);
+				expect(recent.every((point) => point.latency === 200)).toBe(true);
+			});
+
+			it("does not add a spurious point when a worker misses a round", async () => {
+				const driver = getDriver();
+				const monitorId = uid("sparkline-missed-round");
+				const base = Date.now();
+
+				await driver.insertMonitorEvents([
+					{
+						id: crypto.randomUUID(),
+						monitorId,
+						status: "up",
+						latency: 100,
+						timestamp: new Date(base),
+						location: "worker-a",
+					},
+					{
+						id: crypto.randomUUID(),
+						monitorId,
+						status: "up",
+						latency: 100,
+						timestamp: new Date(base - 1000),
+						location: "worker-a",
+					},
+					{
+						id: crypto.randomUUID(),
+						monitorId,
+						status: "up",
+						latency: 100,
+						timestamp: new Date(base - 2000),
+						location: "worker-a",
+					},
+					{
+						id: crypto.randomUUID(),
+						monitorId,
+						status: "up",
+						latency: 300,
+						timestamp: new Date(base - 50),
+						location: "worker-b",
+					},
+					{
+						id: crypto.randomUUID(),
+						monitorId,
+						status: "up",
+						latency: 300,
+						timestamp: new Date(base - 1050),
+						location: "worker-b",
+					},
+				]);
+
+				const recent = await driver.getRecentLatenciesByMonitor(
+					[monitorId],
+					10,
+				);
+
+				expect(recent.map((point) => point.latency)).toEqual([100, 200, 200]);
+			});
 		});
 
 		describe("deletions", () => {
