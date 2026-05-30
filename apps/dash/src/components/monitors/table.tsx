@@ -273,13 +273,21 @@ export function MonitorsTable() {
 		<TableRow
 			key={monitor.id}
 			className={cn(
-				"group h-[72px] cursor-pointer hover:bg-muted/40",
+				"group relative h-[72px] cursor-pointer hover:bg-muted/40",
 				!monitor.active && "opacity-50 grayscale",
 			)}
-			onClick={() => router.push(`/monitors/${monitor.id}`)}
 		>
-			<TableCell style={{ paddingLeft: 24 + (depth + 1) * 16 }}>
-				<div className="flex items-center gap-3">
+			<TableCell
+				className="relative"
+				style={{ paddingLeft: 24 + (depth - 0.2) * 16 }}
+			>
+				<Link
+					href={`/monitors/${monitor.id}`}
+					className="absolute inset-0 z-0"
+					aria-label={`Open ${monitor.name}`}
+				/>
+
+				<div className="pointer-events-none relative z-10 flex items-center gap-3">
 					<div
 						className={cn(
 							"h-2.5 w-2.5 shrink-0 rounded-full shadow-sm",
@@ -292,14 +300,17 @@ export function MonitorsTable() {
 							monitor.status === "pending" && "bg-zinc-500 shadow-zinc-500/20",
 						)}
 					/>
+
 					<div className="grid gap-1">
 						<span className="flex items-center gap-2 font-semibold leading-none transition-colors group-hover:text-primary">
 							{monitor.name}
+
 							{!monitor.active && (
 								<span className="rounded-full bg-muted px-2 py-0.5 font-medium text-[10px] text-muted-foreground">
 									{getPauseLabel(monitor.pauseReason)}
 								</span>
 							)}
+
 							{monitor.tags && monitor.tags.length > 0 && (
 								<div className="flex items-center gap-1">
 									{monitor.tags.map((tag) => (
@@ -317,6 +328,7 @@ export function MonitorsTable() {
 								</div>
 							)}
 						</span>
+
 						<div className="flex items-center gap-1.5 font-medium text-muted-foreground text-xs">
 							<span
 								className={cn(
@@ -340,26 +352,50 @@ export function MonitorsTable() {
 					</div>
 				</div>
 			</TableCell>
-			<TableCell className="w-[200px]">
+
+			<TableCell className="relative w-[200px]">
+				<Link
+					href={`/monitors/${monitor.id}`}
+					className="absolute inset-0 z-0"
+					aria-label={`Open ${monitor.name}`}
+				/>
+
 				{monitor.hasIncident && (
-					<div className="inline-flex items-center gap-1.5 rounded-md border border-red-500/20 bg-red-500/10 px-2.5 py-1 font-medium text-red-500 text-xs">
+					<div className="pointer-events-none relative z-10 inline-flex items-center gap-1.5 rounded-md border border-red-500/20 bg-red-500/10 px-2.5 py-1 font-medium text-red-500 text-xs">
 						<ShieldAlert className="h-3.5 w-3.5" />
 						Ongoing Incident
 						<ChevronRight className="ml-1 h-3 w-3 opacity-50" />
 					</div>
 				)}
 			</TableCell>
-			<TableCell className="w-[100px] font-medium text-muted-foreground text-sm">
-				<div className="flex items-center gap-2">
+
+			<TableCell className="relative w-[100px] font-medium text-muted-foreground text-sm">
+				<Link
+					href={`/monitors/${monitor.id}`}
+					className="absolute inset-0 z-0"
+					aria-label={`Open ${monitor.name}`}
+				/>
+
+				<div className="pointer-events-none relative z-10 flex items-center gap-2">
 					<PlayCircle className="h-4 w-4 opacity-50" />
 					{monitor.frequency}
 				</div>
 			</TableCell>
-			<TableCell className="w-[50px]">
+
+			<TableCell className="relative z-20 w-[50px]">
 				<MonitorActions monitor={monitor} />
 			</TableCell>
-			<TableCell className="relative hidden w-[140px] p-0 lg:table-cell">
-				<LatencySparkline data={sparklineData?.[monitor.id] ?? []} />
+
+			<TableCell className="relative hidden h-[72px] w-[140px] p-0 lg:table-cell">
+				<Link
+					href={`/monitors/${monitor.id}`}
+					className="absolute inset-0 z-10"
+					aria-label={`Open ${monitor.name}`}
+				/>
+
+				<div className="pointer-events-none absolute inset-0 z-20">
+					<LatencySparkline data={sparklineData?.[monitor.id] ?? []} />
+				</div>
 			</TableCell>
 		</TableRow>
 	);
@@ -842,7 +878,7 @@ export function MonitorsTable() {
 										</TableRow>
 										{(expandedGroups.ungrouped ?? true) &&
 											ungroupedMonitors.map((monitor) =>
-												renderMonitorRow(monitor, 0),
+												renderMonitorRow(monitor, 1),
 											)}
 									</Fragment>
 								)}
