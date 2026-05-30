@@ -42,6 +42,7 @@ import {
 	ComboboxItem,
 	ComboboxList,
 	ComboboxPopup,
+	ComboboxSeparator,
 	ComboboxValue,
 } from "@/components/ui/combobox";
 import {
@@ -89,6 +90,8 @@ import { TagCreationDialog } from "./tag-creation-dialog";
 import { TagsManager } from "./tags-manager";
 
 // --- Configuration Registry ---
+
+const CREATE_GROUP_SELECT_VALUE = "__create_group__";
 
 const baseSchema = withMonitorTimingRelations(
 	z.object({
@@ -1134,11 +1137,16 @@ export function CreateMonitorForm({
 												<FormItem>
 													<FormLabel>Group</FormLabel>
 													<Select
-														onValueChange={(val) =>
+														onValueChange={(val) => {
+															if (val === CREATE_GROUP_SELECT_VALUE) {
+																setGroupsOpen(true);
+																return;
+															}
+
 															field.onChange(
 																val === NONE_SELECT_VALUE ? null : val,
-															)
-														}
+															);
+														}}
 														value={field.value || NONE_SELECT_VALUE}
 													>
 														<FormControl>
@@ -1165,17 +1173,16 @@ export function CreateMonitorForm({
 																	</span>
 																</SelectItem>
 															))}
+															<div className="my-1 border-t" />
+															<SelectItem value={CREATE_GROUP_SELECT_VALUE}>
+																<span className="flex items-center gap-2 text-muted-foreground">
+																	<Plus className="h-4 w-4" />
+																	<span>Create group</span>
+																</span>
+															</SelectItem>
 														</SelectContent>
 													</Select>
 													<div className="flex items-center gap-2">
-														<Button
-															type="button"
-															variant="outline"
-															size="sm"
-															onClick={() => setGroupsOpen(true)}
-														>
-															New group
-														</Button>
 														<Button
 															type="button"
 															variant="ghost"
@@ -1198,20 +1205,31 @@ export function CreateMonitorForm({
 											const selectedTags = (tags || []).filter((tag) =>
 												field.value?.includes(tag.id),
 											);
+											type TagOption = NonNullable<typeof tags>[number];
+
 											return (
 												<FormItem>
 													<FormLabel>Tags</FormLabel>
 													<Combobox
 														items={tags || []}
 														value={selectedTags}
-														onValueChange={(newValue) =>
-															field.onChange(newValue.map((t) => t.id))
-														}
+														onValueChange={(newValue) => {
+															const values = newValue as Array<
+																TagOption | "create_tag"
+															>;
+
+															if (values.includes("create_tag")) {
+																setTagsOpen(true);
+																return;
+															}
+
+															field.onChange(values.map((tag) => tag.id));
+														}}
 														multiple
 													>
 														<ComboboxChips>
 															<ComboboxValue>
-																{(value: typeof tags) => (
+																{(value: typeof selectedTags) => (
 																	<>
 																		{value?.map((tag) => (
 																			<ComboboxChip
@@ -1240,7 +1258,7 @@ export function CreateMonitorForm({
 														<ComboboxPopup>
 															<ComboboxEmpty>No tags found.</ComboboxEmpty>
 															<ComboboxList>
-																{(tag) => (
+																{(tags || []).map((tag) => (
 																	<ComboboxItem key={tag.id} value={tag}>
 																		<div className="flex items-center gap-2">
 																			<div
@@ -1250,19 +1268,24 @@ export function CreateMonitorForm({
 																			{tag.name}
 																		</div>
 																	</ComboboxItem>
-																)}
+																))}
+
+																<ComboboxSeparator />
+
+																<ComboboxItem
+																	key="create_tag"
+																	value="create_tag"
+																	className="hover:bg-muted"
+																>
+																	<div className="flex items-center gap-2 text-muted-foreground">
+																		<Plus className="h-4 w-4" />
+																		<span>Create tag</span>
+																	</div>
+																</ComboboxItem>
 															</ComboboxList>
 														</ComboboxPopup>
 													</Combobox>
 													<div className="flex items-center gap-2">
-														<Button
-															type="button"
-															variant="outline"
-															size="sm"
-															onClick={() => setTagsOpen(true)}
-														>
-															New tag
-														</Button>
 														<Button
 															type="button"
 															variant="ghost"
