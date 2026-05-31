@@ -1,11 +1,17 @@
-import { integrationService } from "../integrations/service";
-import { subscriberNotificationService } from "../subscribers/service";
-
-export function initializeNotifications() {
-	return {
-		integrationService,
-		subscriberNotificationService,
-	};
-}
-
-initializeNotifications();
+export {
+	claimPendingEvents,
+	cleanupAppEventOutbox,
+	dispatchPersistedAppEvent,
+	drainPendingEvents,
+	ensureNotificationWorkerStarted,
+	getNextRetryAt,
+	MAX_EVENT_ATTEMPTS,
+	mapOutboxRowToEvent,
+	markEventFailed,
+	markEventProcessed,
+	PostgresNotificationWorker,
+	processAppEventRow,
+	processPendingNotifications,
+	startNotificationWorker,
+	stopManagedNotificationWorker,
+} from "./processor";
