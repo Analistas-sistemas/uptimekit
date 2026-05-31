@@ -196,6 +196,9 @@ export async function prepareStatusPageData(
 				const lastCheck = await getMonitorStatus(pm.monitorId);
 				if (lastCheck) {
 					if (lastCheck.status === "down") currentStatus = "major_outage";
+					if (lastCheck.status === "degraded") currentStatus = "degraded";
+					if (lastCheck.status === "maintenance")
+						currentStatus = "maintenance" as any;
 				}
 			}
 

@@ -1,6 +1,7 @@
 import { db } from "@uptimekit/db";
 import type { z } from "zod";
 import { createLogger } from "../../../lib/logger";
+import { fetchIntegrationWebhook } from "../http";
 import type { IntegrationDefinition } from "../registry";
 import {
 	type TelegramConfigSchema,
@@ -28,7 +29,7 @@ export const telegramIntegration: IntegrationDefinition<
 					`<b>Timestamp:</b> ${new Date().toLocaleString()}`,
 				].join("\n");
 
-				await fetch(
+				await fetchIntegrationWebhook(
 					`https://api.telegram.org/bot${config.botToken}/sendMessage`,
 					{
 						method: "POST",
@@ -111,7 +112,7 @@ export const telegramIntegration: IntegrationDefinition<
 				`<a href="${incidentUrl}">Manage Incident</a>`,
 			].join("\n");
 
-			await fetch(
+			await fetchIntegrationWebhook(
 				`https://api.telegram.org/bot${config.botToken}/sendMessage`,
 				{
 					method: "POST",
@@ -128,6 +129,7 @@ export const telegramIntegration: IntegrationDefinition<
 			);
 		} catch (error) {
 			logger.error(`Failed to send message to ${config.chatId}`, error);
+			throw error;
 		}
 	},
 };

@@ -30,6 +30,10 @@ import { z } from "zod";
 import { protectedProcedure, writeProcedure } from "../index";
 import { insertMonitor } from "../lib/insert-monitor";
 import {
+	getAggregateMonitorStatusesForMonitors,
+	getAggregateMonitorStatusForMonitor,
+} from "../lib/monitor-status";
+import {
 	monitorTimingSchema,
 	withMonitorTimingRelations,
 } from "../lib/monitor-timing";
@@ -426,11 +430,21 @@ export const monitorsRouter = {
 				{ status: string; timestamp: Date }
 			>();
 			let latestChangesMap = new Map<string, { timestamp: Date }>();
+			let aggregateStatusesMap = new Map<string, { status: string }>();
 
 			if (monitorIds.length > 0) {
 				try {
-					const latestEvents =
-						await timeseries.getLatestEventsForMonitors(monitorIds);
+					const monitorStatusInputs = monitors.map((row) => ({
+						id: row.monitor.id,
+						workerIds: (row.monitor.workerIds as string[] | null) ?? [],
+						locations: (row.monitor.locations as string[] | null) ?? [],
+					}));
+					const [latestEvents, latestChanges, aggregateStatuses] =
+						await Promise.all([
+							timeseries.getLatestEventsForMonitors(monitorIds),
+							timeseries.getLatestChangesForMonitors(monitorIds),
+							getAggregateMonitorStatusesForMonitors(monitorStatusInputs),
+						]);
 					latestEventsMap = new Map(
 						latestEvents.map((event) => [
 							event.monitorId,
@@ -438,13 +452,19 @@ export const monitorsRouter = {
 						]),
 					);
 
-					const latestChanges =
-						await timeseries.getLatestChangesForMonitors(monitorIds);
 					latestChangesMap = new Map(
 						latestChanges.map((change) => [
 							change.monitorId,
 							{ timestamp: change.timestamp },
 						]),
+					);
+					aggregateStatusesMap = new Map(
+						Array.from(aggregateStatuses.entries()).map(
+							([monitorId, aggregateStatus]) => [
+								monitorId,
+								{ status: aggregateStatus.status },
+							],
+						),
 					);
 				} catch (error) {
 					console.error(
@@ -463,7 +483,10 @@ export const monitorsRouter = {
 					...row.monitor,
 					group: row.monitor_group || null,
 					tags: tagsByMonitor.get(row.monitor.id) || [],
-					status: latestEvent?.status || "pending",
+					status:
+						aggregateStatusesMap.get(row.monitor.id)?.status ||
+						latestEvent?.status ||
+						"pending",
 					lastCheck: latestEvent?.timestamp ?? null,
 					lastStatusChange: latestChange?.timestamp ?? null,
 					usedOn: usageMap.get(row.monitor.id) || 0,
@@ -941,10 +964,17 @@ export const monitorsRouter = {
 				(found.monitor.workerIds as string[] | null) ?? [];
 			const monitorLocations =
 				(found.monitor.locations as string[] | null) ?? [];
-			const monitorWorkers = await getWorkersForMonitorAssignments({
-				workerIds: monitorWorkerIds,
-				locations: monitorLocations,
-			});
+			const [monitorWorkers, aggregateStatus] = await Promise.all([
+				getWorkersForMonitorAssignments({
+					workerIds: monitorWorkerIds,
+					locations: monitorLocations,
+				}),
+				getAggregateMonitorStatusForMonitor({
+					id: found.monitor.id,
+					workerIds: monitorWorkerIds,
+					locations: monitorLocations,
+				}),
+			]);
 
 			return {
 				...found.monitor,
@@ -953,7 +983,7 @@ export const monitorsRouter = {
 				notificationIds: notifications.map((notification) => notification.id),
 				notifications,
 				workers: monitorWorkers,
-				status: latestEvent?.status || "pending",
+				status: aggregateStatus.status || latestEvent?.status || "pending",
 				lastCheck: latestEvent?.timestamp ?? null,
 				lastStatusChange: latestChange?.timestamp ?? null,
 			};

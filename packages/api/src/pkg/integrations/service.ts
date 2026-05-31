@@ -6,6 +6,7 @@ import {
 } from "@uptimekit/db/schema/integrations";
 import { and, eq, inArray } from "drizzle-orm";
 import { eventBus } from "../../lib/events";
+import { createLogger } from "../../lib/logger";
 import { alertManagerIntegration } from "./definitions/alertmanager";
 import { appriseIntegration } from "./definitions/apprise";
 import { discordIntegration } from "./definitions/discord";
@@ -19,6 +20,28 @@ integrationRegistry.register(discordIntegration);
 integrationRegistry.register(telegramIntegration);
 integrationRegistry.register(alertManagerIntegration);
 integrationRegistry.register(appriseIntegration);
+
+const logger = createLogger("INTEGRATIONS");
+const INTEGRATION_TIMEOUT_MS = 15_000;
+const integrationServiceKey = Symbol.for("uptimekit.integrationService");
+type GlobalServiceRegistry = typeof globalThis &
+	Record<symbol, IntegrationService | undefined>;
+
+function withTimeout<T>(promise: Promise<T>, timeoutMs: number, label: string) {
+	let timeoutId: ReturnType<typeof setTimeout> | undefined;
+
+	const timeoutPromise = new Promise<never>((_, reject) => {
+		timeoutId = setTimeout(() => {
+			reject(new Error(`${label} timed out after ${timeoutMs}ms`));
+		}, timeoutMs);
+	});
+
+	return Promise.race([promise, timeoutPromise]).finally(() => {
+		if (timeoutId) {
+			clearTimeout(timeoutId);
+		}
+	});
+}
 
 export function dedupeNotificationConfigs<TConfig extends { id: string }>(
 	configs: TConfig[],
@@ -79,15 +102,16 @@ export class IntegrationService {
 			const integration = integrationRegistry.get(config.type);
 			if (integration?.events.includes(event)) {
 				try {
-					// console.log(
-					// 	`[IntegrationService] Executing integration ${integration.name} for config ${config.id}`,
-					// );
-					await integration.handler(config.config, event, payload);
-				} catch (_error) {
-					// console.error(
-					// 	`[IntegrationService] Error executing integration ${config.id}`,
-					// 	error,
-					// );
+					await withTimeout(
+						integration.handler(config.config, event, payload),
+						INTEGRATION_TIMEOUT_MS,
+						`${integration.name} integration ${config.id}`,
+					);
+				} catch (error) {
+					logger.error(
+						`Error executing ${integration.name} integration ${config.id} for ${event}`,
+						error,
+					);
 				}
 			}
 		}
@@ -156,4 +180,12 @@ export class IntegrationService {
 	}
 }
 
-export const integrationService = new IntegrationService();
+export const integrationService = (() => {
+	const globalForService = globalThis as GlobalServiceRegistry;
+
+	if (!globalForService[integrationServiceKey]) {
+		globalForService[integrationServiceKey] = new IntegrationService();
+	}
+
+	return globalForService[integrationServiceKey];
+})();

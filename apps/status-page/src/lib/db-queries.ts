@@ -1,3 +1,4 @@
+import { getAggregateMonitorStatusForMonitor } from "@uptimekit/api/lib/monitor-status";
 import {
 	db,
 	incident,
@@ -11,6 +12,7 @@ import {
 	statusPageMonitor,
 	timeseries,
 } from "@uptimekit/db";
+import { monitor } from "@uptimekit/db/schema/monitors";
 // ... imports
 import {
 	and,
@@ -652,11 +654,29 @@ export const getMonitorStatus = async (monitorId: string) => {
 		`monitor-status:${monitorId}`,
 		60, // 1 minute (was 30s)
 		async () => {
-			const latestEvent = await timeseries.getLatestEventForMonitor(monitorId);
-			if (!latestEvent) return undefined;
+			const monitorRecord = await db.query.monitor.findFirst({
+				where: eq(monitor.id, monitorId),
+				columns: {
+					id: true,
+					workerIds: true,
+					locations: true,
+				},
+			});
+
+			if (!monitorRecord) return undefined;
+
+			const [latestEvent, aggregateStatus] = await Promise.all([
+				timeseries.getLatestEventForMonitor(monitorId),
+				getAggregateMonitorStatusForMonitor({
+					id: monitorRecord.id,
+					workerIds: (monitorRecord.workerIds as string[] | null) ?? [],
+					locations: (monitorRecord.locations as string[] | null) ?? [],
+				}),
+			]);
+
 			return {
-				status: latestEvent.status.toLowerCase(),
-				timestamp: latestEvent.timestamp,
+				status: aggregateStatus.status,
+				timestamp: latestEvent?.timestamp,
 			};
 		},
 	);

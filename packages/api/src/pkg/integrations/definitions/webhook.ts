@@ -1,5 +1,6 @@
 import type * as z from "zod";
 import { assertSafeWebhookUrl } from "../../../lib/safe-url";
+import { fetchIntegrationWebhook } from "../http";
 import type { IntegrationDefinition } from "../registry";
 import { WebhookConfigSchema } from "./webhook-meta";
 
@@ -20,23 +21,18 @@ export const webhookIntegration: IntegrationDefinition<
 		"integration.test",
 	],
 	handler: async (config, event, payload) => {
-		// console.log(`[Webhook] Sending ${event} to ${config.url}`);
-		try {
-			await assertSafeWebhookUrl(config.url);
-			await fetch(config.url, {
-				method: "POST",
-				headers: {
-					"Content-Type": "application/json",
-					...(config.secret ? { "X-Webhook-Secret": config.secret } : {}),
-				},
-				body: JSON.stringify({
-					event,
-					payload,
-					timestamp: new Date().toISOString(),
-				}),
-			});
-		} catch (_error) {
-			// console.error(`[Webhook] Failed to send webhook to ${config.url}`, error);
-		}
+		await assertSafeWebhookUrl(config.url);
+		await fetchIntegrationWebhook(config.url, {
+			method: "POST",
+			headers: {
+				"Content-Type": "application/json",
+				...(config.secret ? { "X-Webhook-Secret": config.secret } : {}),
+			},
+			body: JSON.stringify({
+				event,
+				payload,
+				timestamp: new Date().toISOString(),
+			}),
+		});
 	},
 };

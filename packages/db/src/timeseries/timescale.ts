@@ -8,6 +8,7 @@ import type {
 	LatestEvent,
 	MonitorChangeInsert,
 	MonitorEventInsert,
+	MonitorWorkerStatus,
 	ResponseTimePoint,
 	ResponseTimesQuery,
 	SingleLatestChange,
@@ -416,25 +417,59 @@ export class TimescaleDriver implements TimeSeriesDriver {
 	}
 
 	async getLatestStatusPerLocation(monitorId: string): Promise<WorkerStatus[]> {
+		const statuses = await this.getLatestStatusPerLocationForMonitors([
+			monitorId,
+		]);
+
+		return statuses.map(({ location, status, timestamp }) => ({
+			location,
+			status,
+			timestamp,
+		}));
+	}
+
+	async getLatestStatusPerLocationForMonitors(
+		monitorIds: string[],
+	): Promise<MonitorWorkerStatus[]> {
+		if (monitorIds.length === 0) return [];
+
 		await this.ensureSchema();
 
 		const sql = this.getClient();
 		const rows = await sql<
-			{ location: string | null; status: string; timestamp: Date }[]
+			{
+				monitor_id: string;
+				location: string | null;
+				status: string;
+				timestamp: Date;
+			}[]
 		>`
-			SELECT DISTINCT ON (location) location, status, timestamp
-			FROM monitor_events
-			WHERE monitor_id = ${monitorId}
-				AND location IS NOT NULL
-			ORDER BY location, timestamp DESC
+			SELECT monitor_id, location, status, timestamp
+			FROM (
+				SELECT monitor_id, location, status, timestamp,
+					ROW_NUMBER() OVER (
+						PARTITION BY monitor_id, location ORDER BY timestamp DESC
+					) AS rn
+				FROM monitor_events
+				WHERE monitor_id = ANY(${monitorIds})
+					AND location IS NOT NULL
+			) sub
+			WHERE rn = 1
 		`;
 
 		return rows
 			.filter(
-				(r): r is { location: string; status: string; timestamp: Date } =>
-					r.location != null,
+				(
+					r,
+				): r is {
+					monitor_id: string;
+					location: string;
+					status: string;
+					timestamp: Date;
+				} => r.location != null,
 			)
 			.map((r) => ({
+				monitorId: r.monitor_id,
 				location: r.location,
 				status: r.status,
 				timestamp: r.timestamp,

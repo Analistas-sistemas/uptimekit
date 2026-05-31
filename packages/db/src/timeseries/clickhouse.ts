@@ -8,6 +8,7 @@ import type {
 	LatestEvent,
 	MonitorChangeInsert,
 	MonitorEventInsert,
+	MonitorWorkerStatus,
 	ResponseTimePoint,
 	ResponseTimesQuery,
 	SingleLatestChange,
@@ -470,28 +471,50 @@ export class ClickHouseDriver implements TimeSeriesDriver {
 	}
 
 	async getLatestStatusPerLocation(monitorId: string): Promise<WorkerStatus[]> {
+		const statuses = await this.getLatestStatusPerLocationForMonitors([
+			monitorId,
+		]);
+
+		return statuses.map(({ location, status, timestamp }) => ({
+			location,
+			status,
+			timestamp,
+		}));
+	}
+
+	async getLatestStatusPerLocationForMonitors(
+		monitorIds: string[],
+	): Promise<MonitorWorkerStatus[]> {
+		if (monitorIds.length === 0) return [];
+
 		const rows = await this.queryJson<{
+			monitorId: string;
 			location: string;
 			status: string;
 			timestamp: string;
 		}>(
 			`
-				SELECT location, status, timestamp
+				SELECT monitorId, location, status, timestamp
 				FROM (
 					SELECT
+						monitorId,
 						location,
 						status,
 						timestamp,
-						ROW_NUMBER() OVER (PARTITION BY location ORDER BY timestamp DESC) AS rn
+						ROW_NUMBER() OVER (
+							PARTITION BY monitorId, location ORDER BY timestamp DESC
+						) AS rn
 					FROM uptimekit.monitor_events
-					WHERE monitorId = {monitorId:String} AND location IS NOT NULL
+					WHERE monitorId IN ({monitorIds:Array(String)})
+						AND location IS NOT NULL
 				)
 				WHERE rn = 1
 			`,
-			{ monitorId },
+			{ monitorIds },
 		);
 
 		return rows.map((r) => ({
+			monitorId: r.monitorId,
 			location: r.location,
 			status: r.status,
 			timestamp: parseTimestamp(r.timestamp),

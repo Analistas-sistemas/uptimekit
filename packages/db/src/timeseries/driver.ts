@@ -6,6 +6,7 @@ import type {
 	LatestEvent,
 	MonitorChangeInsert,
 	MonitorEventInsert,
+	MonitorWorkerStatus,
 	ResponseTimePoint,
 	ResponseTimesQuery,
 	SingleLatestChange,
@@ -45,6 +46,9 @@ export interface TimeSeriesDriver {
 	): Promise<SparklinePoint[]>;
 
 	getLatestStatusPerLocation(monitorId: string): Promise<WorkerStatus[]>;
+	getLatestStatusPerLocationForMonitors(
+		monitorIds: string[],
+	): Promise<MonitorWorkerStatus[]>;
 
 	getHourlyUptimeStats(
 		monitorId: string,

@@ -1,6 +1,7 @@
 import { db } from "@uptimekit/db";
 import type { z } from "zod";
 import { createLogger } from "../../../lib/logger";
+import { fetchIntegrationWebhook } from "../http";
 import type { IntegrationDefinition } from "../registry";
 import {
 	type AppriseConfigSchema,
@@ -33,7 +34,7 @@ export const appriseIntegration: IntegrationDefinition<
 					`Timestamp: ${new Date().toLocaleString()}`,
 				].join("\n");
 
-				await fetch(`${appriseUrl}/notify`, {
+				await fetchIntegrationWebhook(`${appriseUrl}/notify`, {
 					method: "POST",
 					headers: { "Content-Type": "application/json" },
 					body: JSON.stringify({
@@ -110,7 +111,7 @@ export const appriseIntegration: IntegrationDefinition<
 				`Manage Incident: ${incidentUrl}`,
 			].join("\n");
 
-			await fetch(`${appriseUrl}/notify`, {
+			await fetchIntegrationWebhook(`${appriseUrl}/notify`, {
 				method: "POST",
 				headers: { "Content-Type": "application/json" },
 				body: JSON.stringify({
@@ -122,6 +123,7 @@ export const appriseIntegration: IntegrationDefinition<
 			});
 		} catch (error) {
 			logger.error(`Failed to send notification via ${appriseUrl}`, error);
+			throw error;
 		}
 	},
 };

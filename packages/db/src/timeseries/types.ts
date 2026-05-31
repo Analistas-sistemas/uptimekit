@@ -48,6 +48,10 @@ export interface WorkerStatus {
 	timestamp: Date;
 }
 
+export interface MonitorWorkerStatus extends WorkerStatus {
+	monitorId: string;
+}
+
 export interface ChangeTimelineItem {
 	id: string;
 	status: string;

@@ -366,7 +366,7 @@ export const incidentsRouter = {
 				}
 			});
 
-			eventBus.emit("incident.created", {
+			await eventBus.emitAsync("incident.created", {
 				incidentId: id,
 				organizationId,
 				title: input.title,
@@ -599,7 +599,7 @@ export const incidentsRouter = {
 				});
 			});
 
-			eventBus.emit("incident.acknowledged", {
+			await eventBus.emitAsync("incident.acknowledged", {
 				incidentId: input.id,
 				organizationId: existing.organizationId,
 				title: existing.title,
@@ -663,7 +663,7 @@ export const incidentsRouter = {
 				});
 			});
 
-			eventBus.emit("incident.resolved", {
+			await eventBus.emitAsync("incident.resolved", {
 				incidentId: input.id,
 				organizationId: existing.organizationId,
 				title: existing.title,
@@ -710,7 +710,7 @@ export const incidentsRouter = {
 				userId: context.session.user.id,
 			});
 
-			eventBus.emit("incident.comment_added", {
+			await eventBus.emitAsync("incident.comment_added", {
 				incidentId: input.incidentId,
 				organizationId: existing.organizationId,
 				title: existing.title,
@@ -749,7 +749,7 @@ export const incidentsRouter = {
 
 			await db.delete(incident).where(eq(incident.id, input.id));
 
-			eventBus.emit("incident.deleted", {
+			await eventBus.emitAsync("incident.deleted", {
 				incidentId: input.id,
 				organizationId: existing.organizationId,
 				title: existing.title,

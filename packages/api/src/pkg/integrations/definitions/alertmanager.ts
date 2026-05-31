@@ -112,7 +112,7 @@ export async function processAlertManagerWebhook(
 				});
 			});
 
-			eventBus.emit("incident.created", {
+			await eventBus.emitAsync("incident.created", {
 				incidentId,
 				organizationId,
 				title,
@@ -154,7 +154,7 @@ export async function processAlertManagerWebhook(
 				});
 			});
 
-			eventBus.emit("incident.resolved", {
+			await eventBus.emitAsync("incident.resolved", {
 				incidentId: existingIncident.id,
 				organizationId,
 				title: existingIncident.title,

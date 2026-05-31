@@ -12,6 +12,11 @@ import {
 } from "./templates";
 
 const logger = createLogger("SUBSCRIBERS");
+const subscriberNotificationServiceKey = Symbol.for(
+	"uptimekit.subscriberNotificationService",
+);
+type GlobalSubscriberServiceRegistry = typeof globalThis &
+	Record<symbol, SubscriberNotificationService | undefined>;
 
 type SubscriberEventName = "incident.acknowledged" | "incident.resolved";
 
@@ -285,5 +290,13 @@ export class SubscriberNotificationService {
 	}
 }
 
-export const subscriberNotificationService =
-	new SubscriberNotificationService();
+export const subscriberNotificationService = (() => {
+	const globalForService = globalThis as GlobalSubscriberServiceRegistry;
+
+	if (!globalForService[subscriberNotificationServiceKey]) {
+		globalForService[subscriberNotificationServiceKey] =
+			new SubscriberNotificationService();
+	}
+
+	return globalForService[subscriberNotificationServiceKey];
+})();

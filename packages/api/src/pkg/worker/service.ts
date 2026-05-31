@@ -12,8 +12,18 @@ import {
 import { monitor } from "@uptimekit/db/schema/monitors";
 import { statusPageMonitor } from "@uptimekit/db/schema/status-pages";
 import { worker } from "@uptimekit/db/schema/workers";
-import { and, eq, inArray, isNull } from "drizzle-orm";
-import { eventBus } from "../../lib/events";
+import { and, eq, isNull } from "drizzle-orm";
+import { type AppEventPayload, eventBus } from "../../lib/events";
+import {
+	type AutomaticIncidentOpenEvaluation,
+	type ConfiguredWorkerStateResult,
+	getAggregateMonitorStatus,
+	getConfiguredWorkerStates,
+	getEffectiveMonitorWorkers,
+	isAutomaticIncidentOpenEligible,
+	isAutomaticIncidentResolveEligible,
+	type WorkerStatusSnapshot,
+} from "../../lib/monitor-status";
 
 // Types
 export interface HTTPTimings {
@@ -44,103 +54,120 @@ interface MonitorChangeInsert {
 	location?: string | null;
 }
 
-interface WorkerStatusSnapshot {
-	status: MonitorEvent["status"];
-	timestamp: Date;
+interface ProcessedMonitorEventGroup {
+	changesToInsert: MonitorChangeInsert[];
+	incidentsToInsert: (typeof incident.$inferInsert)[];
+	incidentMonitorsToInsert: (typeof incidentMonitor.$inferInsert)[];
+	incidentStatusPagesToInsert: (typeof incidentStatusPage.$inferInsert)[];
+	activitiesToInsert: (typeof incidentActivity.$inferInsert)[];
+	eventsToDispatch: WorkerIncidentEventDispatch[];
 }
 
-interface ConfiguredWorkerStateResult {
-	allWorkersReporting: boolean;
-	states: WorkerStatusSnapshot[];
+type WorkerIncidentEventDispatch =
+	| {
+			event: "incident.created";
+			payload: AppEventPayload<"incident.created">;
+	  }
+	| {
+			event: "incident.resolved";
+			payload: AppEventPayload<"incident.resolved">;
+	  };
+
+const monitorEventLocks = new Map<string, Promise<void>>();
+
+async function withMonitorEventLock<T>(
+	monitorId: string,
+	fn: () => Promise<T>,
+) {
+	const previous = monitorEventLocks.get(monitorId) ?? Promise.resolve();
+	let releaseCurrentLock: () => void = () => {};
+	const current = new Promise<void>((resolve) => {
+		releaseCurrentLock = resolve;
+	});
+	const tail = previous.catch(() => undefined).then(() => current);
+	monitorEventLocks.set(monitorId, tail);
+
+	await previous.catch(() => undefined);
+
+	try {
+		return await fn();
+	} finally {
+		releaseCurrentLock();
+		if (monitorEventLocks.get(monitorId) === tail) {
+			monitorEventLocks.delete(monitorId);
+		}
+	}
 }
 
-interface AutomaticIncidentOpenEvaluation {
-	eligible: boolean;
-	allWorkersDownSince: Date | null;
-}
+async function persistProcessedMonitorEventGroup(input: {
+	processed: ProcessedMonitorEventGroup;
+	monitorEvents: MonitorEvent[];
+	workerId: string;
+}) {
+	const { processed, monitorEvents, workerId } = input;
 
-/**
- * The ClickHouse `location` field currently stores worker IDs for worker-submitted
- * events. Keep the storage schema unchanged, but treat it as a worker identity key
- * for automatic incident aggregation.
- */
-export function getConfiguredWorkerStates(
-	configuredWorkerIds: string[],
-	workerStatusById: Map<string, WorkerStatusSnapshot>,
-): ConfiguredWorkerStateResult {
-	if (configuredWorkerIds.length === 0) {
-		return {
-			allWorkersReporting: false,
-			states: [],
-		};
+	if (processed.changesToInsert.length > 0) {
+		await timeseries.insertMonitorChanges(processed.changesToInsert);
 	}
 
-	const states = configuredWorkerIds
-		.map((workerId) => workerStatusById.get(workerId))
-		.filter((state): state is WorkerStatusSnapshot => !!state);
-
-	return {
-		allWorkersReporting: states.length === configuredWorkerIds.length,
-		states,
-	};
-}
-
-export function isAutomaticIncidentOpenEligible(input: {
-	configuredWorkerIds: string[];
-	workerStatusById: Map<string, WorkerStatusSnapshot>;
-	activeIncident: { id: string } | undefined;
-	eventTime: Date;
-	incidentPendingDurationSeconds: number;
-}): AutomaticIncidentOpenEvaluation {
-	if (input.activeIncident) {
-		return { eligible: false, allWorkersDownSince: null };
+	if (processed.incidentsToInsert.length > 0) {
+		await db.insert(incident).values(processed.incidentsToInsert);
 	}
 
-	const configuredWorkerStates = getConfiguredWorkerStates(
-		input.configuredWorkerIds,
-		input.workerStatusById,
-	);
-
-	const allWorkersDown =
-		configuredWorkerStates.allWorkersReporting &&
-		configuredWorkerStates.states.every((state) => state.status === "down");
-
-	if (!allWorkersDown) {
-		return { eligible: false, allWorkersDownSince: null };
+	if (processed.incidentMonitorsToInsert.length > 0) {
+		await db.insert(incidentMonitor).values(processed.incidentMonitorsToInsert);
 	}
 
-	const allWorkersDownSince = new Date(
-		Math.max(
-			...configuredWorkerStates.states.map((state) =>
-				state.timestamp.getTime(),
-			),
-		),
-	);
-	const durationMs = input.eventTime.getTime() - allWorkersDownSince.getTime();
-	const pendingMs = input.incidentPendingDurationSeconds * 1000;
-
-	return {
-		eligible: durationMs >= pendingMs,
-		allWorkersDownSince,
-	};
-}
-
-export function isAutomaticIncidentResolveEligible(input: {
-	configuredWorkerIds: string[];
-	workerStatusById: Map<string, WorkerStatusSnapshot>;
-	activeIncident: { id: string } | undefined;
-}): boolean {
-	if (!input.activeIncident) {
-		return false;
+	if (processed.incidentStatusPagesToInsert.length > 0) {
+		await db
+			.insert(incidentStatusPage)
+			.values(processed.incidentStatusPagesToInsert);
 	}
 
-	const configuredWorkerStates = getConfiguredWorkerStates(
-		input.configuredWorkerIds,
-		input.workerStatusById,
-	);
+	if (processed.activitiesToInsert.length > 0) {
+		await db.insert(incidentActivity).values(processed.activitiesToInsert);
+	}
 
-	return configuredWorkerStates.states.some((state) => state.status !== "down");
+	if (monitorEvents.length > 0) {
+		await timeseries.insertMonitorEvents(
+			monitorEvents.map((event) => ({
+				id: crypto.randomUUID(),
+				monitorId: event.monitorId,
+				status: event.status,
+				latency: event.latency,
+				timestamp: new Date(event.timestamp),
+				statusCode: event.statusCode,
+				error: event.error,
+				location: event.location || workerId,
+				dnsLookup: event.timings?.dnsLookup,
+				tcpConnect: event.timings?.tcpConnect,
+				tlsHandshake: event.timings?.tlsHandshake,
+				ttfb: event.timings?.ttfb,
+				transfer: event.timings?.transfer,
+			})),
+		);
+	}
 }
+
+async function dispatchWorkerIncidentEvent(
+	dispatch: WorkerIncidentEventDispatch,
+) {
+	if (dispatch.event === "incident.created") {
+		await eventBus.emitAsync("incident.created", dispatch.payload);
+		return;
+	}
+
+	await eventBus.emitAsync("incident.resolved", dispatch.payload);
+}
+
+export {
+	type AutomaticIncidentOpenEvaluation,
+	type ConfiguredWorkerStateResult,
+	getConfiguredWorkerStates,
+	isAutomaticIncidentOpenEligible,
+	isAutomaticIncidentResolveEligible,
+	type WorkerStatusSnapshot,
+};
 
 /**
  * Retrieve active monitors assigned to the given worker location and return their runtime configuration.
@@ -232,76 +259,30 @@ export async function processMonitorEvents(
 		eventsByMonitor.set(event.monitorId, list);
 	}
 
-	const changesToInsert: MonitorChangeInsert[] = [];
-	const incidentsToInsert: (typeof incident.$inferInsert)[] = [];
-	const incidentMonitorsToInsert: (typeof incidentMonitor.$inferInsert)[] = [];
-	const incidentStatusPagesToInsert: (typeof incidentStatusPage.$inferInsert)[] =
-		[];
-	const activitiesToInsert: (typeof incidentActivity.$inferInsert)[] = [];
+	const eventsToDispatch: WorkerIncidentEventDispatch[] = [];
 
 	for (const [monitorId, monitorEvents] of eventsByMonitor.entries()) {
-		await processMonitorEventGroup(
-			monitorId,
-			monitorEvents,
-			workerId,
-			changesToInsert,
-			incidentsToInsert,
-			incidentMonitorsToInsert,
-			incidentStatusPagesToInsert,
-			activitiesToInsert,
-		);
-	}
+		const processed = await withMonitorEventLock(monitorId, async () => {
+			const processedGroup = await processMonitorEventGroup(
+				monitorId,
+				monitorEvents,
+				workerId,
+			);
 
-	// Batch inserts
-	if (changesToInsert.length > 0) {
-		await timeseries.insertMonitorChanges(changesToInsert);
-	}
+			await persistProcessedMonitorEventGroup({
+				processed: processedGroup,
+				monitorEvents,
+				workerId,
+			});
 
-	if (incidentsToInsert.length > 0) {
-		await db.insert(incident).values(incidentsToInsert);
-	}
-
-	if (incidentMonitorsToInsert.length > 0) {
-		await db.insert(incidentMonitor).values(incidentMonitorsToInsert);
-	}
-
-	if (incidentStatusPagesToInsert.length > 0) {
-		await db.insert(incidentStatusPage).values(incidentStatusPagesToInsert);
-	}
-
-	if (activitiesToInsert.length > 0) {
-		await db.insert(incidentActivity).values(activitiesToInsert);
-	}
-
-	for (const inc of incidentsToInsert) {
-		eventBus.emit("incident.created", {
-			incidentId: inc.id,
-			organizationId: inc.organizationId,
-			title: inc.title,
-			description: inc.description,
-			severity: inc.severity as any,
+			return processedGroup;
 		});
+
+		eventsToDispatch.push(...processed.eventsToDispatch);
 	}
 
-	// Insert events to time-series store
-	if (events.length > 0) {
-		await timeseries.insertMonitorEvents(
-			events.map((e) => ({
-				id: crypto.randomUUID(),
-				monitorId: e.monitorId,
-				status: e.status,
-				latency: e.latency,
-				timestamp: new Date(e.timestamp),
-				statusCode: e.statusCode,
-				error: e.error,
-				location: e.location || workerId,
-				dnsLookup: e.timings?.dnsLookup,
-				tcpConnect: e.timings?.tcpConnect,
-				tlsHandshake: e.timings?.tlsHandshake,
-				ttfb: e.timings?.ttfb,
-				transfer: e.timings?.transfer,
-			})),
-		);
+	for (const eventToDispatch of eventsToDispatch) {
+		await dispatchWorkerIncidentEvent(eventToDispatch);
 	}
 
 	return { success: true, count: events.length };
@@ -324,19 +305,23 @@ async function processMonitorEventGroup(
 	monitorId: string,
 	monitorEvents: MonitorEvent[],
 	workerId: string,
-	changesToInsert: MonitorChangeInsert[],
-	incidentsToInsert: (typeof incident.$inferInsert)[],
-	incidentMonitorsToInsert: (typeof incidentMonitor.$inferInsert)[],
-	incidentStatusPagesToInsert: (typeof incidentStatusPage.$inferInsert)[],
-	activitiesToInsert: (typeof incidentActivity.$inferInsert)[],
-) {
+): Promise<ProcessedMonitorEventGroup> {
+	const result: ProcessedMonitorEventGroup = {
+		changesToInsert: [],
+		incidentsToInsert: [],
+		incidentMonitorsToInsert: [],
+		incidentStatusPagesToInsert: [],
+		activitiesToInsert: [],
+		eventsToDispatch: [],
+	};
+
 	const monitorConfig = await db.query.monitor.findFirst({
 		where: eq(monitor.id, monitorId),
 	});
 
 	if (!monitorConfig) {
 		console.warn(`Received events for unknown monitor: ${monitorId}`);
-		return;
+		return result;
 	}
 
 	// Check for active maintenance
@@ -355,7 +340,9 @@ async function processMonitorEventGroup(
 		)
 		.limit(1);
 
-	if (activeMaintenance.length > 0) {
+	const isUnderMaintenance = activeMaintenance.length > 0;
+
+	if (isUnderMaintenance) {
 		for (const event of monitorEvents) {
 			event.status = "maintenance";
 		}
@@ -391,17 +378,14 @@ async function processMonitorEventGroup(
 	const monitorWorkerIds = Array.isArray(monitorConfig.workerIds)
 		? monitorConfig.workerIds
 		: [];
-	const configuredWorkers =
-		monitorWorkerIds.length > 0
-			? await db
-					.select({
-						id: worker.id,
-						name: worker.name,
-						location: worker.location,
-					})
-					.from(worker)
-					.where(inArray(worker.id, monitorWorkerIds))
-			: [];
+	const monitorLocations = Array.isArray(monitorConfig.locations)
+		? monitorConfig.locations
+		: [];
+	const configuredWorkers = await getEffectiveMonitorWorkers({
+		id: monitorConfig.id,
+		workerIds: monitorWorkerIds,
+		locations: monitorLocations,
+	});
 	const configuredWorkerIds = configuredWorkers.map(
 		(configuredWorker) => configuredWorker.id,
 	);
@@ -422,33 +406,43 @@ async function processMonitorEventGroup(
 		});
 	}
 
-	// Get latest status
-	const lastEvent = await timeseries.getLatestEventForMonitor(monitorId);
-
-	let currentStatus = lastEvent?.status;
+	let currentStatus =
+		latestWorkerStatuses.length > 0
+			? getAggregateMonitorStatus({
+					configuredWorkerIds,
+					workerStatusById,
+					isUnderMaintenance,
+				}).status
+			: undefined;
 
 	for (const event of monitorEvents) {
 		const eventTime = new Date(event.timestamp);
 		const eventWorkerId = event.location || workerId;
-		const isChange =
-			currentStatus !== undefined && currentStatus !== event.status;
-		const isFirstEvent = currentStatus === undefined;
-
-		if (isChange || isFirstEvent) {
-			changesToInsert.push({
-				id: crypto.randomUUID(),
-				monitorId: event.monitorId,
-				status: event.status,
-				timestamp: eventTime,
-				location: eventWorkerId,
-			});
-			currentStatus = event.status;
-		}
 
 		workerStatusById.set(eventWorkerId, {
 			status: event.status,
 			timestamp: eventTime,
 		});
+
+		const aggregateStatus = getAggregateMonitorStatus({
+			configuredWorkerIds,
+			workerStatusById,
+			isUnderMaintenance,
+		}).status;
+		const isChange =
+			currentStatus !== undefined && currentStatus !== aggregateStatus;
+		const isFirstEvent = currentStatus === undefined;
+
+		if (isChange || isFirstEvent) {
+			result.changesToInsert.push({
+				id: crypto.randomUUID(),
+				monitorId: event.monitorId,
+				status: aggregateStatus,
+				timestamp: eventTime,
+				location: eventWorkerId,
+			});
+			currentStatus = aggregateStatus;
+		}
 
 		if (
 			isAutomaticIncidentResolveEligible({
@@ -472,15 +466,18 @@ async function processMonitorEventGroup(
 				})
 				.where(eq(incident.id, resolvedIncident.id));
 
-			eventBus.emit("incident.resolved", {
-				incidentId: resolvedIncident.id,
-				organizationId: monitorConfig.organizationId,
-				title: `Monitor ${monitorConfig.name} recovered`,
-				description: "Monitor is back up.",
-				severity: "major",
+			result.eventsToDispatch.push({
+				event: "incident.resolved",
+				payload: {
+					incidentId: resolvedIncident.id,
+					organizationId: monitorConfig.organizationId,
+					title: `Monitor ${monitorConfig.name} recovered`,
+					description: "Monitor is back up.",
+					severity: "major",
+				},
 			});
 
-			activitiesToInsert.push({
+			result.activitiesToInsert.push({
 				id: crypto.randomUUID(),
 				incidentId: resolvedIncident.id,
 				message:
@@ -500,6 +497,7 @@ async function processMonitorEventGroup(
 			activeIncident,
 			eventTime,
 			incidentPendingDurationSeconds: monitorConfig.incidentPendingDuration,
+			isUnderMaintenance,
 		});
 
 		if (openEvaluation.eligible && openEvaluation.allWorkersDownSince) {
@@ -511,7 +509,7 @@ async function processMonitorEventGroup(
 				type: "automatic",
 			};
 
-			incidentsToInsert.push({
+			result.incidentsToInsert.push({
 				id: newIncidentId,
 				organizationId: monitorConfig.organizationId,
 				title: `Monitor ${monitorConfig.name} is down`,
@@ -526,7 +524,7 @@ async function processMonitorEventGroup(
 				resolvedAt: null,
 			});
 
-			incidentMonitorsToInsert.push({
+			result.incidentMonitorsToInsert.push({
 				incidentId: newIncidentId,
 				monitorId: monitorId,
 			});
@@ -540,14 +538,14 @@ async function processMonitorEventGroup(
 					.where(eq(statusPageMonitor.monitorId, monitorId));
 
 				for (const { statusPageId } of statusPages) {
-					incidentStatusPagesToInsert.push({
+					result.incidentStatusPagesToInsert.push({
 						incidentId: newIncidentId,
 						statusPageId,
 					});
 				}
 
 				if (statusPages.length > 0) {
-					activitiesToInsert.push({
+					result.activitiesToInsert.push({
 						id: crypto.randomUUID(),
 						incidentId: newIncidentId,
 						message: `Published to ${statusPages.length} status page${statusPages.length === 1 ? "" : "s"} automatically.`,
@@ -558,7 +556,7 @@ async function processMonitorEventGroup(
 				}
 			}
 
-			activitiesToInsert.push({
+			result.activitiesToInsert.push({
 				id: crypto.randomUUID(),
 				incidentId: newIncidentId,
 				message: `Incident opened automatically. All configured workers are reporting down. Last failure: ${event.error || "unknown error"}. (Worker: ${workerLabels.get(eventWorkerId) || eventWorkerId})`,
@@ -566,9 +564,21 @@ async function processMonitorEventGroup(
 				createdAt: eventTime,
 				userId: null,
 			});
+
+			result.eventsToDispatch.push({
+				event: "incident.created",
+				payload: {
+					incidentId: newIncidentId,
+					organizationId: monitorConfig.organizationId,
+					title: `Monitor ${monitorConfig.name} is down`,
+					description: `Monitor ${monitorConfig.name} is down. \n\nError: ${event.error || "Unknown error"}`,
+					severity: "major",
+				},
+			});
 		}
 	}
 
 	// `incidentRecoveryDuration` exists on the monitor schema but remains intentionally
 	// unused here so this fix only changes multi-worker incident gating behavior.
+	return result;
 }
