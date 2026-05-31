@@ -37,6 +37,11 @@ UptimeKit is designed to be the all-in-one solution for tracking your services' 
 - 📈 **Analytics** - Detailed uptime and response time metrics.
 - 🛠️ **Self-Hostable** - Full control over your data and infrastructure.
 
+## How it works
+
+Uptimekit is a distributed monitoring solution. You can have as many workers as you want and as many replicas of the app as you want.
+The workers check with the app every 15 seconds to get their assigned monitors and run the checks whenever they have to.
+
 ## 🚀 Tech Stack
 
 Built with a modern, type-safe stack for maximum performance and developer experience.
