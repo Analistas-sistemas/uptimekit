@@ -5,6 +5,39 @@ import type * as React from "react";
 import { ChevronRightIcon } from "@/components/icons";
 import { cn } from "@/lib/utils";
 
+type MenuActivationEvent = React.MouseEvent<HTMLElement> & {
+	preventBaseUIHandler?: () => void;
+};
+
+type MenuActivationHandler = (event: MenuActivationEvent) => void;
+
+type MenuItemProps<TProps extends { onClick?: unknown; onSelect?: unknown }> =
+	Omit<TProps, "onClick" | "onSelect"> & {
+		onClick?: MenuActivationHandler;
+		onSelect?: MenuActivationHandler;
+	};
+
+function composeActivationHandlers(
+	onClick?: MenuActivationHandler,
+	onSelect?: MenuActivationHandler,
+): MenuActivationHandler | undefined {
+	if (!(onClick || onSelect)) {
+		return undefined;
+	}
+
+	return (event) => {
+		onSelect?.(event);
+		if (event.defaultPrevented) {
+			event.preventBaseUIHandler?.();
+		}
+
+		onClick?.(event);
+		if (event.defaultPrevented) {
+			event.preventBaseUIHandler?.();
+		}
+	};
+}
+
 export const MenuCreateHandle: typeof MenuPrimitive.createHandle =
 	MenuPrimitive.createHandle;
 
@@ -81,9 +114,11 @@ export function MenuGroup(
 export function MenuItem({
 	className,
 	inset,
+	onClick,
+	onSelect,
 	variant = "default",
 	...props
-}: MenuPrimitive.Item.Props & {
+}: MenuItemProps<MenuPrimitive.Item.Props> & {
 	inset?: boolean;
 	variant?: "default" | "destructive";
 }): React.ReactElement {
@@ -96,6 +131,7 @@ export function MenuItem({
 			data-inset={inset}
 			data-slot="menu-item"
 			data-variant={variant}
+			onClick={composeActivationHandlers(onClick, onSelect)}
 			{...props}
 		/>
 	);
@@ -105,9 +141,11 @@ export function MenuCheckboxItem({
 	className,
 	children,
 	checked,
+	onClick,
+	onSelect,
 	variant = "default",
 	...props
-}: MenuPrimitive.CheckboxItem.Props & {
+}: MenuItemProps<MenuPrimitive.CheckboxItem.Props> & {
 	variant?: "default" | "switch";
 }): React.ReactElement {
 	return (
@@ -121,6 +159,7 @@ export function MenuCheckboxItem({
 				className,
 			)}
 			data-slot="menu-checkbox-item"
+			onClick={composeActivationHandlers(onClick, onSelect)}
 			{...props}
 		>
 			{variant === "switch" ? (
@@ -167,8 +206,10 @@ export function MenuRadioGroup(
 export function MenuRadioItem({
 	className,
 	children,
+	onClick,
+	onSelect,
 	...props
-}: MenuPrimitive.RadioItem.Props): React.ReactElement {
+}: MenuItemProps<MenuPrimitive.RadioItem.Props>): React.ReactElement {
 	return (
 		<MenuPrimitive.RadioItem
 			className={cn(
@@ -176,6 +217,7 @@ export function MenuRadioItem({
 				className,
 			)}
 			data-slot="menu-radio-item"
+			onClick={composeActivationHandlers(onClick, onSelect)}
 			{...props}
 		>
 			<MenuPrimitive.RadioItemIndicator className="col-start-1 -ms-0.5">
