@@ -35,7 +35,7 @@ describe("worker automatic incident gating", () => {
 		);
 	});
 
-	it("does not open when only some assigned workers are down", () => {
+	it("opens a degraded incident when only some assigned workers are down", () => {
 		const workerStatusById = toMap([
 			[
 				"worker-a",
@@ -55,11 +55,15 @@ describe("worker automatic incident gating", () => {
 			incidentPendingDurationSeconds: 0,
 		});
 
-		expect(result.eligible).toBe(false);
+		expect(result.eligible).toBe(true);
+		expect(result.triggerStatus).toBe("degraded");
+		expect(result.reason).toBe(
+			"worker-a is reporting down while worker-b is reporting up.",
+		);
 		expect(result.allWorkersDownSince).toBeNull();
 	});
 
-	it("opens only after every assigned worker is down", () => {
+	it("opens degraded before every assigned worker is down", () => {
 		const workerStatusById = toMap([
 			[
 				"worker-a",
@@ -83,7 +87,8 @@ describe("worker automatic incident gating", () => {
 			incidentPendingDurationSeconds: 0,
 		});
 
-		expect(beforeFinalFailure.eligible).toBe(false);
+		expect(beforeFinalFailure.eligible).toBe(true);
+		expect(beforeFinalFailure.triggerStatus).toBe("degraded");
 
 		workerStatusById.set("worker-c", {
 			status: "down",
@@ -99,6 +104,7 @@ describe("worker automatic incident gating", () => {
 		});
 
 		expect(afterFinalFailure.eligible).toBe(true);
+		expect(afterFinalFailure.triggerStatus).toBe("down");
 		expect(afterFinalFailure.allWorkersDownSince?.toISOString()).toBe(
 			"2026-04-26T10:00:45.000Z",
 		);
@@ -155,13 +161,32 @@ describe("worker automatic incident gating", () => {
 		expect(onTime.eligible).toBe(true);
 	});
 
-	it("resolves when any assigned worker clears", () => {
+	it("does not resolve while only some assigned workers have recovered", () => {
 		const result = isAutomaticIncidentResolveEligible({
 			configuredWorkerIds: ["worker-a", "worker-b"],
 			workerStatusById: toMap([
 				[
 					"worker-a",
 					{ status: "down", timestamp: new Date("2026-04-26T10:00:00Z") },
+				],
+				[
+					"worker-b",
+					{ status: "up", timestamp: new Date("2026-04-26T10:00:05Z") },
+				],
+			]),
+			activeIncident: { id: "incident-1" },
+		});
+
+		expect(result).toBe(false);
+	});
+
+	it("resolves when all assigned workers recover", () => {
+		const result = isAutomaticIncidentResolveEligible({
+			configuredWorkerIds: ["worker-a", "worker-b"],
+			workerStatusById: toMap([
+				[
+					"worker-a",
+					{ status: "up", timestamp: new Date("2026-04-26T10:00:00Z") },
 				],
 				[
 					"worker-b",

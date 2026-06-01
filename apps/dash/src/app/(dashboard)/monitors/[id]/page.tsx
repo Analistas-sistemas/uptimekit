@@ -4,7 +4,6 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { formatDistanceToNow } from "date-fns";
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { useState } from "react";
 import { sileo } from "sileo";
 import {
 	AlertTriangle,
@@ -18,15 +17,6 @@ import {
 import { AvailabilityTable } from "@/components/monitors/availability-table";
 import { MonitorCards } from "@/components/monitors/monitor-cards";
 import { ResponseTimeChart } from "@/components/monitors/response-time-chart";
-import {
-	AlertDialog,
-	AlertDialogCancel,
-	AlertDialogContent,
-	AlertDialogDescription,
-	AlertDialogFooter,
-	AlertDialogHeader,
-	AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -177,6 +167,7 @@ export default function MonitorDetailsPage() {
 				return config.url;
 		}
 	};
+	const statusReason = (monitor as any).statusReason as string | null;
 
 	return (
 		<div className="flex flex-col gap-6 p-6">
@@ -226,6 +217,11 @@ export default function MonitorDetailsPage() {
 					{!monitor.active && monitor.pauseReason && (
 						<p className="text-amber-600 text-sm dark:text-amber-400">
 							{getPauseDescription(monitor.pauseReason)}
+						</p>
+					)}
+					{monitor.status === "degraded" && statusReason && (
+						<p className="max-w-3xl text-amber-600 text-sm dark:text-amber-400">
+							{statusReason}
 						</p>
 					)}
 				</div>

@@ -49,6 +49,10 @@ describe("aggregate monitor status", () => {
 
 		expect(result.status).toBe("degraded");
 		expect(result.allWorkersDownSince).toBeNull();
+		expect(result.statusReason).toBe(
+			"worker-a is reporting down while worker-b is reporting up.",
+		);
+		expect(result.affectedWorkerIds).toEqual(["worker-a"]);
 	});
 
 	it("stays pending until all configured workers have reported", () => {

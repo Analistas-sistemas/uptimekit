@@ -369,7 +369,10 @@ export const monitorsRouter = {
 			const createEmptyMonitorState = () => ({
 				latestEventsMap: new Map<string, { status: string; timestamp: Date }>(),
 				latestChangesMap: new Map<string, { timestamp: Date }>(),
-				aggregateStatusesMap: new Map<string, { status: string }>(),
+				aggregateStatusesMap: new Map<
+					string,
+					{ status: string; statusReason: string | null }
+				>(),
 			});
 
 			const loadMonitorState = async () => {
@@ -404,6 +407,7 @@ export const monitorsRouter = {
 					for (const [monitorId, aggregateStatus] of aggregateStatuses) {
 						monitorState.aggregateStatusesMap.set(monitorId, {
 							status: aggregateStatus.status,
+							statusReason: aggregateStatus.statusReason,
 						});
 					}
 				} catch (error) {
@@ -420,6 +424,7 @@ export const monitorsRouter = {
 				usageCounts,
 				notificationCounts,
 				tagsForMonitors,
+				activeIncidentLinks,
 				{ latestEventsMap, latestChangesMap, aggregateStatusesMap },
 			] =
 				monitorIds.length > 0
@@ -448,13 +453,36 @@ export const monitorsRouter = {
 								.from(monitorTag)
 								.innerJoin(tag, eq(monitorTag.tagId, tag.id))
 								.where(inArray(monitorTag.monitorId, monitorIds)),
+							db
+								.select({
+									monitorId: incidentMonitor.monitorId,
+									incidentId: incident.id,
+								})
+								.from(incidentMonitor)
+								.innerJoin(
+									incident,
+									eq(incidentMonitor.incidentId, incident.id),
+								)
+								.where(
+									and(
+										inArray(incidentMonitor.monitorId, monitorIds),
+										eq(
+											incident.organizationId,
+											context.session.session.activeOrganizationId!,
+										),
+										isNull(incident.endedAt),
+									),
+								),
 							loadMonitorState(),
 						])
-					: [[], [], [], createEmptyMonitorState()];
+					: [[], [], [], [], createEmptyMonitorState()];
 
 			const usageMap = new Map(usageCounts.map((c) => [c.monitorId, c.count]));
 			const notificationCountMap = new Map(
 				notificationCounts.map((item) => [item.monitorId, item.count]),
+			);
+			const activeIncidentMap = new Map(
+				activeIncidentLinks.map((item) => [item.monitorId, item.incidentId]),
 			);
 
 			const tagsByMonitor = new Map<string, (typeof tag.$inferSelect)[]>();
@@ -469,19 +497,19 @@ export const monitorsRouter = {
 			const monitorsWithStatus = monitors.map((row) => {
 				const latestEvent = latestEventsMap.get(row.monitor.id);
 				const latestChange = latestChangesMap.get(row.monitor.id);
+				const aggregateStatus = aggregateStatusesMap.get(row.monitor.id);
 
 				return {
 					...row.monitor,
 					group: row.monitor_group || null,
 					tags: tagsByMonitor.get(row.monitor.id) || [],
-					status:
-						aggregateStatusesMap.get(row.monitor.id)?.status ||
-						latestEvent?.status ||
-						"pending",
+					status: aggregateStatus?.status || latestEvent?.status || "pending",
+					statusReason: aggregateStatus?.statusReason ?? null,
 					lastCheck: latestEvent?.timestamp ?? null,
 					lastStatusChange: latestChange?.timestamp ?? null,
 					usedOn: usageMap.get(row.monitor.id) || 0,
 					notificationCount: notificationCountMap.get(row.monitor.id) || 0,
+					activeIncidentId: activeIncidentMap.get(row.monitor.id) ?? null,
 				};
 			});
 
@@ -922,10 +950,27 @@ export const monitorsRouter = {
 				throw new ORPCError("NOT_FOUND");
 			}
 
-			const [latestEvent, latestChange] = await Promise.all([
-				timeseries.getLatestEventForMonitor(found.monitor.id),
-				timeseries.getLatestChangeForMonitor(found.monitor.id),
-			]);
+			const [latestEvent, latestChange, activeIncidentLink] = await Promise.all(
+				[
+					timeseries.getLatestEventForMonitor(found.monitor.id),
+					timeseries.getLatestChangeForMonitor(found.monitor.id),
+					db
+						.select({ incidentId: incident.id })
+						.from(incidentMonitor)
+						.innerJoin(incident, eq(incidentMonitor.incidentId, incident.id))
+						.where(
+							and(
+								eq(incidentMonitor.monitorId, found.monitor.id),
+								eq(
+									incident.organizationId,
+									context.session.session.activeOrganizationId!,
+								),
+								isNull(incident.endedAt),
+							),
+						)
+						.limit(1),
+				],
+			);
 
 			// Fetch tags for this monitor
 			const monitorTags = await db
@@ -975,8 +1020,10 @@ export const monitorsRouter = {
 				notifications,
 				workers: monitorWorkers,
 				status: aggregateStatus.status || latestEvent?.status || "pending",
+				statusReason: aggregateStatus.statusReason,
 				lastCheck: latestEvent?.timestamp ?? null,
 				lastStatusChange: latestChange?.timestamp ?? null,
+				activeIncidentId: activeIncidentLink[0]?.incidentId ?? null,
 			};
 		}),
 

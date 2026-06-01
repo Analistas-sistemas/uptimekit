@@ -3,7 +3,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { formatDistanceToNow } from "date-fns";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import {
 	parseAsBoolean,
 	parseAsString,
@@ -81,10 +80,12 @@ export interface Monitor {
 	url: string;
 	status: MonitorStatus;
 	statusText: string;
+	statusReason?: string | null;
 	duration: string;
 	usedOn: number;
 	frequency: string;
 	hasIncident: boolean;
+	activeIncidentId?: string | null;
 	active: boolean;
 	pauseReason?: string | null;
 	tags?: Array<{ id: string; name: string; color: string }>;
@@ -112,7 +113,6 @@ function getPauseLabel(pauseReason?: string | null) {
  * @returns The React element for the monitors management UI.
  */
 export function MonitorsTable() {
-	const router = useRouter();
 	const [searchOpen, setSearchOpen] = useState(false);
 	const [groupsOpen, setGroupsOpen] = useState(false);
 	const [tagsOpen, setTagsOpen] = useState(false);
@@ -210,6 +210,7 @@ export function MonitorsTable() {
 							: (m as any).status === "maintenance"
 								? "Maintenance"
 								: "Pending",
+			statusReason: (m as any).statusReason ?? null,
 			duration: ((monitor: any) => {
 				if (monitor.status === "up") {
 					if (monitor.lastStatusChange) {
@@ -225,7 +226,8 @@ export function MonitorsTable() {
 			})(m),
 			usedOn: (m as any).usedOn || 0,
 			frequency: `${m.interval}s`,
-			hasIncident: false,
+			hasIncident: Boolean((m as any).activeIncidentId),
+			activeIncidentId: (m as any).activeIncidentId ?? null,
 			active: m.active,
 			pauseReason: (m as any).pauseReason,
 			tags: (m as any).tags || [],
@@ -348,6 +350,14 @@ export function MonitorsTable() {
 								Used on {monitor.usedOn} status page
 								{monitor.usedOn !== 1 ? "s" : ""}
 							</span>
+							{monitor.status === "degraded" && monitor.statusReason && (
+								<>
+									<span>·</span>
+									<span className="max-w-[320px] truncate text-amber-500">
+										{monitor.statusReason}
+									</span>
+								</>
+							)}
 						</div>
 					</div>
 				</div>

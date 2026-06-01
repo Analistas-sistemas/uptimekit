@@ -81,6 +81,81 @@ type WorkerIncidentEventDispatch =
 	  };
 
 const monitorEventLocks = new Map<string, Promise<void>>();
+type AutomaticIncidentTriggerStatus = "down" | "degraded";
+
+function getAutomaticIncidentTitle(
+	monitorName: string,
+	triggerStatus: AutomaticIncidentTriggerStatus,
+) {
+	return triggerStatus === "degraded"
+		? `Monitor ${monitorName} is degraded`
+		: `Monitor ${monitorName} is down`;
+}
+
+function getAutomaticIncidentSeverity(
+	triggerStatus: AutomaticIncidentTriggerStatus,
+) {
+	return triggerStatus === "degraded" ? "minor" : "major";
+}
+
+function getAutomaticIncidentDescription(input: {
+	monitorName: string;
+	triggerStatus: AutomaticIncidentTriggerStatus;
+	reason: string | null;
+	error?: string;
+}) {
+	const summary =
+		input.triggerStatus === "degraded"
+			? `Monitor ${input.monitorName} is degraded.`
+			: `Monitor ${input.monitorName} is down.`;
+	const details = [summary];
+
+	if (input.reason) {
+		details.push(`Reason: ${input.reason}`);
+	}
+
+	details.push(`Last failure: ${input.error || "Unknown error"}`);
+
+	return details.join("\n\n");
+}
+
+function getAutomaticIncidentOpenedMessage(input: {
+	triggerStatus: AutomaticIncidentTriggerStatus;
+	reason: string | null;
+	error?: string;
+	workerLabel: string;
+}) {
+	const statusText = input.triggerStatus === "degraded" ? "degraded" : "down";
+	const details = [`Incident opened automatically. Monitor is ${statusText}.`];
+
+	if (input.reason) {
+		details.push(input.reason);
+	}
+
+	details.push(
+		`Last failure: ${input.error || "unknown error"}. (Worker: ${input.workerLabel})`,
+	);
+
+	return details.join(" ");
+}
+
+function getAutomaticIncidentEscalatedMessage(input: {
+	reason: string | null;
+	error?: string;
+	workerLabel: string;
+}) {
+	const details = ["Incident escalated automatically. Monitor is down."];
+
+	if (input.reason) {
+		details.push(input.reason);
+	}
+
+	details.push(
+		`Last failure: ${input.error || "unknown error"}. (Worker: ${input.workerLabel})`,
+	);
+
+	return details.join(" ");
+}
 
 async function withMonitorEventLock<T>(
 	monitorId: string,
@@ -370,6 +445,9 @@ async function processMonitorEventGroup(
 		.select({
 			id: incident.id,
 			status: incident.status,
+			title: incident.title,
+			description: incident.description,
+			severity: incident.severity,
 			endedAt: incident.endedAt,
 			type: incident.type,
 		})
@@ -445,20 +523,22 @@ async function processMonitorEventGroup(
 			configuredWorkerIds,
 			workerStatusById,
 			isUnderMaintenance,
-		}).status;
+			workerLabels,
+		});
+		const aggregateRuntimeStatus = aggregateStatus.status;
 		const isChange =
-			currentStatus !== undefined && currentStatus !== aggregateStatus;
+			currentStatus !== undefined && currentStatus !== aggregateRuntimeStatus;
 		const isFirstEvent = currentStatus === undefined;
 
 		if (isChange || isFirstEvent) {
 			result.changesToInsert.push({
 				id: crypto.randomUUID(),
 				monitorId: event.monitorId,
-				status: aggregateStatus,
+				status: aggregateRuntimeStatus,
 				timestamp: eventTime,
 				location: eventWorkerId,
 			});
-			currentStatus = aggregateStatus;
+			currentStatus = aggregateRuntimeStatus;
 		}
 
 		if (
@@ -489,8 +569,11 @@ async function processMonitorEventGroup(
 					incidentId: resolvedIncident.id,
 					organizationId: monitorConfig.organizationId,
 					title: `Monitor ${monitorConfig.name} recovered`,
-					description: "Monitor is back up.",
-					severity: "major",
+					description:
+						aggregateRuntimeStatus === "maintenance"
+							? "Monitor entered maintenance."
+							: "Monitor is back up in all configured workers.",
+					severity: resolvedIncident.severity as "minor" | "major" | "critical",
 				},
 			});
 
@@ -498,7 +581,9 @@ async function processMonitorEventGroup(
 				id: crypto.randomUUID(),
 				incidentId: resolvedIncident.id,
 				message:
-					"Monitor recovered in at least one region. Incident resolved automatically.",
+					aggregateRuntimeStatus === "maintenance"
+						? "Monitor entered maintenance. Incident resolved automatically."
+						: "Monitor recovered in all configured workers. Incident resolved automatically.",
 				type: "event",
 				createdAt: eventTime,
 				userId: null,
@@ -508,6 +593,55 @@ async function processMonitorEventGroup(
 			continue;
 		}
 
+		if (activeIncident && aggregateRuntimeStatus === "down") {
+			const incidentTitle = getAutomaticIncidentTitle(
+				monitorConfig.name,
+				"down",
+			);
+			const incidentDescription = getAutomaticIncidentDescription({
+				monitorName: monitorConfig.name,
+				triggerStatus: "down",
+				reason: aggregateStatus.statusReason,
+				error: event.error,
+			});
+
+			if (
+				activeIncident.title !== incidentTitle ||
+				activeIncident.description !== incidentDescription ||
+				activeIncident.severity !== "major"
+			) {
+				result.incidentUpdatesToApply.push({
+					id: activeIncident.id,
+					values: {
+						title: incidentTitle,
+						description: incidentDescription,
+						severity: "major",
+						updatedAt: eventTime,
+					},
+				});
+
+				result.activitiesToInsert.push({
+					id: crypto.randomUUID(),
+					incidentId: activeIncident.id,
+					message: getAutomaticIncidentEscalatedMessage({
+						reason: aggregateStatus.statusReason,
+						error: event.error,
+						workerLabel: workerLabels.get(eventWorkerId) || eventWorkerId,
+					}),
+					type: "event",
+					createdAt: eventTime,
+					userId: null,
+				});
+
+				activeIncident = {
+					...activeIncident,
+					title: incidentTitle,
+					description: incidentDescription,
+					severity: "major",
+				};
+			}
+		}
+
 		const openEvaluation = isAutomaticIncidentOpenEligible({
 			configuredWorkerIds,
 			workerStatusById,
@@ -515,13 +649,34 @@ async function processMonitorEventGroup(
 			eventTime,
 			incidentPendingDurationSeconds: monitorConfig.incidentPendingDuration,
 			isUnderMaintenance,
+			workerLabels,
 		});
 
-		if (openEvaluation.eligible && openEvaluation.allWorkersDownSince) {
+		if (
+			openEvaluation.eligible &&
+			openEvaluation.triggerStatus &&
+			openEvaluation.startedAt
+		) {
 			const newIncidentId = crypto.randomUUID();
+			const incidentTitle = getAutomaticIncidentTitle(
+				monitorConfig.name,
+				openEvaluation.triggerStatus,
+			);
+			const incidentDescription = getAutomaticIncidentDescription({
+				monitorName: monitorConfig.name,
+				triggerStatus: openEvaluation.triggerStatus,
+				reason: openEvaluation.reason,
+				error: event.error,
+			});
+			const incidentSeverity = getAutomaticIncidentSeverity(
+				openEvaluation.triggerStatus,
+			);
 			activeIncident = {
 				id: newIncidentId,
 				status: "investigating",
+				title: incidentTitle,
+				description: incidentDescription,
+				severity: incidentSeverity,
 				endedAt: null,
 				type: "automatic",
 			};
@@ -529,12 +684,12 @@ async function processMonitorEventGroup(
 			result.incidentsToInsert.push({
 				id: newIncidentId,
 				organizationId: monitorConfig.organizationId,
-				title: `Monitor ${monitorConfig.name} is down`,
-				description: `Monitor ${monitorConfig.name} is down. \n\nError: ${event.error || "Unknown error"}`,
+				title: incidentTitle,
+				description: incidentDescription,
 				status: "investigating",
-				severity: "major",
+				severity: incidentSeverity,
 				type: "automatic",
-				startedAt: openEvaluation.allWorkersDownSince,
+				startedAt: openEvaluation.startedAt,
 				endedAt: null,
 				createdAt: eventTime,
 				updatedAt: eventTime,
@@ -576,7 +731,12 @@ async function processMonitorEventGroup(
 			result.activitiesToInsert.push({
 				id: crypto.randomUUID(),
 				incidentId: newIncidentId,
-				message: `Incident opened automatically. All configured workers are reporting down. Last failure: ${event.error || "unknown error"}. (Worker: ${workerLabels.get(eventWorkerId) || eventWorkerId})`,
+				message: getAutomaticIncidentOpenedMessage({
+					triggerStatus: openEvaluation.triggerStatus,
+					reason: openEvaluation.reason,
+					error: event.error,
+					workerLabel: workerLabels.get(eventWorkerId) || eventWorkerId,
+				}),
 				type: "event",
 				createdAt: eventTime,
 				userId: null,
@@ -587,9 +747,9 @@ async function processMonitorEventGroup(
 				payload: {
 					incidentId: newIncidentId,
 					organizationId: monitorConfig.organizationId,
-					title: `Monitor ${monitorConfig.name} is down`,
-					description: `Monitor ${monitorConfig.name} is down. \n\nError: ${event.error || "Unknown error"}`,
-					severity: "major",
+					title: incidentTitle,
+					description: incidentDescription,
+					severity: incidentSeverity,
 				},
 			});
 		}
