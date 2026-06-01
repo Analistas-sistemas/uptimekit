@@ -1,12 +1,12 @@
 "use client";
 
+import { useQuery } from "@tanstack/react-query";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import * as React from "react";
 import {
 	Activity,
 	AlertTriangle,
-	Building2,
 	ChevronDown,
 	Grid2X2,
 	LayoutDashboard,
@@ -38,7 +38,7 @@ import {
 	SidebarSeparator,
 } from "@/components/ui/sidebar";
 import { authClient } from "@/lib/auth-client";
-import { queryClient } from "@/utils/orpc";
+import { orpc, queryClient } from "@/utils/orpc";
 
 // import { UserMenu } from "@/components/layout/user-menu"; // Unused as we defined a local component for now to match structure
 
@@ -92,6 +92,8 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
 	const organizationSettingsUrl = activeOrg?.id
 		? `/organization/${activeOrg.id}/settings`
 		: "/settings";
+	const { data: appVersion } = useQuery(orpc.getVersion.queryOptions());
+	const hasUpdate = appVersion?.isLatest === false;
 
 	// Use organization info safely
 	// Note: Better-auth might return null/undefined while loading
@@ -282,14 +284,21 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
 				</SidebarGroup>
 			</SidebarContent>
 			<SidebarFooter>
-				{/* Reusing existing UserMenu but we might need to adapt it if it's strictly a dropdown trigger without structure.
-                    Let's check UserMenu again or just embed the logic here for better sidebar integration.
-                    For now, let's wrap it in a menu item */}
 				<SidebarMenu>
 					<SidebarMenuItem>
 						<UserMenuComponent />
 					</SidebarMenuItem>
 				</SidebarMenu>
+				{appVersion && (
+					<div className="px-2 text-center text-muted-foreground text-xs group-data-[collapsible=icon]:hidden">
+						v{appVersion.version}
+						{hasUpdate && (
+							<span className="ml-2 text-warning-foreground">
+								Update available
+							</span>
+						)}
+					</div>
+				)}
 			</SidebarFooter>
 			<SidebarRail />
 			{isGlobalAdmin && (
