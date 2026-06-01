@@ -17,6 +17,10 @@ type MenuItemProps<TProps extends { onClick?: unknown; onSelect?: unknown }> =
 		onSelect?: MenuActivationHandler;
 	};
 
+type MenuLabelProps = React.ComponentPropsWithoutRef<"div"> & {
+	inset?: boolean;
+};
+
 function composeActivationHandlers(
 	onClick?: MenuActivationHandler,
 	onSelect?: MenuActivationHandler,
@@ -109,6 +113,24 @@ export function MenuGroup(
 	props: MenuPrimitive.Group.Props,
 ): React.ReactElement {
 	return <MenuPrimitive.Group data-slot="menu-group" {...props} />;
+}
+
+export function MenuLabel({
+	className,
+	inset,
+	...props
+}: MenuLabelProps): React.ReactElement {
+	return (
+		<div
+			className={cn(
+				"px-2 py-1.5 font-medium text-muted-foreground text-xs data-inset:ps-9 sm:data-inset:ps-8",
+				className,
+			)}
+			data-inset={inset}
+			data-slot="menu-label"
+			{...props}
+		/>
+	);
 }
 
 export function MenuItem({
@@ -351,8 +373,9 @@ export {
 	MenuCheckboxItem as DropdownMenuCheckboxItem,
 	MenuCreateHandle as DropdownMenuCreateHandle,
 	MenuGroup as DropdownMenuGroup,
-	MenuGroupLabel as DropdownMenuLabel,
+	MenuGroupLabel as DropdownMenuGroupLabel,
 	MenuItem as DropdownMenuItem,
+	MenuLabel as DropdownMenuLabel,
 	MenuPopup as DropdownMenuContent,
 	MenuPortal as DropdownMenuPortal,
 	MenuPrimitive,

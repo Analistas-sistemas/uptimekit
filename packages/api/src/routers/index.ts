@@ -9,10 +9,12 @@ import { organizationsRouter } from "./organizations";
 import { statusPagesRouter } from "./status-pages";
 import { statusUpdatesRouter } from "./status-updates";
 import { usersRouter } from "./users";
+import { getVersion } from "./version";
 import { workersRouter } from "./workers";
 import "../pkg/imports"; // Register import sources
 
 export const appRouter = {
+	getVersion,
 	workers: workersRouter,
 	monitors: monitorsRouter,
 	incidents: incidentsRouter,

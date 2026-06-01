@@ -39,7 +39,7 @@ import { Table, TableBody, TableCell, TableRow } from "@/components/ui/table";
 import { getStatusPageUrl } from "@/lib/status-page-url";
 import { client, orpc } from "@/utils/orpc";
 import { DataPagination } from "../ui/data-pagination";
-import { DropdownMenuLabel, MenuGroup } from "../ui/menu";
+import { MenuGroup, MenuGroupLabel } from "../ui/menu";
 import { CreateStatusPageForm } from "./create-form";
 
 interface StatusPageListItem {
@@ -354,7 +354,7 @@ export function StatusPagesTable() {
 												</DropdownMenuTrigger>
 												<DropdownMenuContent align="end">
 													<MenuGroup>
-														<DropdownMenuLabel>{page.name}</DropdownMenuLabel>
+														<MenuGroupLabel>{page.name}</MenuGroupLabel>
 														<DropdownMenuItem
 															render={
 																// biome-ignore lint/a11y/useAnchorContent: shhhh its okay.. its okay...

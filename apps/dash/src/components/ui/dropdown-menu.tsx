@@ -6,6 +6,7 @@ export {
 	DropdownMenuContent,
 	DropdownMenuCreateHandle,
 	DropdownMenuGroup,
+	DropdownMenuGroupLabel,
 	DropdownMenuItem,
 	DropdownMenuLabel,
 	DropdownMenuPortal,
