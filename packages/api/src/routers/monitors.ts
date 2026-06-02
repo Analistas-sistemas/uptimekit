@@ -1152,6 +1152,7 @@ export const monitorsRouter = {
 				monitorId: z.string(),
 				range: responseTimeRangeSchema,
 				workerIds: z.array(z.string()).optional().default([]),
+				allChecks: z.boolean().optional().default(false),
 			}),
 		)
 		.handler(async ({ input, context }) => {
@@ -1180,7 +1181,7 @@ export const monitorsRouter = {
 				monitorId: input.monitorId,
 				since: startDate,
 				locations: filterLocations,
-				limit: 2000,
+				limit: input.allChecks ? null : 2000,
 			});
 
 			return events.map((e) => ({

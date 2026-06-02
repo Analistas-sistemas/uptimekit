@@ -86,7 +86,7 @@ const TIMING_KEYS = [
 ] as const;
 const QUANTILE_VALUES = ["p50", "p90", "p99"] as const;
 const RANGE_VALUES = ["24h", "7d", "30d", "3mo", "6mo", "1y", "all"] as const;
-const LATENCY_RESOLUTION_VALUES = ["5", "15", "30", "60"] as const;
+const LATENCY_RESOLUTION_VALUES = ["1", "5", "15", "30", "60", "all"] as const;
 const REGION_VIEW_VALUES = ["table", "chart"] as const;
 const ROWS_PER_PAGE_VALUES = ["10", "20", "50"] as const;
 type TimingKey = (typeof TIMING_KEYS)[number];
@@ -141,10 +141,12 @@ const RANGE_OPTIONS = [
 ] as const;
 
 const RESOLUTION_OPTIONS = [
+	{ label: "1 minute", value: "1" },
 	{ label: "5 minutes", value: "5" },
 	{ label: "15 minutes", value: "15" },
 	{ label: "30 minutes", value: "30" },
 	{ label: "1 hour", value: "60" },
+	{ label: "All checks", value: "all" },
 ] as const;
 
 const ROWS_PER_PAGE_OPTIONS = [
@@ -254,6 +256,14 @@ const formatChartTimestamp = (timestamp: string, range: RangeKey) => {
 		return format(date, "MMM d, yyyy");
 	}
 	return format(date, "MMM d");
+};
+
+const formatCheckTimestamp = (timestamp: string, range: RangeKey) => {
+	const date = new Date(timestamp);
+	if (range === "24h" || range === "7d") {
+		return format(date, "MMM d 'at' h:mm:ss a");
+	}
+	return format(date, "MMM d, yyyy 'at' h:mm:ss a");
 };
 
 const calculateQuantile = (
@@ -401,6 +411,7 @@ export function ResponseTimeChart({
 		() => resolveSelectedWorkerIds(selectedWorkerIds, workerIds),
 		[selectedWorkerIds, workerIds],
 	);
+	const isAllChecksResolution = latencyResolutionMinutes === "all";
 
 	const { data: latencyRawData = [], isLoading: isLatencyLoading } = useQuery({
 		...orpc.monitors.getResponseTimes.queryOptions({
@@ -408,6 +419,7 @@ export function ResponseTimeChart({
 				monitorId,
 				range: latencyRange,
 				workerIds: activeWorkerIds,
+				allChecks: isAllChecksResolution,
 			},
 		}),
 		enabled: activeWorkerIds.length > 0,
@@ -443,6 +455,19 @@ export function ResponseTimeChart({
 	const chartData = useMemo((): LatencyBucketPoint[] => {
 		if (latencyRawData.length === 0) {
 			return [];
+		}
+
+		if (isAllChecksResolution) {
+			return latencyRawData.map((point) => ({
+				timestamp: point.timestamp,
+				label: formatCheckTimestamp(point.timestamp, latencyRange),
+				latency: point.latency,
+				dnsLookup: point.dnsLookup ?? 0,
+				tcpConnect: point.tcpConnect ?? 0,
+				tlsHandshake: point.tlsHandshake ?? 0,
+				ttfb: point.ttfb ?? 0,
+				transfer: point.transfer ?? 0,
+			}));
 		}
 
 		const grouped = latencyRawData.reduce(
@@ -490,7 +515,13 @@ export function ResponseTimeChart({
 					latencyQuantile,
 				),
 			}));
-	}, [latencyRawData, latencyResolutionMinutes, latencyRange, latencyQuantile]);
+	}, [
+		latencyRawData,
+		isAllChecksResolution,
+		latencyResolutionMinutes,
+		latencyRange,
+		latencyQuantile,
+	]);
 
 	const regionMetrics = useMemo((): RegionMetricRow[] => {
 		if (regionRawData.length === 0) {
@@ -772,33 +803,39 @@ export function ResponseTimeChart({
 					</div>
 
 					<div className="flex flex-wrap items-center gap-2 text-muted-foreground text-sm">
-						<span>The</span>
-						<Select
-							value={latencyQuantile}
-							onValueChange={(value) =>
-								updateChartState({
-									latencyQuantile: value as QuantileKey,
-								})
-							}
-						>
-							<SelectTrigger className="h-8 w-[86px] bg-background/60 text-foreground">
-								<SelectValue>
-									{
-										QUANTILE_OPTIONS.find(
-											(option) => option.value === latencyQuantile,
-										)?.label
+						{isAllChecksResolution ? (
+							<span>Latency over the</span>
+						) : (
+							<>
+								<span>The</span>
+								<Select
+									value={latencyQuantile}
+									onValueChange={(value) =>
+										updateChartState({
+											latencyQuantile: value as QuantileKey,
+										})
 									}
-								</SelectValue>
-							</SelectTrigger>
-							<SelectContent>
-								{QUANTILE_OPTIONS.map(({ label, value }) => (
-									<SelectItem key={value} value={value}>
-										{label}
-									</SelectItem>
-								))}
-							</SelectContent>
-						</Select>
-						<span>quantile over the</span>
+								>
+									<SelectTrigger className="h-8 w-[86px] bg-background/60 text-foreground">
+										<SelectValue>
+											{
+												QUANTILE_OPTIONS.find(
+													(option) => option.value === latencyQuantile,
+												)?.label
+											}
+										</SelectValue>
+									</SelectTrigger>
+									<SelectContent>
+										{QUANTILE_OPTIONS.map(({ label, value }) => (
+											<SelectItem key={value} value={value}>
+												{label}
+											</SelectItem>
+										))}
+									</SelectContent>
+								</Select>
+								<span>quantile over the</span>
+							</>
+						)}
 						<Select
 							value={latencyRange}
 							onValueChange={(value) =>
@@ -822,13 +859,13 @@ export function ResponseTimeChart({
 								))}
 							</SelectContent>
 						</Select>
-						<span>within a</span>
+						<span>{isAllChecksResolution ? "shown as" : "within a"}</span>
 						<Select
 							value={latencyResolutionMinutes}
 							onValueChange={(value) => {
 								if (value) {
 									updateChartState({
-										latencyResolutionMinutes: value,
+										latencyResolutionMinutes: value as LatencyResolutionKey,
 									});
 								}
 							}}
@@ -850,7 +887,7 @@ export function ResponseTimeChart({
 								))}
 							</SelectContent>
 						</Select>
-						<span>resolution</span>
+						{!isAllChecksResolution && <span>resolution</span>}
 					</div>
 				</CardHeader>
 				<CardContent className="space-y-5">

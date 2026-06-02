@@ -325,7 +325,8 @@ export class TimescaleDriver implements TimeSeriesDriver {
 		await this.ensureSchema();
 
 		const sql = this.getClient();
-		const limit = query.limit ?? 2000;
+		const limit = query.limit === undefined ? 2000 : query.limit;
+		const limitClause = limit === null ? sql`` : sql`LIMIT ${limit}`;
 		const hasLocations = query.locations && query.locations.length > 0;
 
 		const rows = hasLocations
@@ -348,7 +349,7 @@ export class TimescaleDriver implements TimeSeriesDriver {
 						AND timestamp >= ${query.since}
 						AND location = ANY(${query.locations as string[]})
 					ORDER BY timestamp ASC
-					LIMIT ${limit}
+					${limitClause}
 				`
 			: await sql<
 					{
@@ -368,7 +369,7 @@ export class TimescaleDriver implements TimeSeriesDriver {
 					WHERE monitor_id = ${query.monitorId}
 						AND timestamp >= ${query.since}
 					ORDER BY timestamp ASC
-					LIMIT ${limit}
+					${limitClause}
 				`;
 
 		return rows.map((r) => ({

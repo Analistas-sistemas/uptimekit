@@ -87,7 +87,7 @@ export interface ResponseTimesQuery {
 	monitorId: string;
 	since: Date;
 	locations?: string[];
-	limit?: number;
+	limit?: number | null;
 }
 
 export interface ChangeTimelineQuery {

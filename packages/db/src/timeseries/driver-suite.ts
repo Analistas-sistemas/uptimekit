@@ -432,6 +432,50 @@ export function defineDriverTests(
 				expect(filtered).toHaveLength(1);
 				expect(filtered[0]?.location).toBe("eu-west");
 			});
+
+			it("supports capped and uncapped response time queries", async () => {
+				const driver = getDriver();
+				const monitorId = uid("response-limit");
+				const now = new Date();
+
+				await driver.insertMonitorEvents([
+					{
+						id: crypto.randomUUID(),
+						monitorId,
+						status: "up",
+						latency: 100,
+						timestamp: new Date(now.getTime() - 120_000),
+					},
+					{
+						id: crypto.randomUUID(),
+						monitorId,
+						status: "up",
+						latency: 125,
+						timestamp: new Date(now.getTime() - 60_000),
+					},
+					{
+						id: crypto.randomUUID(),
+						monitorId,
+						status: "up",
+						latency: 150,
+						timestamp: now,
+					},
+				]);
+
+				const capped = await driver.getResponseTimes({
+					monitorId,
+					since: new Date(now.getTime() - 180_000),
+					limit: 1,
+				});
+				const uncapped = await driver.getResponseTimes({
+					monitorId,
+					since: new Date(now.getTime() - 180_000),
+					limit: null,
+				});
+
+				expect(capped).toHaveLength(1);
+				expect(uncapped).toHaveLength(3);
+			});
 		});
 
 		describe("worker status snapshots", () => {

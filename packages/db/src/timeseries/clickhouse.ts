@@ -403,7 +403,11 @@ export class ClickHouseDriver implements TimeSeriesDriver {
 			params.locations = query.locations;
 		}
 
-		params.limit = query.limit ?? 2000;
+		const limit = query.limit === undefined ? 2000 : query.limit;
+		const limitClause = limit === null ? "" : "LIMIT {limit:UInt32}";
+		if (limit !== null) {
+			params.limit = limit;
+		}
 
 		const rows = await this.queryJson<{
 			timestamp: string;
@@ -422,7 +426,7 @@ export class ClickHouseDriver implements TimeSeriesDriver {
 					AND timestamp >= toDateTime64({startDate:UInt64} / 1000, 3)
 					${locationFilter}
 				ORDER BY timestamp ASC
-				LIMIT {limit:UInt32}
+				${limitClause}
 			`,
 			params,
 		);
