@@ -1,12 +1,6 @@
 import type { Metadata } from "next";
-import { Montserrat } from "next/font/google";
 import "@/index.css";
 import { ThemeProvider } from "@/components/theme-provider";
-
-const montserrat = Montserrat({
-	subsets: ["latin", "latin-ext"],
-	variable: "--font-montserrat",
-});
 
 export const metadata: Metadata = {
 	title: "Status Page | UptimeKit",
@@ -20,7 +14,7 @@ export default function RootLayout({
 }>) {
 	return (
 		<html lang="en" suppressHydrationWarning>
-			<body className={`${montserrat.variable} font-sans`}>
+			<body className="font-sans">
 				<ThemeProvider
 					attribute="class"
 					defaultTheme="system"

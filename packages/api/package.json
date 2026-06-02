@@ -42,7 +42,7 @@
 		"@types/nodemailer": "^8.0.0",
 		"@uptimekit/config": "workspace:*",
 		"typescript": "^5.9.3",
-		"vitest": "^2.1.9"
+		"vitest": "^4.1.8"
 	},
 	"peerDependencies": {
 		"typescript": "^5"
