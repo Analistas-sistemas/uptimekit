@@ -1,11 +1,7 @@
 import type { Metadata } from "next";
-import { Geist_Mono } from "next/font/google";
 import "../index.css";
 import Providers from "@/components/providers";
 import { getConfig } from "@/lib/config";
-import { cn } from "@/lib/utils";
-
-const geistMono = Geist_Mono({ subsets: ["latin"], variable: "--font-mono" });
 
 export const dynamic = "force-dynamic";
 
@@ -65,7 +61,7 @@ export default function RootLayout({
 	children: React.ReactNode;
 }>) {
 	return (
-		<html lang="en" suppressHydrationWarning className={cn(geistMono.variable)}>
+		<html lang="en" suppressHydrationWarning>
 			<body className="text-foreground antialiased">
 				<Providers>{children}</Providers>
 			</body>
