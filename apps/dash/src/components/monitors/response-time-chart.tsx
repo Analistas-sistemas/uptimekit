@@ -356,7 +356,7 @@ export function ResponseTimeChart({
 			),
 			latencyResolutionMinutes: parseAsStringEnum([
 				...LATENCY_RESOLUTION_VALUES,
-			]).withDefault("30"),
+			]).withDefault("1"),
 			regionRange: parseAsStringEnum([...RANGE_VALUES]).withDefault("24h"),
 			regionQuantile: parseAsStringEnum([...QUANTILE_VALUES]).withDefault(
 				"p99",
