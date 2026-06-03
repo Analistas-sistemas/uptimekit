@@ -85,6 +85,15 @@ async function createUniqueOrganizationSlug(email: string): Promise<string> {
 	return `${baseSlug}-${randomUUID().slice(0, 8)}`;
 }
 
+async function hasRegisteredUsers(): Promise<boolean> {
+	const [existingUser] = await db
+		.select({ id: schema.user.id })
+		.from(schema.user)
+		.limit(1);
+
+	return !!existingUser;
+}
+
 const organizationAccessControl = createAccessControl({
 	organization: ["update", "delete"],
 	member: ["create", "update", "delete"],
@@ -204,6 +213,10 @@ const authConfig: BetterAuthOptions = {
 						(ctx as { path?: string } | null | undefined)?.path ===
 						"/admin/create-user";
 					if (isAdminCreate) {
+						return;
+					}
+
+					if (!(await hasRegisteredUsers())) {
 						return;
 					}
 
