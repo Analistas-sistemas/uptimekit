@@ -65,7 +65,23 @@ Follow these steps to get UptimeKit running locally on your machine.
 - Clickhouse
 - PostgreSQL
 
-### Installation
+### Install
+
+1. **Download the docker-compose.yml**
+
+    ```bash
+    curl -o docker-compose.yml https://raw.githubusercontent.com/uptimekit/uptimekit/main/docker-compose.yml
+    ```
+
+2. **Start the docker compose**
+
+    ```bash
+    docker-compose up -d
+    ```
+
+3. Now follow the steps on the app. Enjoy :D
+
+### Manual installation
 
 1. **Clone the repository**
 
