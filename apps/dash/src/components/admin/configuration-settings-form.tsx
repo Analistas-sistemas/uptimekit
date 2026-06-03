@@ -23,6 +23,34 @@ interface ConfigFormData {
 	dataRetentionDays: string;
 }
 
+const DATA_RETENTION_MIN_DAYS = 1;
+const DATA_RETENTION_MAX_DAYS = 365;
+
+function normalizeConfigFormData(values: ConfigFormData): ConfigFormData {
+	const instanceName = values.instanceName.trim();
+	const dataRetentionDaysInput = values.dataRetentionDays.trim();
+	const dataRetentionDays = Number(dataRetentionDaysInput);
+
+	if (!instanceName) {
+		throw new Error("Instance name is required.");
+	}
+
+	if (
+		!Number.isInteger(dataRetentionDays) ||
+		dataRetentionDays < DATA_RETENTION_MIN_DAYS ||
+		dataRetentionDays > DATA_RETENTION_MAX_DAYS
+	) {
+		throw new Error(
+			`Data retention must be between ${DATA_RETENTION_MIN_DAYS} and ${DATA_RETENTION_MAX_DAYS} days.`,
+		);
+	}
+
+	return {
+		instanceName,
+		dataRetentionDays: String(dataRetentionDays),
+	};
+}
+
 /**
  * Render a form for viewing and updating instance-wide configuration.
  *
@@ -63,20 +91,27 @@ export function ConfigurationSettingsForm() {
 	// Save mutation
 	const saveMutation = useMutation({
 		mutationFn: async (values: ConfigFormData) => {
+			const nextValues = normalizeConfigFormData(values);
+
 			await Promise.all([
 				client.configuration.set({
 					key: "instance_name",
-					value: values.instanceName,
+					value: nextValues.instanceName,
 				}),
 				client.configuration.set({
 					key: "data_retention_days",
-					value: values.dataRetentionDays,
+					value: nextValues.dataRetentionDays,
 				}),
 			]);
+
+			return nextValues;
 		},
-		onSuccess: () => {
+		onSuccess: async (nextValues) => {
+			reset(nextValues);
+			await queryClient.invalidateQueries({
+				queryKey: orpc.configuration.list.key(),
+			});
 			sileo.success({ title: "Settings saved successfully" });
-			queryClient.invalidateQueries({ queryKey: ["configuration"] });
 		},
 		onError: (error: Error) => {
 			sileo.error({ title: error.message });
@@ -116,6 +151,7 @@ export function ConfigurationSettingsForm() {
 						<Input
 							id="instance-name"
 							placeholder="UptimeKit Self-Hosted"
+							required
 							{...register("instanceName")}
 						/>
 						<p className="text-muted-foreground text-sm">
@@ -127,9 +163,11 @@ export function ConfigurationSettingsForm() {
 						<Input
 							id="data-retention"
 							type="number"
-							min="1"
-							max="365"
+							min={DATA_RETENTION_MIN_DAYS}
+							max={DATA_RETENTION_MAX_DAYS}
 							placeholder="30"
+							required
+							step={1}
 							{...register("dataRetentionDays")}
 						/>
 						<p className="text-muted-foreground text-sm">
@@ -137,7 +175,7 @@ export function ConfigurationSettingsForm() {
 						</p>
 					</div>
 					<div className="flex items-center justify-start pt-2">
-						<Button type="submit" disabled={saveMutation.isPending}>
+						<Button type="submit" disabled={saveMutation.isPending || !isDirty}>
 							{saveMutation.isPending && (
 								<Loader2 className="mr-2 h-4 w-4 animate-spin" />
 							)}

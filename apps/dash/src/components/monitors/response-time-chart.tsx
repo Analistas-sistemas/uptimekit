@@ -350,16 +350,16 @@ export function ResponseTimeChart({
 }: ResponseTimeChartProps) {
 	const [chartState, setChartState] = useQueryStates(
 		{
-			latencyRange: parseAsStringEnum([...RANGE_VALUES]).withDefault("24h"),
+			latencyRange: parseAsStringEnum([...RANGE_VALUES]).withDefault("3h"),
 			latencyQuantile: parseAsStringEnum([...QUANTILE_VALUES]).withDefault(
-				"p50",
+				"p99",
 			),
 			latencyResolutionMinutes: parseAsStringEnum([
 				...LATENCY_RESOLUTION_VALUES,
 			]).withDefault("30"),
 			regionRange: parseAsStringEnum([...RANGE_VALUES]).withDefault("24h"),
 			regionQuantile: parseAsStringEnum([...QUANTILE_VALUES]).withDefault(
-				"p50",
+				"p99",
 			),
 			regionView: parseAsStringEnum([...REGION_VIEW_VALUES]).withDefault(
 				"table",
