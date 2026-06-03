@@ -48,7 +48,7 @@ Built with a modern, type-safe stack for maximum performance and developer exper
 
 - **Framework**: [Next.js 16](https://nextjs.org/) (App Router)
 - **Language**: [TypeScript](https://www.typescriptlang.org/)
-- **Database**: [PostgreSQL](https://www.postgresql.org/) with [Drizzle ORM](https://orm.drizzle.team/) & [ClickHouse](https://clickhouse.com/)
+- **Database**: [PostgreSQL](https://www.postgresql.org/) with [Drizzle ORM](https://orm.drizzle.team/) & [ClickHouse](https://clickhouse.com/) & [TimescaleDB](https://www.timescale.com/)
 - **Styling**: [TailwindCSS](https://tailwindcss.com/) & [shadcn/ui](https://ui.shadcn.com/)
 - **Authentication**: [Better-Auth](https://better-auth.com/)
 - **API**: [oRPC](https://orpc.unstack.io/) & [OpenAPI](https://www.openapis.org/)
@@ -59,10 +59,8 @@ Built with a modern, type-safe stack for maximum performance and developer exper
 Follow these steps to get UptimeKit running locally on your machine.
 
 ### Prerequisites
-
-- pnpm
 - Redis
-- Clickhouse
+- Clickhouse/Timescale
 - PostgreSQL
 
 ### Install
