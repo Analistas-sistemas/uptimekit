@@ -14,6 +14,7 @@ export const DiscordConfigSchema = z.object({
 				message: "Must be a valid Discord Webhook URL",
 			},
 		),
+	message: z.string().optional(),
 });
 
 export const discordIntegrationMeta: Omit<

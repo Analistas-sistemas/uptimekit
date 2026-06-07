@@ -43,6 +43,7 @@ export const discordIntegration: IntegrationDefinition<
 					},
 				],
 			};
+			console.log(config);
 
 			await fetchIntegrationWebhook(config.webhookUrl, {
 				method: "POST",
@@ -50,6 +51,7 @@ export const discordIntegration: IntegrationDefinition<
 					"Content-Type": "application/json",
 				},
 				body: JSON.stringify({
+					content: config.message?.trim(),
 					embeds: [embed],
 				}),
 			});
