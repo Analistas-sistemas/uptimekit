@@ -912,11 +912,11 @@ export function CreateMonitorForm({
 			});
 			utils.invalidateQueries({ queryKey: orpc.monitors.list.key() });
 			if (monitorId) {
+				router.push(`/monitors/${monitorId}`);
 				utils.invalidateQueries({
 					queryKey: orpc.monitors.get.key({ input: { id: monitorId } }),
 				});
 			}
-			router.push(`/monitors/${monitorId}`);
 		},
 		onError: (error) => {
 			sileo.error({
