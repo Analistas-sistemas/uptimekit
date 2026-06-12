@@ -5,7 +5,7 @@ services:
       dockerfile: apps/dash/Dockerfile
     image: ghcr.io/uptimekit/dash:latest
     ports:
-      - "${DASH_PORT:-3100}:3100"
+      - "${DASH_PORT:-3001}:3000"
     env_file:
       - .env
     environment:
