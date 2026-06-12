@@ -41,7 +41,11 @@ import {
 	enforceMonitorQuotaOrThrow,
 	getOrganizationQuotaState,
 } from "../lib/organization-limits";
-import { assertSafePublicHttpUrl } from "../lib/safe-url";
+import {
+	assertSafePublicHttpUrl,
+	fetchPublicHttpUrl,
+	UnsafePublicHttpUrlError,
+} from "../lib/safe-url";
 
 const RESPONSE_TIME_RANGE_VALUES = [
 	"3h",
@@ -70,6 +74,7 @@ const MONITOR_TYPES = [
 ] as const;
 const URL_MONITOR_TYPES = new Set(["http", "http-json", "keyword", "instatus"]);
 const EXTERNAL_COMPONENTS_CACHE_TTL_MS = 60_000;
+const EXTERNAL_COMPONENTS_MAX_BODY_BYTES = 1024 * 1024;
 
 interface InstatusComponentResponse {
 	components?: Array<{
@@ -227,10 +232,30 @@ async function listInstatusComponents(statusPageUrl: string) {
 		return cached.components;
 	}
 
-	const response = await fetch(componentsUrl, {
-		redirect: "error",
-		signal: AbortSignal.timeout(10_000),
-	});
+	let response: Awaited<ReturnType<typeof fetchPublicHttpUrl>>;
+	try {
+		response = await fetchPublicHttpUrl(componentsUrl, {
+			headers: {
+				Accept: "application/json",
+			},
+			label: "Status page URL",
+			maxBodyBytes: EXTERNAL_COMPONENTS_MAX_BODY_BYTES,
+			timeoutMs: 10_000,
+		});
+	} catch (error) {
+		if (error instanceof UnsafePublicHttpUrlError) {
+			throw new ORPCError("BAD_REQUEST", {
+				message: error.message,
+			});
+		}
+
+		throw new ORPCError("BAD_GATEWAY", {
+			message:
+				error instanceof Error
+					? error.message
+					: "Failed to fetch status components.",
+		});
+	}
 
 	if (!response.ok) {
 		throw new ORPCError("BAD_GATEWAY", {
@@ -238,7 +263,14 @@ async function listInstatusComponents(statusPageUrl: string) {
 		});
 	}
 
-	const payload = (await response.json()) as InstatusComponentResponse;
+	let payload: InstatusComponentResponse;
+	try {
+		payload = JSON.parse(response.body) as InstatusComponentResponse;
+	} catch {
+		throw new ORPCError("BAD_GATEWAY", {
+			message: "Status components response was not valid JSON.",
+		});
+	}
 	const components = (payload.components ?? [])
 		.map(toExternalComponentOption)
 		.filter((component) => component !== null)
