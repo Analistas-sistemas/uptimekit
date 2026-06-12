@@ -375,7 +375,7 @@ export function UptimeBar({
 								) : null}
 							</div>
 							<div className="min-w-56 bg-card px-4 py-3 font-medium text-[12px] text-foreground">
-								{new Date(hoveredDay.date).toLocaleDateString("en-US", {
+								{new Date(hoveredDay.date).toLocaleDateString("es-ES", {
 									month: "short",
 									day: "numeric",
 									year: "numeric",

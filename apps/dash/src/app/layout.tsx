@@ -30,7 +30,7 @@ export async function generateMetadata(): Promise<Metadata> {
 					alt: "UptimeKit",
 				},
 			],
-			locale: "en_US",
+			locale: "es_ES",
 			type: "website",
 		},
 		twitter: {
@@ -61,7 +61,7 @@ export default function RootLayout({
 	children: React.ReactNode;
 }>) {
 	return (
-		<html lang="en" suppressHydrationWarning>
+		<html lang="es" suppressHydrationWarning>
 			<body className="text-foreground antialiased">
 				<Providers>{children}</Providers>
 			</body>

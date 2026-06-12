@@ -56,7 +56,7 @@ export function IncidentCard({
 							{incident.title}
 						</h3>
 						<p className="mt-0.5 text-muted-foreground text-xs">
-							{new Date(incident.startedAt).toLocaleDateString("en-US", {
+							{new Date(incident.startedAt).toLocaleDateString("es-ES", {
 								month: "short",
 								day: "numeric",
 								year: "numeric",
@@ -155,7 +155,7 @@ export function IncidentCard({
                                                 */}
 												<span className="text-muted-foreground text-xs">
 													{new Date(activity.createdAt).toLocaleString(
-														"en-US",
+														"es-ES",
 														{
 															month: "short",
 															day: "numeric",

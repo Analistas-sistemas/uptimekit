@@ -63,7 +63,7 @@ export function OverallStatus({ status, lastUpdated }: OverallStatusProps) {
 	const isValidDate = !Number.isNaN(date.getTime());
 
 	const formattedDate = isValidDate
-		? date.toLocaleString("en-US", {
+		? date.toLocaleString("es-ES", {
 				month: "short",
 				day: "numeric",
 				hour: "2-digit",

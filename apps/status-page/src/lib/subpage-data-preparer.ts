@@ -222,7 +222,7 @@ export async function prepareUpdatesPageData(
 
 	const incidentsByDate = allUpdates.reduce(
 		(acc, item) => {
-			const date = new Date(item.startedAt).toLocaleDateString("en-US", {
+			const date = new Date(item.startedAt).toLocaleDateString("es-ES", {
 				month: "long",
 				day: "numeric",
 				year: "numeric",

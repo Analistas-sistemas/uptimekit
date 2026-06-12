@@ -366,7 +366,7 @@ export async function prepareStatusPageData(
 
 	const incidentsByDate = pastIncidents.reduce(
 		(acc, incident) => {
-			const date = new Date(incident.startedAt).toLocaleDateString("en-US", {
+			const date = new Date(incident.startedAt).toLocaleDateString("es-ES", {
 				month: "short",
 				day: "numeric",
 				year: "numeric",

@@ -38,7 +38,7 @@ function formatTooltipDate(dateString: string): string {
 	if (/^\d{4}-\d{2}-\d{2}$/.test(dateString)) {
 		const [year, month, day] = dateString.split("-").map(Number);
 		const date = new Date(year, month - 1, day);
-		return date.toLocaleDateString("en-US", {
+		return date.toLocaleDateString("es-ES", {
 			weekday: "long",
 			month: "short",
 			day: "numeric",
@@ -46,7 +46,7 @@ function formatTooltipDate(dateString: string): string {
 		});
 	}
 
-	return new Date(dateString).toLocaleDateString("en-US", {
+	return new Date(dateString).toLocaleDateString("es-ES", {
 		weekday: "long",
 		month: "short",
 		day: "numeric",

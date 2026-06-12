@@ -26,7 +26,7 @@ export function getIssueStatus(incident: Incident): StatusType {
 }
 
 export function formatShortDate(date: Date): string {
-	return new Date(date).toLocaleDateString("en-US", {
+	return new Date(date).toLocaleDateString("es-ES", {
 		month: "short",
 		day: "numeric",
 		year: "numeric",
@@ -35,7 +35,7 @@ export function formatShortDate(date: Date): string {
 }
 
 export function formatDateTime(date: Date): string {
-	return new Date(date).toLocaleString("en-US", {
+	return new Date(date).toLocaleString("es-ES", {
 		month: "short",
 		day: "numeric",
 		hour: "numeric",

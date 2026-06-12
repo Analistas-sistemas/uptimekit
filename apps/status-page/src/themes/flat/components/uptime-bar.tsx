@@ -346,7 +346,7 @@ export function UptimeBar({
 														{day.annotation || statusConfig[day.status].label}
 													</div>
 													<div className="text-[10px] text-muted-foreground">
-														{new Date(day.date).toLocaleDateString("en-US", {
+														{new Date(day.date).toLocaleDateString("es-ES", {
 															month: "short",
 															day: "numeric",
 															timeZone: "UTC",
@@ -417,7 +417,7 @@ export function UptimeBar({
 												{day.annotation || statusConfig[day.status].label}
 											</div>
 											<div className="text-[10px] text-muted-foreground">
-												{new Date(day.date).toLocaleDateString("en-US", {
+												{new Date(day.date).toLocaleDateString("es-ES", {
 													month: "short",
 													day: "numeric",
 													timeZone: "UTC",
