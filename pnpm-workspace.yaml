@@ -2,6 +2,19 @@ packages:
   - apps/*
   - packages/*
 
+overrides:
+  esbuild: ^0.28.0
+  postcss: ^8.5.14
+  vite: ^8.0.16
+
+onlyBuiltDependencies:
+  - cpu-features
+  - esbuild
+  - msgpackr-extract
+  - protobufjs
+  - sharp
+  - ssh2
+
 catalog:
   "@orpc/client": latest
   "@orpc/openapi": latest
