@@ -1184,7 +1184,7 @@ export function CreateMonitorForm({
 
 			return client.monitors.create(payload as any);
 		},
-		onSuccess: () => {
+		onSuccess: (result) => {
 			sileo.success({
 				title: monitorId ? "Monitor updated" : "Monitor created",
 			});
@@ -1194,7 +1194,29 @@ export function CreateMonitorForm({
 				utils.invalidateQueries({
 					queryKey: orpc.monitors.get.key({ input: { id: monitorId } }),
 				});
+				return;
 			}
+
+			const createdMonitorId =
+				typeof result === "object" &&
+				result !== null &&
+				"id" in result &&
+				typeof result.id === "string"
+					? result.id
+					: null;
+
+			if (!createdMonitorId) {
+				sileo.error({
+					title: "Monitor created, but the new monitor ID was not returned",
+				});
+				router.push("/monitors");
+				return;
+			}
+
+			router.push(`/monitors/${createdMonitorId}`);
+			utils.invalidateQueries({
+				queryKey: orpc.monitors.get.key({ input: { id: createdMonitorId } }),
+			});
 		},
 		onError: (error) => {
 			sileo.error({

@@ -10,7 +10,7 @@ import {
 	parseAsStringEnum,
 	useQueryStates,
 } from "nuqs";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { sileo } from "sileo";
 import {
 	ArrowRight,
@@ -167,6 +167,7 @@ function getBulkActionErrorTitle(action: BulkIncidentAction, message: string) {
 
 export function IncidentsTable() {
 	const router = useRouter();
+	const suppressRowNavigationUntilRef = useRef(0);
 	const [searchOpen, setSearchOpen] = useState(false);
 	const [filters, setFilters] = useQueryStates({
 		search: parseAsString.withDefault(""),
@@ -204,6 +205,18 @@ export function IncidentsTable() {
 	const pageSize = Number(pageSizeParam);
 	const [searchInput, setSearchInput] = useState(search);
 	const [debouncedSearch, setDebouncedSearch] = useState(search);
+
+	const suppressRowNavigation = () => {
+		suppressRowNavigationUntilRef.current = Date.now() + 500;
+	};
+
+	const handleIncidentRowClick = (incidentId: string) => {
+		if (Date.now() < suppressRowNavigationUntilRef.current) {
+			return;
+		}
+
+		router.push(`/incidents/${incidentId}`);
+	};
 
 	useEffect(() => {
 		setSearchInput(search);
@@ -1092,7 +1105,7 @@ export function IncidentsTable() {
 										key={incident.id}
 										className="group h-[72px] cursor-pointer hover:bg-muted/40"
 										data-state={isSelected ? "selected" : undefined}
-										onClick={() => router.push(`/incidents/${incident.id}`)}
+										onClick={() => handleIncidentRowClick(incident.id)}
 									>
 										<TableCell
 											className="w-12 pr-0 pl-4"
@@ -1195,7 +1208,17 @@ export function IncidentsTable() {
 												</span>
 											</div>
 										</TableCell>
-										<TableCell className="w-[52px] pr-4">
+										<TableCell
+											className="w-[52px] pr-4"
+											onPointerDown={(event) => {
+												event.stopPropagation();
+												suppressRowNavigation();
+											}}
+											onClick={(event) => {
+												event.stopPropagation();
+												suppressRowNavigation();
+											}}
+										>
 											<DropdownMenu>
 												<DropdownMenuTrigger
 													render={
@@ -1203,14 +1226,27 @@ export function IncidentsTable() {
 															variant="ghost"
 															size="icon"
 															className="h-8 w-8 text-muted-foreground opacity-0 transition-opacity focus-visible:opacity-100 group-hover:opacity-100 data-[state=open]:opacity-100"
-															onClick={(event) => event.stopPropagation()}
+															onClick={(event) => {
+																event.stopPropagation();
+																suppressRowNavigation();
+															}}
 														/>
 													}
 												>
 													<MoreHorizontal className="h-4 w-4" />
 													<span className="sr-only">Open menu</span>
 												</DropdownMenuTrigger>
-												<DropdownMenuContent align="end">
+												<DropdownMenuContent
+													align="end"
+													onPointerDown={(event) => {
+														event.stopPropagation();
+														suppressRowNavigation();
+													}}
+													onClick={(event) => {
+														event.stopPropagation();
+														suppressRowNavigation();
+													}}
+												>
 													<DropdownMenuItem
 														render={<Link href={`/incidents/${incident.id}`} />}
 													>
@@ -1219,9 +1255,11 @@ export function IncidentsTable() {
 													{!incident.endedAt && !incident.acknowledgedAt && (
 														<DropdownMenuItem
 															disabled={bulkIncidentAction.isPending}
-															onSelect={() =>
-																runBulkAction("acknowledge", [incident.id])
-															}
+															onSelect={(event) => {
+																event.stopPropagation();
+																suppressRowNavigation();
+																runBulkAction("acknowledge", [incident.id]);
+															}}
 														>
 															<Check className="h-4 w-4" />
 															Acknowledge
@@ -1230,9 +1268,11 @@ export function IncidentsTable() {
 													{!incident.endedAt && (
 														<DropdownMenuItem
 															disabled={bulkIncidentAction.isPending}
-															onSelect={() =>
-																runBulkAction("resolve", [incident.id])
-															}
+															onSelect={(event) => {
+																event.stopPropagation();
+																suppressRowNavigation();
+																runBulkAction("resolve", [incident.id]);
+															}}
 														>
 															<CheckCircle2 className="h-4 w-4" />
 															Resolve
@@ -1241,12 +1281,14 @@ export function IncidentsTable() {
 													<DropdownMenuSeparator />
 													<DropdownMenuItem
 														variant="destructive"
-														onSelect={() =>
+														onSelect={(event) => {
+															event.stopPropagation();
+															suppressRowNavigation();
 															setIncidentToDelete({
 																id: incident.id,
 																title: incident.title,
-															})
-														}
+															});
+														}}
 													>
 														Delete
 													</DropdownMenuItem>
