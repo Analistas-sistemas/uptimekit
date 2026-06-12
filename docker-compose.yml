@@ -1,8 +1,11 @@
 services:
   dash:
+    build:
+      context: .
+      dockerfile: apps/dash/Dockerfile
     image: ghcr.io/uptimekit/dash:latest
     ports:
-      - "${DASH_PORT:-3100}:3000"
+      - "${DASH_PORT:-3100}:3100"
     env_file:
       - .env
     environment:
@@ -30,6 +33,9 @@ services:
     restart: always
 
   status-page:
+    build:
+      context: .
+      dockerfile: apps/status-page/Dockerfile
     image: ghcr.io/uptimekit/status-page:latest
     ports:
       - "${STATUS_PAGE_PORT:-3001}:3001"
