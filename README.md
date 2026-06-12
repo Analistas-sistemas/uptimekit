@@ -17,6 +17,7 @@
   </p>
 
   <br/>
+  
 
   <img src="https://r2.uptimekit.dev/banners/banner-smaller.png" alt="UptimeKit Banner" width="100%">
 </div>
