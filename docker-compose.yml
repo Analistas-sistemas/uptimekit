@@ -2,7 +2,7 @@ services:
   dash:
     image: ghcr.io/uptimekit/dash:latest
     ports:
-      - "${DASH_PORT:-3000}:3000"
+      - "${DASH_PORT:-3100}:3000"
     env_file:
       - .env
     environment:
